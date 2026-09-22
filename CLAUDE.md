@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 - `npm run dev` / `npm run build` / `npm run lint`
 - `npm run db:migrate` (runs `prisma migrate dev`), `npm run db:studio`, `npx prisma generate` (also runs on postinstall)
-- `npm run test` (Vitest), `npm run typecheck`, `npm run format`, `npm run db:up` / `db:down` (local Postgres in Docker on port 5433). Playwright comes with full M01.
+- `npm run test` (Vitest), `npm run typecheck`, `npm run format`. Local DB = WAMP MySQL 8.3 on `localhost:3306`, database `followup` (view in phpMyAdmin). Playwright comes with full M01.
 
 ## Requirements (local `docs/`, gitignored; ignore `docs/unused/`)
 This is a store walk-in → follow-up → sale tracking PWA. The whole scope is modules M01–M25 in one project.
@@ -26,7 +26,8 @@ Build order: M01 → M17 → M18 → M02 → M03 → M04 → M05 → M06 → M07
 - Prisma 7:
   - The datasource URL and seed go in `prisma.config.ts`, not `schema.prisma`.
   - The generator is `prisma-client`, which outputs to `src/generated/prisma` (gitignored). Import from `@/generated/prisma/client`.
-  - The `@prisma/adapter-pg` adapter is required.
+  - MySQL via the `@prisma/adapter-mariadb` adapter (required). Tables are `@@map`'d to snake_case.
+- Database is MySQL 8, not PostgreSQL; background jobs use a MySQL job table + cron worker, not pg-boss (see `docs/decisions.md`).
 - The single Prisma client is `db` in `src/lib/db.ts`. Never create another `PrismaClient`.
 - Tailwind v4: tokens go in `@theme` in `globals.css`. There is no `tailwind.config`.
 
