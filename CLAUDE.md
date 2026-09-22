@@ -7,7 +7,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 - `npm run dev` / `npm run build` / `npm run lint`
 - `npm run db:migrate` (runs `prisma migrate dev`), `npm run db:studio`, `npx prisma generate` (also runs on postinstall)
-- `npm run test` (Vitest), `npm run typecheck`, `npm run format`. Local DB = WAMP MySQL 8.3 on `localhost:3306`, database `followup` (view in phpMyAdmin). Playwright comes with full M01.
+- `npm run test` (Vitest unit + UI), `npm run test:db` (DB tests on `followup_test`), `npm run test:e2e` (Playwright; build first, stop `npm run dev`), `npx prisma db seed`, `npm run typecheck`, `npm run format`. Local DB = WAMP MySQL 8.3 on `localhost:3306`, database `followup` (view in phpMyAdmin).
+- `npm run worker` (background jobs), `npm run worker:test` (queue a test job). Never run `npm run build` while `npm run dev` is running.
 
 ## Requirements (local `docs/`, gitignored; ignore `docs/unused/`)
 This is a store walk-in → follow-up → sale tracking PWA. The whole scope is modules M01–M25 in one project.
@@ -25,6 +26,7 @@ Build order: M01 → M17 → M18 → M02 → M03 → M04 → M05 → M06 → M07
 - Next 16: "middleware" is now **`proxy.ts`**.
 - Prisma 7:
   - The datasource URL and seed go in `prisma.config.ts`, not `schema.prisma`.
+  - Run `npx prisma generate` after `migrate dev` (it no longer generates).
   - The generator is `prisma-client`, which outputs to `src/generated/prisma` (gitignored). Import from `@/generated/prisma/client`.
   - MySQL via the `@prisma/adapter-mariadb` adapter (required). Tables are `@@map`'d to snake_case.
 - Database is MySQL 8, not PostgreSQL; background jobs use a MySQL job table + cron worker, not pg-boss (see `docs/decisions.md`).

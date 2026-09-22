@@ -1,7 +1,6 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// Data model: docs/module-prompts.md (master context) + docs/decisions.md (model fixes, MySQL notes).
+// Rules: tables are @@map'd to snake_case (Windows MySQL lower-cases table names), times are UTC,
+// calendar dates use @db.Date, nothing is hard-deleted (status/active fields + audit log).
 
 generator client {
   provider = "prisma-client"
@@ -10,4 +9,718 @@ generator client {
 
 datasource db {
   provider = "mysql"
+}
+
+// ---------- Enums ----------
+
+enum Role {
+  SALESPERSON
+  MANAGER
+  ADMIN
+}
+
+enum RecordStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum Language {
+  en
+  hi
+  gu
+}
+
+enum CustomerSource {
+  WALK_IN
+  IMPORT
+  REFERRAL
+  OTHER
+}
+
+enum ExpectedPurchase {
+  THIS_WEEK
+  THIS_MONTH
+  NEXT_MONTH
+  NOT_SURE
+}
+
+enum Intent {
+  HOT
+  WARM
+  COLD
+}
+
+enum EnquiryStatus {
+  OPEN
+  SALE_COMPLETED
+  NOT_INTERESTED
+}
+
+enum VisitOutcome {
+  PURCHASED
+  DECIDE_LATER
+  NOT_INTERESTED
+}
+
+enum VisitType {
+  NEW
+  EXISTING
+}
+
+enum TimeSlot {
+  MORNING
+  AFTERNOON
+  EVENING
+}
+
+enum FollowUpMethod {
+  CALL
+  WHATSAPP
+  VISIT
+}
+
+enum FollowUpStatus {
+  PENDING
+  DONE
+  RESCHEDULED
+  CANCELLED
+}
+
+enum FollowUpResult {
+  WILL_VISIT
+  CALL_LATER
+  NOT_REACHABLE
+  ALREADY_BOUGHT
+  NOT_INTERESTED
+}
+
+enum FollowUpSource {
+  VISIT
+  FOLLOWUP_RESULT
+  PROFILE
+  OCCASION
+}
+
+enum TemplateStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum MessageDirection {
+  OUT
+  IN
+}
+
+enum MessageStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  DONE
+  CANCELLED
+}
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  DONE
+  FAILED
+}
+
+enum ImportStatus {
+  PENDING
+  PROCESSING
+  DONE
+  FAILED
+}
+
+// ---------- Organisation and staff ----------
+
+model Branch {
+  id           String       @id @default(cuid())
+  name         String       @unique @db.VarChar(100)
+  address      String       @db.VarChar(255)
+  city         String       @db.VarChar(100)
+  phone        String       @db.VarChar(20)
+  gstNumber    String?      @db.VarChar(20)
+  openingHours String?      @db.VarChar(100)
+  status       RecordStatus @default(ACTIVE)
+  createdAt    DateTime     @default(now()) @db.DateTime(3)
+  createdById  String?
+  updatedAt    DateTime     @updatedAt @db.DateTime(3)
+  updatedById  String?
+
+  homeUsers        User[]
+  extraUsers       UserBranch[]
+  categories       RequirementCategory[]
+  customers        Customer[]
+  visits           Visit[]
+  followUps        FollowUp[]
+  sales            Sale[]
+  whatsappMessages WhatsAppMessage[]
+  campaigns        Campaign[]
+  festivals        Festival[]
+  importJobs       ImportJob[]
+
+  @@map("branches")
+}
+
+model Department {
+  id        String       @id @default(cuid())
+  name      String       @unique @db.VarChar(100)
+  status    RecordStatus @default(ACTIVE)
+  createdAt DateTime     @default(now()) @db.DateTime(3)
+  updatedAt DateTime     @updatedAt @db.DateTime(3)
+
+  users     User[]
+  customers Customer[]
+
+  @@map("departments")
+}
+
+model User {
+  id             String       @id @default(cuid())
+  fullName       String       @db.VarChar(100)
+  mobile         String       @unique @db.Char(10)
+  role           Role
+  homeBranchId   String
+  language       Language     @default(en)
+  departmentId   String?
+  pinHash        String       @db.VarChar(255)
+  status         RecordStatus @default(ACTIVE)
+  failedPinCount Int          @default(0)
+  lockedUntil    DateTime?    @db.DateTime(3)
+  joinedOn       DateTime?    @db.Date
+  mustChangePin  Boolean      @default(true)
+  createdAt      DateTime     @default(now()) @db.DateTime(3)
+  createdById    String?
+  updatedAt      DateTime     @updatedAt @db.DateTime(3)
+  updatedById    String?
+
+  homeBranch    Branch             @relation(fields: [homeBranchId], references: [id])
+  department    Department?        @relation(fields: [departmentId], references: [id])
+  extraBranches UserBranch[]
+  sessions      Session[]
+  notifications Notification[]
+  pushSubs      PushSubscription[]
+
+  assignedCustomers  Customer[]      @relation("CustomerAssignedTo")
+  assignedEnquiries  Enquiry[]       @relation("EnquiryAssignedTo")
+  visits             Visit[]         @relation("VisitSalesperson")
+  assignedFollowUps  FollowUp[]      @relation("FollowUpAssignedTo")
+  completedFollowUps FollowUp[]      @relation("FollowUpCompletedBy")
+  sales              Sale[]          @relation("SaleSalesperson")
+  timelineEvents     TimelineEvent[]
+
+  @@index([homeBranchId])
+  @@map("users")
+}
+
+// Replaces User.extraBranchIds[] (arrays have no foreign keys).
+model UserBranch {
+  userId   String
+  branchId String
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@id([userId, branchId])
+  @@index([branchId])
+  @@map("user_branches")
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  userId     String
+  tokenHash  String   @unique @db.VarChar(128)
+  deviceInfo String?  @db.VarChar(255)
+  expiresAt  DateTime @db.DateTime(3)
+  lastSeenAt DateTime @default(now()) @db.DateTime(3)
+  createdAt  DateTime @default(now()) @db.DateTime(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+// ---------- Master lists ----------
+
+model RequirementCategory {
+  id        String   @id @default(cuid())
+  nameEn    String   @db.VarChar(100)
+  nameHi    String   @db.VarChar(100)
+  nameGu    String   @db.VarChar(100)
+  sortOrder Int      @default(0)
+  branchId  String? // null = all branches
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @db.DateTime(3)
+  updatedAt DateTime @updatedAt @db.DateTime(3)
+
+  branch    Branch?           @relation(fields: [branchId], references: [id])
+  enquiries EnquiryCategory[]
+  visits    VisitCategory[]
+
+  @@index([branchId])
+  @@map("requirement_categories")
+}
+
+model LostReason {
+  id        String   @id @default(cuid())
+  nameEn    String   @db.VarChar(100)
+  nameHi    String   @db.VarChar(100)
+  nameGu    String   @db.VarChar(100)
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @db.DateTime(3)
+  updatedAt DateTime @updatedAt @db.DateTime(3)
+
+  enquiries Enquiry[]
+  visits    Visit[]
+
+  @@map("lost_reasons")
+}
+
+model Setting {
+  key         String   @id @db.VarChar(100)
+  value       Json
+  updatedAt   DateTime @updatedAt @db.DateTime(3)
+  updatedById String?
+
+  @@map("settings")
+}
+
+// ---------- Customers and the sales journey ----------
+
+model Customer {
+  id                String         @id @default(cuid())
+  name              String         @db.VarChar(100)
+  // Null only after a privacy delete (M16); MySQL allows many NULLs in a unique index.
+  mobile            String?        @unique @db.Char(10)
+  altMobile         String?        @db.Char(10)
+  area              String?        @db.VarChar(100)
+  city              String?        @db.VarChar(100)
+  address           String?        @db.VarChar(255)
+  departmentId      String?
+  assignedToId      String
+  occasion          String?        @db.VarChar(100)
+  occasionDate      DateTime?      @db.Date
+  consentGiven      Boolean        @default(false)
+  consentAt         DateTime?      @db.DateTime(3)
+  consentById       String?
+  whatsappConsent   Boolean        @default(false)
+  whatsappConsentAt DateTime?      @db.DateTime(3)
+  preferredLanguage Language?
+  homeBranchId      String
+  source            CustomerSource @default(WALK_IN)
+  firstVisitAt      DateTime?      @db.DateTime(3)
+  active            Boolean        @default(true)
+  anonymizedAt      DateTime?      @db.DateTime(3)
+  createdAt         DateTime       @default(now()) @db.DateTime(3)
+  createdById       String?
+  updatedAt         DateTime       @updatedAt @db.DateTime(3)
+  updatedById       String?
+
+  department       Department?       @relation(fields: [departmentId], references: [id])
+  assignedTo       User              @relation("CustomerAssignedTo", fields: [assignedToId], references: [id])
+  homeBranch       Branch            @relation(fields: [homeBranchId], references: [id])
+  enquiries        Enquiry[]
+  visits           Visit[]
+  followUps        FollowUp[]
+  sales            Sale[]
+  timelineEvents   TimelineEvent[]
+  whatsappMessages WhatsAppMessage[]
+
+  @@index([altMobile])
+  @@index([assignedToId])
+  @@index([homeBranchId])
+  @@map("customers")
+}
+
+model Enquiry {
+  id               String            @id @default(cuid())
+  customerId       String
+  title            String            @db.VarChar(150)
+  expectedPurchase ExpectedPurchase?
+  latestRemarks    String?           @db.Text
+  intent           Intent?
+  status           EnquiryStatus     @default(OPEN)
+  lostReasonId     String?
+  assignedToId     String
+  openedAt         DateTime          @default(now()) @db.DateTime(3)
+  closedAt         DateTime?         @db.DateTime(3)
+  // BR-02: generated column (see migration SQL) = customerId while OPEN, else NULL. Never write it.
+  openCustomerId   String?           @unique
+  createdAt        DateTime          @default(now()) @db.DateTime(3)
+  updatedAt        DateTime          @updatedAt @db.DateTime(3)
+
+  // onUpdate Restrict: MySQL forbids CASCADE on the base column of a stored generated column.
+  customer   Customer          @relation(fields: [customerId], references: [id], onUpdate: Restrict)
+  lostReason LostReason?       @relation(fields: [lostReasonId], references: [id])
+  assignedTo User              @relation("EnquiryAssignedTo", fields: [assignedToId], references: [id])
+  categories EnquiryCategory[]
+  visits     Visit[]
+  followUps  FollowUp[]
+  sales      Sale[]
+
+  @@index([customerId])
+  @@index([assignedToId, status])
+  @@map("enquiries")
+}
+
+// Replaces Enquiry.categoryIds[].
+model EnquiryCategory {
+  enquiryId  String
+  categoryId String
+
+  enquiry  Enquiry             @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+  category RequirementCategory @relation(fields: [categoryId], references: [id])
+
+  @@id([enquiryId, categoryId])
+  @@index([categoryId])
+  @@map("enquiry_categories")
+}
+
+model Visit {
+  id             String       @id @default(cuid())
+  branchId       String
+  customerId     String
+  enquiryId      String
+  clientId       String       @unique @db.Char(36) // uuid from the device, for offline sync
+  enteredOffline Boolean      @default(false)
+  visitAt        DateTime     @db.DateTime(3)
+  salespersonId  String
+  remarks        String?      @db.Text
+  outcome        VisitOutcome
+  lostReasonId   String?
+  visitType      VisitType
+  createdAt      DateTime     @default(now()) @db.DateTime(3)
+  updatedAt      DateTime     @updatedAt @db.DateTime(3)
+
+  branch      Branch          @relation(fields: [branchId], references: [id])
+  customer    Customer        @relation(fields: [customerId], references: [id])
+  enquiry     Enquiry         @relation(fields: [enquiryId], references: [id])
+  salesperson User            @relation("VisitSalesperson", fields: [salespersonId], references: [id])
+  lostReason  LostReason?     @relation(fields: [lostReasonId], references: [id])
+  categories  VisitCategory[]
+
+  @@index([branchId, visitAt])
+  @@index([customerId, visitAt])
+  @@index([enquiryId])
+  @@index([salespersonId, visitAt])
+  @@map("visits")
+}
+
+// Replaces Visit.categoryIds[].
+model VisitCategory {
+  visitId    String
+  categoryId String
+
+  visit    Visit               @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  category RequirementCategory @relation(fields: [categoryId], references: [id])
+
+  @@id([visitId, categoryId])
+  @@index([categoryId])
+  @@map("visit_categories")
+}
+
+model FollowUp {
+  id                String          @id @default(cuid())
+  branchId          String
+  customerId        String
+  enquiryId         String
+  clientId          String          @unique @db.Char(36)
+  dueDate           DateTime        @db.Date
+  timeSlot          TimeSlot
+  method            FollowUpMethod
+  reason            String?         @db.VarChar(255)
+  assignedToId      String
+  status            FollowUpStatus  @default(PENDING)
+  result            FollowUpResult?
+  resultNote        String?         @db.Text
+  notReachableCount Int             @default(0)
+  createdFrom       FollowUpSource
+  completedAt       DateTime?       @db.DateTime(3)
+  completedById     String?
+  // BR-02: generated column (see migration SQL) = customerId while PENDING, else NULL. Never write it.
+  pendingCustomerId String?         @unique
+  createdAt         DateTime        @default(now()) @db.DateTime(3)
+  updatedAt         DateTime        @updatedAt @db.DateTime(3)
+
+  branch      Branch   @relation(fields: [branchId], references: [id])
+  // onUpdate Restrict: MySQL forbids CASCADE on the base column of a stored generated column.
+  customer    Customer @relation(fields: [customerId], references: [id], onUpdate: Restrict)
+  enquiry     Enquiry  @relation(fields: [enquiryId], references: [id])
+  assignedTo  User     @relation("FollowUpAssignedTo", fields: [assignedToId], references: [id])
+  completedBy User?    @relation("FollowUpCompletedBy", fields: [completedById], references: [id])
+  sales       Sale[]
+
+  @@index([assignedToId, status, dueDate])
+  @@index([branchId, dueDate])
+  @@index([enquiryId])
+  @@index([customerId])
+  @@map("follow_ups")
+}
+
+model Sale {
+  id               String    @id @default(cuid())
+  branchId         String
+  customerId       String
+  enquiryId        String
+  clientId         String    @unique @db.Char(36)
+  billNumber       String    @db.VarChar(50) // stored uppercase
+  billDate         DateTime  @db.Date
+  billAmount       Decimal?  @db.Decimal(12, 2)
+  salespersonId    String
+  linkedFollowUpId String?
+  fromFollowUp     Boolean   @default(false)
+  remarks          String?   @db.Text
+  cancelled        Boolean   @default(false)
+  cancelReason     String?   @db.VarChar(255)
+  cancelledById    String?
+  cancelledAt      DateTime? @db.DateTime(3)
+  createdAt        DateTime  @default(now()) @db.DateTime(3)
+  updatedAt        DateTime  @updatedAt @db.DateTime(3)
+
+  branch         Branch    @relation(fields: [branchId], references: [id])
+  customer       Customer  @relation(fields: [customerId], references: [id])
+  enquiry        Enquiry   @relation(fields: [enquiryId], references: [id])
+  salesperson    User      @relation("SaleSalesperson", fields: [salespersonId], references: [id])
+  linkedFollowUp FollowUp? @relation(fields: [linkedFollowUpId], references: [id])
+
+  @@unique([branchId, billNumber]) // BR-07
+  @@index([branchId, billDate])
+  @@index([customerId])
+  @@index([enquiryId])
+  @@index([salespersonId, billDate])
+  @@map("sales")
+}
+
+model TimelineEvent {
+  id         String   @id @default(cuid())
+  customerId String
+  type       String   @db.VarChar(40)
+  title      String   @db.VarChar(200)
+  detail     String?  @db.Text
+  staffId    String
+  createdAt  DateTime @default(now()) @db.DateTime(3)
+
+  customer Customer @relation(fields: [customerId], references: [id])
+  staff    User     @relation(fields: [staffId], references: [id])
+
+  @@index([customerId, createdAt])
+  @@map("timeline_events")
+}
+
+// ---------- Notifications and audit ----------
+
+model Notification {
+  id      String    @id @default(cuid())
+  userId  String
+  type    String    @db.VarChar(40)
+  message String    @db.VarChar(500)
+  link    String?   @db.VarChar(255)
+  sentAt  DateTime  @default(now()) @db.DateTime(3)
+  readAt  DateTime? @db.DateTime(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique @db.VarChar(500)
+  keys      Json
+  createdAt DateTime @default(now()) @db.DateTime(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_subscriptions")
+}
+
+// No foreign keys on purpose: the audit trail must never block or be blocked by other rows.
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String? // null = system/worker
+  branchId   String?
+  action     String   @db.VarChar(50)
+  entityType String   @db.VarChar(50)
+  entityId   String   @db.VarChar(191)
+  oldValue   Json?
+  newValue   Json?
+  device     String?  @db.VarChar(255)
+  createdAt  DateTime @default(now()) @db.DateTime(3)
+
+  @@index([entityType, entityId])
+  @@index([userId, createdAt])
+  @@index([branchId, createdAt])
+  @@map("audit_logs")
+}
+
+// ---------- WhatsApp and campaigns (M22, M23) ----------
+
+model WhatsAppTemplate {
+  id         String         @id @default(cuid())
+  name       String         @db.VarChar(100)
+  category   String         @db.VarChar(50)
+  language   Language
+  body       String         @db.Text
+  variables  Json
+  metaStatus TemplateStatus @default(PENDING)
+  active     Boolean        @default(true)
+  createdAt  DateTime       @default(now()) @db.DateTime(3)
+  updatedAt  DateTime       @updatedAt @db.DateTime(3)
+
+  messages  WhatsAppMessage[]
+  campaigns Campaign[]
+
+  @@unique([name, language])
+  @@map("whatsapp_templates")
+}
+
+model WhatsAppMessage {
+  id            String           @id @default(cuid())
+  customerId    String
+  branchId      String
+  templateId    String?
+  direction     MessageDirection
+  body          String           @db.Text
+  metaMessageId String?          @unique @db.VarChar(128)
+  status        MessageStatus    @default(QUEUED)
+  error         String?          @db.Text
+  sentById      String?
+  campaignId    String?
+  createdAt     DateTime         @default(now()) @db.DateTime(3)
+  updatedAt     DateTime         @updatedAt @db.DateTime(3)
+
+  customer Customer          @relation(fields: [customerId], references: [id])
+  branch   Branch            @relation(fields: [branchId], references: [id])
+  template WhatsAppTemplate? @relation(fields: [templateId], references: [id])
+  campaign Campaign?         @relation(fields: [campaignId], references: [id])
+
+  @@index([customerId, createdAt])
+  @@index([branchId, createdAt])
+  @@index([campaignId])
+  @@map("whatsapp_messages")
+}
+
+model Campaign {
+  id          String         @id @default(cuid())
+  branchId    String? // null = all branches
+  name        String         @db.VarChar(150)
+  templateId  String
+  filters     Json
+  scheduledAt DateTime       @db.DateTime(3)
+  status      CampaignStatus @default(DRAFT)
+  counts      Json?
+  createdById String
+  createdAt   DateTime       @default(now()) @db.DateTime(3)
+  updatedAt   DateTime       @updatedAt @db.DateTime(3)
+
+  branch   Branch?           @relation(fields: [branchId], references: [id])
+  template WhatsAppTemplate  @relation(fields: [templateId], references: [id])
+  messages WhatsAppMessage[]
+
+  @@index([status, scheduledAt])
+  @@map("campaigns")
+}
+
+model Festival {
+  id        String   @id @default(cuid())
+  name      String   @db.VarChar(100)
+  date      DateTime @db.Date
+  branchId  String? // null = all branches
+  createdAt DateTime @default(now()) @db.DateTime(3)
+
+  branch Branch? @relation(fields: [branchId], references: [id])
+
+  @@index([date])
+  @@map("festivals")
+}
+
+// ---------- AI logs (M20, M21) ----------
+
+model AiSuggestionLog {
+  id           String   @id @default(cuid())
+  userId       String
+  screen       String   @db.VarChar(50)
+  inputText    String   @db.Text
+  audioSeconds Int?
+  output       Json
+  finalValues  Json?
+  accepted     Boolean  @default(false)
+  createdAt    DateTime @default(now()) @db.DateTime(3)
+
+  @@index([userId, createdAt])
+  @@map("ai_suggestion_logs")
+}
+
+model AiQuestionLog {
+  id          String   @id @default(cuid())
+  userId      String
+  question    String   @db.Text
+  toolsUsed   Json
+  answer      String   @db.MediumText
+  markedWrong Boolean  @default(false)
+  createdAt   DateTime @default(now()) @db.DateTime(3)
+
+  @@index([userId, createdAt])
+  @@map("ai_question_logs")
+}
+
+// ---------- Import (M24) ----------
+
+model ImportJob {
+  id            String       @id @default(cuid())
+  branchId      String
+  fileName      String       @db.VarChar(255)
+  uploadedById  String
+  totalRows     Int          @default(0)
+  imported      Int          @default(0)
+  skipped       Int          @default(0)
+  resultFileUrl String?      @db.VarChar(500)
+  status        ImportStatus @default(PENDING)
+  createdAt     DateTime     @default(now()) @db.DateTime(3)
+  updatedAt     DateTime     @updatedAt @db.DateTime(3)
+
+  branch Branch @relation(fields: [branchId], references: [id])
+
+  @@index([branchId, createdAt])
+  @@map("import_jobs")
+}
+
+// ---------- Background jobs (worker/, MySQL job table instead of pg-boss) ----------
+
+// Payloads hold ids only, never names or mobile numbers.
+model Job {
+  id           String    @id @default(cuid())
+  type         String    @db.VarChar(50)
+  payload      Json
+  status       JobStatus @default(PENDING)
+  runAt        DateTime  @default(now()) @db.DateTime(3)
+  attempts     Int       @default(0)
+  maxAttempts  Int       @default(3)
+  lockedAt     DateTime? @db.DateTime(3)
+  lockedBy     String?   @db.VarChar(100)
+  lastError    String?   @db.Text
+  finishedAt   DateTime? @db.DateTime(3)
+  // Stops duplicate scheduled jobs, e.g. "reminders:2026-09-22 09:30".
+  singletonKey String?   @unique @db.VarChar(191)
+  createdAt    DateTime  @default(now()) @db.DateTime(3)
+  updatedAt    DateTime  @updatedAt @db.DateTime(3)
+
+  @@index([status, runAt])
+  @@map("jobs")
 }

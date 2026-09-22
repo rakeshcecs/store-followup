@@ -35,6 +35,12 @@
   --warning: #7a4700;
   --warning-light: #fff3dc;
   --toast: #1f2233;
+  --surface-disabled: #e6e1d8;
+  --grey-light: #ede9e2;
+  --primary-selected: #eef0fa;
+  --dot: #9a9185;
+  --rail: #ddd6c9;
+  --danger-text: #8c160f;
 
   --chart-1: #2d3a8c;
   --chart-2: #17613d;
@@ -85,6 +91,12 @@
   --color-warning: var(--warning);
   --color-warning-light: var(--warning-light);
   --color-toast: var(--toast);
+  --color-surface-disabled: var(--surface-disabled);
+  --color-grey-light: var(--grey-light);
+  --color-primary-selected: var(--primary-selected);
+  --color-dot: var(--dot);
+  --color-rail: var(--rail);
+  --color-danger-text: var(--danger-text);
 
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);

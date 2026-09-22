@@ -1,0 +1,32 @@
+{
+  "app": {
+    "name": "Follow-up"
+  },
+  "home": {
+    "title": "Follow-up",
+    "setupCheck": "Setup check"
+  },
+  "errors": {
+    "validation": "Please check the highlighted field.",
+    "unauthenticated": "Please log in again.",
+    "forbidden": "You do not have permission to do this.",
+    "notFound": "This record was not found.",
+    "conflict": "This already exists. Please check and try again.",
+    "rule": "This action is not allowed right now.",
+    "internal": "Something went wrong. Please try again."
+  },
+  "pwa": {
+    "install": "Install app",
+    "installText": "Install this app on your phone to open it quickly, like any other app.",
+    "iosHint": "To install: tap Share, then Add to Home Screen."
+  },
+  "status": {
+    "online": "Online",
+    "offline": "Offline"
+  },
+  "offline": {
+    "title": "You are offline",
+    "text": "Check your internet and try again.",
+    "retry": "Try again"
+  }
+}
