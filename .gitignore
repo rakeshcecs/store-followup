@@ -47,3 +47,6 @@ next-env.d.ts
 
 # local docs
 /docs
+
+# claude code local
+/.claude
