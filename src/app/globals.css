@@ -1,26 +1,136 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
+/* Design tokens from the approved prototype (docs/store-followup-prototype.html). Light theme only. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* shadcn semantic tokens */
+  --background: #f4f2ee;
+  --foreground: #1f1b16;
+  --card: #ffffff;
+  --card-foreground: #1f1b16;
+  --popover: #ffffff;
+  --popover-foreground: #1f1b16;
+  --primary: #2d3a8c;
+  --primary-foreground: #ffffff;
+  --secondary: #e8eaf6;
+  --secondary-foreground: #1e2766;
+  --muted: #f4f2ee;
+  --muted-foreground: #5f584d;
+  --accent: #e8eaf6;
+  --accent-foreground: #1e2766;
+  --destructive: #a11a12;
+  --border: #e4ded3;
+  --input: #d6cfc2;
+  --ring: #2d3a8c;
+
+  /* App tokens */
+  --ink-2: #3a342c;
+  --primary-hover: #1e2766;
+  --primary-light: #e8eaf6;
+  --danger: #a11a12;
+  --danger-light: #fdecea;
+  --success: #17613d;
+  --success-light: #e3f2e9;
+  --warning: #7a4700;
+  --warning-light: #fff3dc;
+  --toast: #1f2233;
+
+  --chart-1: #2d3a8c;
+  --chart-2: #17613d;
+  --chart-3: #7a4700;
+  --chart-4: #a11a12;
+  --chart-5: #5f584d;
+
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1f1b16;
+  --sidebar-primary: #2d3a8c;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e8eaf6;
+  --sidebar-accent-foreground: #1e2766;
+  --sidebar-border: #e4ded3;
+  --sidebar-ring: #2d3a8c;
 }
 
 @theme inline {
+  --font-sans: var(--font-manrope), "Segoe UI", system-ui, sans-serif;
+  --font-heading: var(--font-fraunces), Georgia, serif;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-ink-2: var(--ink-2);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-light: var(--primary-light);
+  --color-danger: var(--danger);
+  --color-danger-light: var(--danger-light);
+  --color-success: var(--success);
+  --color-success-light: var(--success-light);
+  --color-warning: var(--warning);
+  --color-warning-light: var(--warning-light);
+  --color-toast: var(--toast);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Radii: md = inputs, lg = buttons, xl = cards; chips use rounded-full */
+  --radius-sm: 10px;
+  --radius-md: 12px;
+  --radius-lg: 14px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    @apply font-sans antialiased;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  :focus-visible {
+    outline: 3px solid var(--ring);
+    outline-offset: 2px;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@utility font-heading-style {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
