@@ -1,4 +1,4 @@
-import { CalendarCheck, LayoutDashboard, LogOut, Store, User } from "lucide-react";
+import { CalendarCheck, LayoutDashboard, LogOut, Settings, User, Users } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { BranchSwitcher } from "@/components/branch/branch-switcher";
@@ -18,9 +18,12 @@ type AppShellProps = {
   children: ReactNode;
 };
 
-// The signed-in shell for every screen outside the admin area. A salesperson gets the
-// phone column; a manager or admin gets the side menu on laptops. Later modules add
-// their own nav items here: M03 (/staff), M05 (/customers), M06 (/follow-ups).
+// The one shell for every signed-in screen. A salesperson gets the phone column; a
+// manager or admin gets the side menu on laptops.
+//
+// Four nav items at most: a phone's bottom bar has room for four plus Log out. Branches
+// and departments therefore live behind Settings, which is also where M04's master lists
+// will go. Later modules add /customers (M05) and /follow-ups (M06) for the salesperson.
 export async function AppShell({ role, title, backHref, backLabel, children }: AppShellProps) {
   const t = await getTranslations();
   const salesperson = role === "SALESPERSON";
@@ -32,13 +35,14 @@ export async function AppShell({ role, title, backHref, backLabel, children }: A
       ]
     : [
         { href: "/overview", label: t("nav.overview"), icon: <LayoutDashboard /> },
+        { href: "/staff", label: t("nav.staff"), icon: <Users /> },
         ...(role === "ADMIN"
-          ? [{ href: "/branches", label: t("nav.branches"), icon: <Store /> }]
+          ? [{ href: "/settings", label: t("nav.settings"), icon: <Settings /> }]
           : []),
         { href: "/profile", label: t("nav.profile"), icon: <User /> },
       ];
 
-  // A form action, so logging out is a POST and survives a browser with no JavaScript.
+  // A form action, so logging out is a POST and works without JavaScript.
   const logOut: NavAction = {
     label: t("auth.logOut"),
     icon: <LogOut />,

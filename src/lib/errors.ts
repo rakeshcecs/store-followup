@@ -4,8 +4,14 @@
 export type ErrorCode =
   "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "RULE" | "INTERNAL";
 
+// Values for the placeholders in that message — "already used by {name}", "{count} open
+// customers". They travel with the key because the key alone cannot carry them, and the
+// screen, not the server, decides the language.
+export type MessageValues = Record<string, string | number>;
+
 export type ActionResult<T> =
-  { ok: true; data: T } | { ok: false; code: ErrorCode; message: string; field?: string };
+  | { ok: true; data: T }
+  | { ok: false; code: ErrorCode; message: string; field?: string; values?: MessageValues };
 
 export const defaultMessageKey: Record<ErrorCode, string> = {
   VALIDATION: "errors.validation",
@@ -21,15 +27,25 @@ export const defaultMessageKey: Record<ErrorCode, string> = {
 export class AppError extends Error {
   readonly code: ErrorCode;
   readonly field?: string;
+  readonly values?: MessageValues;
 
-  constructor(code: ErrorCode, options: { message?: string; field?: string } = {}) {
+  constructor(
+    code: ErrorCode,
+    options: { message?: string; field?: string; values?: MessageValues } = {},
+  ) {
     super(options.message ?? defaultMessageKey[code]);
     this.name = "AppError";
     this.code = code;
     this.field = options.field;
+    this.values = options.values;
   }
 }
 
-export function fail(code: ErrorCode, message?: string, field?: string): ActionResult<never> {
-  return { ok: false, code, message: message ?? defaultMessageKey[code], field };
+export function fail(
+  code: ErrorCode,
+  message?: string,
+  field?: string,
+  values?: MessageValues,
+): ActionResult<never> {
+  return { ok: false, code, message: message ?? defaultMessageKey[code], field, values };
 }

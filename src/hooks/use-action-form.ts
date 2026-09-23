@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import type { z } from "zod";
-import type { ActionResult } from "@/lib/errors";
+import type { ActionResult, MessageValues } from "@/lib/errors";
 
 type SafeActionFn<T> = (input: unknown) => Promise<ActionResult<T>>;
 
@@ -11,6 +11,8 @@ type UseActionForm = {
   pending: boolean;
   errors: Record<string, string>; // field name -> message key
   formError: string | null; // message key for errors that belong to no field
+  // Placeholder values for whichever of the two carries them, e.g. { name: "Asha" }.
+  errorValues: MessageValues | undefined;
 };
 
 // Bridges a plain <form> to a safeAction().
@@ -25,6 +27,7 @@ export function useActionForm<T>(
 ): UseActionForm {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const [errorValues, setErrorValues] = useState<MessageValues | undefined>(undefined);
   const [pending, startTransition] = useTransition();
 
   function formAction(formData: FormData) {
@@ -38,11 +41,13 @@ export function useActionForm<T>(
       }
       setErrors(fieldErrors);
       setFormError(Object.keys(fieldErrors).length > 0 ? null : "errors.validation");
+      setErrorValues(undefined); // a zod message never has placeholders
       return;
     }
 
     setErrors({});
     setFormError(null);
+    setErrorValues(undefined);
 
     startTransition(async () => {
       const result = await action(parsed.data);
@@ -50,10 +55,11 @@ export function useActionForm<T>(
         onSuccess?.(result.data);
         return;
       }
+      setErrorValues(result.values);
       if (result.field) setErrors({ [result.field]: result.message });
       else setFormError(result.message);
     });
   }
 
-  return { formAction, pending, errors, formError };
+  return { formAction, pending, errors, formError, errorValues };
 }

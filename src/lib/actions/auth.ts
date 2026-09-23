@@ -12,6 +12,7 @@ import { db } from "@/lib/db";
 import { AppError } from "@/lib/errors";
 import { assertBranchAccess } from "@/lib/permissions";
 import { safeAction } from "@/lib/safe-action";
+import { generateTempPin } from "@/lib/temp-pin";
 import {
   createSession,
   destroyAllSessions,
@@ -235,6 +236,7 @@ export const resetPin = safeAction({
   schema: resetPinInput,
   auth: { roles: ["MANAGER", "ADMIN"] },
   handler: async ({ userId, pin }, { user }) => {
+    const oneTimePin = pin ?? generateTempPin();
     const target = await db.user.findUnique({
       where: { id: userId },
       select: { id: true, homeBranchId: true },
@@ -246,8 +248,13 @@ export const resetPin = safeAction({
       await tx.user.update({
         where: { id: target.id },
         // They choose their own PIN on the next login; this one is a one-time key.
-        data: { pinHash: await argon2.hash(pin), mustChangePin: true, updatedById: user.id },
+        data: {
+          pinHash: await argon2.hash(oneTimePin),
+          mustChangePin: true,
+          updatedById: user.id,
+        },
       });
+      // Their devices were signed in with the old PIN.
       await destroyAllSessions(tx, target.id);
       await writeAudit(tx, {
         userId: user.id,
@@ -255,10 +262,12 @@ export const resetPin = safeAction({
         action: AUDIT.userPinReset,
         entityType: "User",
         entityId: target.id,
+        // Never the PIN itself: an audit row is read by other people later.
         device: await device(),
       });
     });
 
-    return { ok: true };
+    // The only time this PIN is ever visible. The screen shows it once.
+    return { pin: oneTimePin };
   },
 });

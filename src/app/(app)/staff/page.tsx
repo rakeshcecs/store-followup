@@ -1,0 +1,155 @@
+import { Users } from "lucide-react";
+import { getTranslations } from "next-intl/server";
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import { StaffFilters } from "@/app/(app)/staff/staff-filters";
+import { ResetPinButton } from "@/app/(app)/staff/reset-pin-button";
+import { AppShell } from "@/components/layout/app-shell";
+import { StaffStatusButton } from "@/app/(app)/staff/staff-status-button";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Pill } from "@/components/ui/pill";
+import type { Prisma } from "@/generated/prisma/client";
+import { requireUser } from "@/lib/auth";
+import { getBranchScope } from "@/lib/current-branch";
+import { db } from "@/lib/db";
+import { formatMobile } from "@/lib/format";
+import { normalizeMobile } from "@/lib/mobile";
+import { staffBranchWhere } from "@/lib/staff-scope";
+import { openWorkFor } from "@/lib/staff-work";
+
+// Everyone who may see this screen. Only an admin may change anything on it; a manager
+// gets the list and the one power the login screen promises them — resetting a PIN.
+
+type Search = { q?: string; role?: string; department?: string; status?: string };
+
+// Name or mobile. A search that looks like a number is matched against the mobile in the
+// shape it is stored, so "98765 43210" and "+91 98765 43210" both find the same person.
+function searchWhere(q: string | undefined): Prisma.UserWhereInput {
+  const term = q?.trim();
+  if (!term) return {};
+  const asMobile = normalizeMobile(term);
+  return {
+    OR: [
+      { fullName: { contains: term } },
+      { mobile: { contains: (asMobile ?? term.replace(/\D/g, "")) || term } },
+    ],
+  };
+}
+
+export default async function StaffPage({ searchParams }: { searchParams: Promise<Search> }) {
+  const user = await requireUser();
+  // notFound, not a thrown FORBIDDEN: a salesperson typing this URL should see the same
+  // nothing the admin area shows them, not an error page.
+  if (user.role === "SALESPERSON") notFound();
+  const scope = await getBranchScope(user);
+  const filters = await searchParams;
+  const t = await getTranslations("staff");
+
+  const isAdmin = user.role === "ADMIN";
+
+  const where: Prisma.UserWhereInput = {
+    ...staffBranchWhere(scope),
+    ...searchWhere(filters.q),
+    ...(filters.role ? { role: filters.role as Prisma.EnumRoleFilter["equals"] } : {}),
+    ...(filters.department ? { departmentId: filters.department } : {}),
+    ...(filters.status ? { status: filters.status as "ACTIVE" | "INACTIVE" } : {}),
+  };
+
+  const [staff, departments] = await Promise.all([
+    db.user.findMany({
+      where,
+      orderBy: [{ status: "asc" }, { fullName: "asc" }],
+      select: {
+        id: true,
+        fullName: true,
+        mobile: true,
+        role: true,
+        status: true,
+        department: { select: { name: true } },
+      },
+    }),
+    db.department.findMany({
+      where: { status: "ACTIVE" },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
+  ]);
+
+  // Only for the rows an admin could actually deactivate, and only to explain why the
+  // button is disabled — the action checks again before it writes (BR-15).
+  const openWork = isAdmin
+    ? new Map(
+        await Promise.all(
+          staff
+            .filter((person) => person.status === "ACTIVE" && person.role === "SALESPERSON")
+            .map(async (person) => [person.id, await openWorkFor(db, person.id)] as const),
+        ),
+      )
+    : new Map();
+
+  return (
+    <AppShell role={user.role} title={t("title")}>
+      {isAdmin && (
+        <Button asChild>
+          <Link href="/staff/new">{t("add")}</Link>
+        </Button>
+      )}
+
+      <StaffFilters departments={departments} />
+
+      {staff.length === 0 ? (
+        <Card className="p-2">
+          <EmptyState icon={Users} title={t("empty")} text={t("emptyText")} />
+        </Card>
+      ) : (
+        <ul className="flex flex-col gap-3">
+          {staff.map((person) => {
+            const active = person.status === "ACTIVE";
+            const open = openWork.get(person.id);
+            return (
+              <li key={person.id}>
+                <Card className="flex flex-col gap-3 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-heading-style text-lg">{person.fullName}</p>
+                      <p className="text-[15px] text-muted-foreground">
+                        {formatMobile(person.mobile)} · {t(`roles.${person.role}`)}
+                      </p>
+                      {person.department && (
+                        <p className="text-sm text-muted-foreground">{person.department.name}</p>
+                      )}
+                    </div>
+                    <Pill tone={active ? "green" : "grey"}>
+                      {active ? t("statusActive") : t("statusInactive")}
+                    </Pill>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2.5">
+                    {isAdmin && (
+                      <Button asChild variant="secondary" size="sm">
+                        <Link href={`/staff/${person.id}/edit`}>{t("edit")}</Link>
+                      </Button>
+                    )}
+                    {active && <ResetPinButton id={person.id} name={person.fullName} />}
+                    {isAdmin && (
+                      <StaffStatusButton
+                        id={person.id}
+                        name={person.fullName}
+                        status={person.status}
+                        openCustomers={open?.customers ?? 0}
+                        openFollowUps={open?.followUps ?? 0}
+                        isSelf={person.id === user.id}
+                      />
+                    )}
+                  </div>
+                </Card>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </AppShell>
+  );
+}

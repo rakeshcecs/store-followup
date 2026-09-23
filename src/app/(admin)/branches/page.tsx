@@ -2,7 +2,8 @@ import { Store } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { BranchStatusButton } from "@/app/(admin)/branches/branch-status-button";
-import { AdminShell } from "@/components/layout/admin-shell";
+import { AppShell } from "@/components/layout/app-shell";
+import { requireUser, type RequireUserOptions } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -28,7 +29,12 @@ async function activeStaffByBranch(): Promise<Map<string, number>> {
   return counts;
 }
 
+const ADMIN_ONLY: RequireUserOptions = { roles: ["ADMIN"] };
+
 export default async function BranchesPage() {
+  // The layout already guards this area; the page asks again because a screen that
+  // renders a role-shaped shell needs the role anyway.
+  const user = await requireUser(ADMIN_ONLY);
   const t = await getTranslations("branches");
   const [branches, staffCounts] = await Promise.all([
     db.branch.findMany({
@@ -39,7 +45,7 @@ export default async function BranchesPage() {
   ]);
 
   return (
-    <AdminShell title={t("title")}>
+    <AppShell role={user.role} title={t("title")}>
       <Button asChild>
         <Link href="/branches/new">{t("add")}</Link>
       </Button>
@@ -86,6 +92,6 @@ export default async function BranchesPage() {
           })}
         </ul>
       )}
-    </AdminShell>
+    </AppShell>
   );
 }

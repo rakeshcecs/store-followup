@@ -23,10 +23,16 @@ export const mobileField = z.preprocess(
   z.string().regex(/^[6-9]\d{9}$/, "auth.errors.mobileInvalid"),
 );
 
+// Exported so a generated temporary PIN (M03) can only ever be one a person would also
+// have been allowed to choose.
+export function isBlockedPin(pin: string): boolean {
+  return BLOCKED_PINS.has(pin);
+}
+
 export const pinField = z
   .string()
   .regex(/^\d{4}$/, "auth.errors.pinDigits")
-  .refine((pin) => !BLOCKED_PINS.has(pin), "auth.errors.pinTooSimple");
+  .refine((pin) => !isBlockedPin(pin), "auth.errors.pinTooSimple");
 
 export const loginInput = z.object({
   mobile: mobileField,
@@ -51,7 +57,9 @@ export const setPinInput = z
 
 export const resetPinInput = z.object({
   userId: id,
-  pin: pinField,
+  // Left out by the staff screen (M03), which wants a generated one-time PIN it can show
+  // once. A caller may still name one.
+  pin: pinField.optional(),
 });
 
 export type LoginInput = z.infer<typeof loginInput>;

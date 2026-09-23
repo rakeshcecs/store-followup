@@ -15,6 +15,7 @@ type ConfirmDialogProps = {
   cancelLabel: string;
   danger?: boolean;
   onConfirm: () => void;
+  children?: ReactNode; // sits between the text and the buttons, e.g. a one-time PIN
 };
 
 // Bottom sheet on phones, centred dialog on larger screens.
@@ -28,6 +29,7 @@ export function ConfirmDialog({
   cancelLabel,
   danger,
   onConfirm,
+  children,
 }: ConfirmDialogProps) {
   return (
     <AlertDialog.Root open={open} onOpenChange={onOpenChange}>
@@ -46,6 +48,7 @@ export function ConfirmDialog({
           ) : (
             <AlertDialog.Description className="sr-only">{title}</AlertDialog.Description>
           )}
+          {children}
           <div className="flex flex-col gap-2.5">
             <AlertDialog.Action
               onClick={onConfirm}

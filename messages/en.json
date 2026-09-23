@@ -8,7 +8,9 @@
     "branches": "Branches",
     "today": "Today",
     "overview": "Overview",
-    "profile": "Profile"
+    "profile": "Profile",
+    "staff": "Staff",
+    "settings": "Settings"
   },
   "language": {
     "label": "Language",
@@ -166,5 +168,127 @@
   "overview": {
     "title": "Store overview",
     "comingSoon": "Your store numbers appear here."
+  },
+  "staff": {
+    "title": "Staff",
+    "add": "Add staff",
+    "new": "New staff member",
+    "edit": "Edit",
+    "editOne": "Edit {name}",
+    "save": "Save",
+    "cancel": "Cancel",
+    "back": "Back",
+    "saved": "Saved",
+    "empty": "No staff yet",
+    "emptyText": "Add the people who work in your store.",
+    "statusActive": "Active",
+    "statusInactive": "Inactive",
+    "activate": "Activate",
+    "deactivate": "Make inactive",
+    "activated": "Staff member is active",
+    "deactivated": "Staff member is inactive",
+    "resetPin": "Reset PIN",
+    "roles": {
+      "SALESPERSON": "Salesperson",
+      "MANAGER": "Manager",
+      "ADMIN": "Admin"
+    },
+    "filters": {
+      "search": "Search by name or mobile",
+      "role": "Role",
+      "department": "Department",
+      "status": "Status",
+      "any": "Any"
+    },
+    "fields": {
+      "name": "Full name",
+      "mobile": "Mobile number",
+      "role": "Role",
+      "branch": "Home branch",
+      "department": "Department",
+      "noDepartment": "No department",
+      "joinedOn": "Joined on"
+    },
+    "hints": {
+      "mobile": "They log in with this number.",
+      "branch": "The branch they work at every day."
+    },
+    "tempPin": {
+      "title": "Temporary PIN",
+      "text": "Give this PIN to {name}. It is shown only once, and they choose their own at first login.",
+      "done": "Done"
+    },
+    "confirmReset": {
+      "title": "Reset this PIN?",
+      "text": "A new temporary PIN is created for {name}. Their current PIN stops working and they are signed out everywhere.",
+      "confirm": "Reset PIN",
+      "cancel": "Cancel"
+    },
+    "confirmDeactivate": {
+      "title": "Make inactive?",
+      "text": "{name} will not be able to log in. Nothing is deleted.",
+      "confirm": "Make inactive",
+      "cancel": "Cancel"
+    },
+    "confirmActivate": {
+      "title": "Make active?",
+      "text": "They will be able to log in again.",
+      "confirm": "Make active",
+      "cancel": "Cancel"
+    },
+    "errors": {
+      "nameRequired": "Enter the full name.",
+      "nameTooLong": "Use 100 characters or fewer.",
+      "joinedOnInvalid": "Choose a valid date.",
+      "mobileTaken": "This mobile number is already used by {name}.",
+      "reassignFirst": "Give their work to someone else first: {customers} customers and {followUps} pending follow-ups.",
+      "cannotDeactivateSelf": "You cannot make your own account inactive.",
+      "lastAdmin": "This is the only active admin. Make someone else an admin first."
+    }
+  },
+  "departments": {
+    "title": "Departments",
+    "back": "Back",
+    "add": "Add",
+    "save": "Save",
+    "rename": "Rename",
+    "added": "Department added",
+    "renamed": "Department renamed",
+    "statusActive": "Active",
+    "statusInactive": "Inactive",
+    "activate": "Activate",
+    "deactivate": "Make inactive",
+    "activated": "Department is active",
+    "deactivated": "Department is inactive",
+    "counts": "{staff} staff · {customers} customers",
+    "fields": {
+      "name": "New department",
+      "rename": "Department name"
+    },
+    "confirmDeactivate": {
+      "title": "Make inactive?",
+      "text": "It stays on old records but is not offered on new ones.",
+      "inUse": "{staff} staff and {customers} customers still use this department. It stays on their records but is not offered on new ones.",
+      "confirm": "Make inactive",
+      "cancel": "Cancel"
+    },
+    "confirmActivate": {
+      "title": "Make active?",
+      "text": "It will be offered again on new records.",
+      "confirm": "Make active",
+      "cancel": "Cancel"
+    },
+    "errors": {
+      "nameRequired": "Enter a department name.",
+      "nameTooLong": "Use 100 characters or fewer.",
+      "nameTaken": "A department with this name already exists."
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "branches": "Branches",
+    "branchesText": "Store locations and their details.",
+    "departments": "Departments",
+    "departmentsText": "Teams staff and customers belong to."
   }
 }

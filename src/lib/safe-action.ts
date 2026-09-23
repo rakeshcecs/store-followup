@@ -34,7 +34,8 @@ export function safeAction<S extends z.ZodType, T, A extends RequireUserOptions 
       const data = await config.handler(parsed.data, { user } as Context<A>);
       return { ok: true, data };
     } catch (error) {
-      if (error instanceof AppError) return fail(error.code, error.message, error.field);
+      if (error instanceof AppError)
+        return fail(error.code, error.message, error.field, error.values);
       if (isUniqueViolation(error)) return fail("CONFLICT");
       logger.error("action.failed", error, { action: config.name });
       return fail("INTERNAL");

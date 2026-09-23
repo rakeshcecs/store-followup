@@ -11,6 +11,14 @@ export const AUDIT = {
   branchDeactivate: "branch:deactivate",
   userLocked: "user:locked",
   userPinReset: "user:pinReset",
+  userCreate: "user:create",
+  userUpdate: "user:update",
+  userActivate: "user:activate",
+  userDeactivate: "user:deactivate",
+  departmentCreate: "department:create",
+  departmentUpdate: "department:update",
+  departmentActivate: "department:activate",
+  departmentDeactivate: "department:deactivate",
 } as const;
 
 export type AuditInput = {

@@ -31,8 +31,15 @@ describe("message keys used in the source", () => {
 
     for (const file of sourceFiles("src")) {
       const source = readFileSync(file, "utf8");
+      // useTranslations("staff.errors") names a namespace, not a message: it resolves to
+      // an object, and global.d.ts already type-checks it at compile time.
+      const namespaces = new Set(
+        [...source.matchAll(/useTranslations\("([^"]+)"\)/g)].map(([, name]) => name),
+      );
+
       for (const [, key] of source.matchAll(KEY)) {
         if (!NAMESPACES.includes(key.split(".")[0] as string)) continue;
+        if (namespaces.has(key)) continue;
         if (!has(key)) missing.push(`${file}: ${key}`);
       }
     }
