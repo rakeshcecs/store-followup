@@ -59,8 +59,15 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-manrope), "Segoe UI", system-ui, sans-serif;
-  --font-heading: var(--font-fraunces), Georgia, serif;
+  /* Manrope and Fraunces are Latin only, so Devanagari and Gujarati fall through to
+     Noto. Not gated by the current language: a Gujarati customer name can appear on
+     an English screen (M18.05), and the browser only downloads a Noto file when such
+     a glyph is actually painted. */
+  --font-sans:
+    var(--font-manrope), var(--font-noto-devanagari), var(--font-noto-gujarati), "Segoe UI",
+    system-ui, sans-serif;
+  --font-heading:
+    var(--font-fraunces), var(--font-noto-devanagari), var(--font-noto-gujarati), Georgia, serif;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);

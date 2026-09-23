@@ -7,6 +7,10 @@ import { db } from "@/lib/db";
 
 const BRANCH_NAME = "[STORE NAME] – Main";
 
+// Extra branch and staff for trying multi-branch locally (SEED_DEMO=true).
+// Never set SEED_DEMO in production.
+const DEMO_BRANCH_NAME = "[STORE NAME] – Branch 2";
+
 const DEPARTMENTS = ["Men's Wear", "Women's Wear", "Kids", "Other"];
 
 // [id, English, Hindi, Gujarati]
@@ -42,6 +46,14 @@ const SETTINGS: Record<string, Prisma.InputJsonValue> = {
 function requireEnv(name: string): string {
   const value = process.env[name]?.trim();
   if (!value) throw new Error(`Set ${name} in .env before seeding.`);
+  return value;
+}
+
+function demoMobile(name: string, fallback: string): string {
+  const value = process.env[name]?.trim() || fallback;
+  if (!/^[6-9]\d{9}$/.test(value)) {
+    throw new Error(`${name} must be 10 digits starting with 6, 7, 8 or 9.`);
+  }
   return value;
 }
 
@@ -93,6 +105,51 @@ async function main() {
     for (const [key, value] of Object.entries(SETTINGS)) {
       await tx.setting.upsert({ where: { key }, update: {}, create: { key, value } });
     }
+
+    if (process.env["SEED_DEMO"] !== "true") return;
+
+    const branch2 = await tx.branch.upsert({
+      where: { name: DEMO_BRANCH_NAME },
+      update: {},
+      create: { name: DEMO_BRANCH_NAME, address: "[ADDRESS]", city: "[CITY]", phone: "[PHONE]" },
+    });
+
+    // A manager of the main branch who also covers branch 2: the only fixture that
+    // exercises extra branches, the switcher and cross-branch denial.
+    const manager = await tx.user.upsert({
+      where: { mobile: demoMobile("SEED_MANAGER_MOBILE", "9000000001") },
+      update: {},
+      create: {
+        fullName: "Demo Manager",
+        mobile: demoMobile("SEED_MANAGER_MOBILE", "9000000001"),
+        role: "MANAGER",
+        homeBranchId: branch.id,
+        pinHash,
+        mustChangePin: true,
+      },
+    });
+
+    // Never a row for the home branch itself: it would double-count the person
+    // when a branch checks whether any staff still work there.
+    await tx.userBranch.upsert({
+      where: { userId_branchId: { userId: manager.id, branchId: branch2.id } },
+      update: {},
+      create: { userId: manager.id, branchId: branch2.id },
+    });
+
+    // Salesperson at branch 2 only: the "cannot see the other branch" counterpart.
+    await tx.user.upsert({
+      where: { mobile: demoMobile("SEED_SALES_MOBILE", "9000000002") },
+      update: {},
+      create: {
+        fullName: "Demo Salesperson",
+        mobile: demoMobile("SEED_SALES_MOBILE", "9000000002"),
+        role: "SALESPERSON",
+        homeBranchId: branch2.id,
+        pinHash,
+        mustChangePin: true,
+      },
+    });
   });
 
   console.log("Seed done.");

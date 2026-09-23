@@ -10,7 +10,13 @@ const { AppError } = await import("@/lib/errors");
 const { safeAction } = await import("@/lib/safe-action");
 
 const schema = z.object({ mobile: z.string().regex(/^[6-9]\d{9}$/) });
-const user = { id: "u1", role: "MANAGER" as const, homeBranchId: "b1", branchIds: ["b1"] };
+const user = {
+  id: "u1",
+  role: "MANAGER" as const,
+  homeBranchId: "b1",
+  branchIds: ["b1"],
+  language: "en" as const,
+};
 
 beforeEach(() => {
   vi.mocked(requireUser).mockReset().mockResolvedValue(user);

@@ -82,3 +82,50 @@ describe("InstallHelp", () => {
     expect(screen.queryByRole("button", { name: en.pwa.install })).not.toBeInTheDocument();
   });
 });
+
+describe("PwaProvider in development", () => {
+  it("clears a service worker and its caches left over from a production build", async () => {
+    // Switching from `npm run start` back to `npm run dev` on the same port used to
+    // leave the old worker serving files that no longer exist ("Failed to fetch").
+    const unregister = vi.fn().mockResolvedValue(true);
+    const deleteCache = vi.fn().mockResolvedValue(true);
+
+    vi.stubGlobal("navigator", {
+      ...navigator,
+      serviceWorker: { getRegistrations: vi.fn().mockResolvedValue([{ unregister }]) },
+    });
+    vi.stubGlobal("caches", {
+      keys: vi.fn().mockResolvedValue(["serwist-precache", "pages"]),
+      delete: deleteCache,
+    });
+
+    const { PwaProvider } = await import("@/components/pwa/pwa-provider");
+    await act(async () => {
+      render(<PwaProvider>{null}</PwaProvider>);
+    });
+
+    expect(unregister).toHaveBeenCalled();
+    expect(deleteCache).toHaveBeenCalledWith("serwist-precache");
+    expect(deleteCache).toHaveBeenCalledWith("pages");
+  });
+  it("adds no online listener, so a dropped connection cannot reload the page", async () => {
+    // Serwist's provider defaults to reloadOnOnline, and that listener is installed even
+    // when the worker itself is disabled: toggling DevTools throttling or a WiFi blip
+    // reloaded the dev page on its own. In development the provider is not rendered.
+    vi.stubGlobal("navigator", {
+      ...navigator,
+      serviceWorker: { getRegistrations: vi.fn().mockResolvedValue([]) },
+    });
+    const addEventListener = vi.spyOn(window, "addEventListener");
+    const pushState = history.pushState;
+
+    const { PwaProvider } = await import("@/components/pwa/pwa-provider");
+    await act(async () => {
+      render(<PwaProvider>{null}</PwaProvider>);
+    });
+
+    const events = addEventListener.mock.calls.map(([event]) => event);
+    expect(events).not.toContain("online");
+    expect(history.pushState).toBe(pushState);
+  });
+});

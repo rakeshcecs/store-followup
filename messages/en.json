@@ -1,10 +1,92 @@
 {
   "app": {
-    "name": "Follow-up"
+    "name": "Follow-up",
+    "storeName": "[STORE NAME]"
   },
-  "home": {
-    "title": "Follow-up",
-    "setupCheck": "Setup check"
+  "nav": {
+    "label": "Main",
+    "branches": "Branches",
+    "today": "Today",
+    "overview": "Overview",
+    "profile": "Profile"
+  },
+  "language": {
+    "label": "Language",
+    "switch": "Change language"
+  },
+  "branch": {
+    "label": "Branch",
+    "switch": "Change branch",
+    "all": "All branches",
+    "switched": "Now showing {name}",
+    "errors": {
+      "pickOne": "Choose one branch first.",
+      "noAccess": "You do not have access to this branch."
+    }
+  },
+  "branches": {
+    "title": "Branches",
+    "add": "Add branch",
+    "new": "New branch",
+    "edit": "Edit branch",
+    "editOne": "Edit {name}",
+    "save": "Save branch",
+    "cancel": "Cancel",
+    "back": "Go back",
+    "empty": "No branches yet",
+    "emptyText": "Add your first branch to get started.",
+    "staffCount": "{count, plural, =0 {No staff} one {# person} other {# people}}",
+    "statusActive": "Active",
+    "statusInactive": "Inactive",
+    "activate": "Activate",
+    "deactivate": "Deactivate",
+    "saved": "Branch saved",
+    "activated": "Branch activated",
+    "deactivated": "Branch deactivated",
+    "fields": {
+      "name": "Branch name",
+      "address": "Address",
+      "city": "City",
+      "phone": "Phone number",
+      "gstNumber": "GST number",
+      "openingHours": "Opening hours"
+    },
+    "hints": {
+      "gstNumber": "Optional. 15 characters.",
+      "openingHours": "Optional. For example: 10 AM to 9 PM"
+    },
+    "placeholders": {
+      "name": "[STORE NAME] – Main",
+      "phone": "079 1234 5678",
+      "openingHours": "10 AM to 9 PM"
+    },
+    "confirmDeactivate": {
+      "title": "Deactivate this branch?",
+      "text": "Staff cannot record visits or sales here. Old records stay.",
+      "blocked": "{count, plural, one {# person works} other {# people work}} at this branch. Move or deactivate them first.",
+      "confirm": "Deactivate branch",
+      "cancel": "Keep it active"
+    },
+    "confirmActivate": {
+      "title": "Activate this branch?",
+      "text": "Staff can record visits and sales here again.",
+      "confirm": "Activate branch",
+      "cancel": "Not now"
+    },
+    "errors": {
+      "nameRequired": "Enter the branch name.",
+      "nameTooLong": "Branch name must be 80 characters or less.",
+      "nameTaken": "A branch with this name already exists.",
+      "addressRequired": "Enter the address.",
+      "addressTooLong": "Address must be 255 characters or less.",
+      "cityRequired": "Enter the city.",
+      "cityTooLong": "City must be 100 characters or less.",
+      "phoneInvalid": "Enter a valid phone number.",
+      "gstInvalid": "Enter a valid 15-character GST number.",
+      "openingHoursTooLong": "Opening hours must be 100 characters or less.",
+      "staffPresent": "Move or deactivate this branch's staff first.",
+      "lastActiveBranch": "You cannot deactivate the only active branch."
+    }
   },
   "errors": {
     "validation": "Please check the highlighted field.",
@@ -28,5 +110,61 @@
     "title": "You are offline",
     "text": "Check your internet and try again.",
     "retry": "Try again"
+  },
+  "auth": {
+    "title": "Customer Follow-up",
+    "tagline": "Keep track of every walk-in, every follow-up and every sale.",
+    "logIn": "Log in",
+    "logOut": "Log out",
+    "forgotPin": "Forgot PIN? Ask your store manager to reset it.",
+    "setPinTitle": "Set a new PIN",
+    "setPinText": "Choose a 4-digit PIN only you know.",
+    "changePinTitle": "Change PIN",
+    "savePin": "Save PIN",
+    "pinSaved": "PIN saved",
+    "back": "Back",
+    "fields": {
+      "mobile": "Your mobile number",
+      "pin": "4-digit PIN",
+      "currentPin": "Current PIN",
+      "newPin": "New PIN",
+      "confirmPin": "Enter the new PIN again"
+    },
+    "hints": {
+      "pin": "4 digits. Not 1234, 4321 or the same digit four times."
+    },
+    "errors": {
+      "badCredentials": "Mobile number or PIN is not correct.",
+      "inactive": "Your account is not active. Please contact your manager.",
+      "locked": "Too many attempts. Try again after 15 minutes.",
+      "mobileInvalid": "Enter a 10-digit mobile number starting with 6, 7, 8 or 9.",
+      "pinDigits": "The PIN is 4 digits.",
+      "pinTooSimple": "Pick a less obvious PIN.",
+      "pinMismatch": "Both PINs must be the same.",
+      "currentPinWrong": "The current PIN is not correct."
+    }
+  },
+  "profile": {
+    "title": "My profile",
+    "changePin": "Change PIN",
+    "fields": {
+      "name": "Name",
+      "mobile": "Mobile",
+      "role": "Role",
+      "department": "Department"
+    }
+  },
+  "roles": {
+    "SALESPERSON": "Salesperson",
+    "MANAGER": "Manager",
+    "ADMIN": "Admin"
+  },
+  "today": {
+    "title": "Today",
+    "comingSoon": "Your walk-ins and follow-ups appear here."
+  },
+  "overview": {
+    "title": "Store overview",
+    "comingSoon": "Your store numbers appear here."
   }
 }
