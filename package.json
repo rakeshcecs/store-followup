@@ -19,7 +19,9 @@
     "test:db": "vitest run --project db",
     "worker": "tsx worker/index.ts",
     "worker:test": "tsx worker/enqueue-test.ts",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "db:reset": "tsx scripts/reset-db.ts",
+    "test:e2e:fresh": "tsx scripts/e2e-fresh.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

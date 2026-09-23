@@ -64,6 +64,7 @@ export function MasterList({ kind, items, branches }: MasterListProps) {
   const tError = useErrorMessage();
   const locale = useLocale();
   const [order, setOrder] = useState(items);
+  const [fromServer, setFromServer] = useState(items);
   const [editing, setEditing] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
@@ -74,8 +75,11 @@ export function MasterList({ kind, items, branches }: MasterListProps) {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
-  // The list comes from the server on every render; this keeps it in step after a save.
-  if (items !== order && items.map((i) => i.id).join() !== order.map((i) => i.id).join()) {
+  // A save revalidates the page, so the server sends a fresh array; this adopts it.
+  // Comparing ids alone was not enough: deactivating or renaming a row changes no id, so
+  // the old row stayed on screen until a reload.
+  if (items !== fromServer) {
+    setFromServer(items);
     setOrder(items);
   }
 
@@ -107,7 +111,16 @@ export function MasterList({ kind, items, branches }: MasterListProps) {
     <div className="flex flex-col gap-5">
       <ItemForm kind={kind} branches={branches} onSaved={() => setEditing(null)} />
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+      {/* id: without one dnd-kit numbers its own aria-describedby from a module counter,
+          which starts in a different place on the server than in the browser and fails
+          hydration. It becomes the id of dnd-kit's own keyboard instructions, so it has
+          to be unique in the document as well as stable. */}
+      <DndContext
+        id={`master-list-${kind}`}
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={onDragEnd}
+      >
         <SortableContext
           items={order.map((item) => item.id)}
           strategy={verticalListSortingStrategy}

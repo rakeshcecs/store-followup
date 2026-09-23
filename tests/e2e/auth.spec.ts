@@ -1,27 +1,10 @@
-import argon2 from "argon2";
 import { expect, test } from "@playwright/test";
 import en from "../../messages/en.json";
 import { db } from "@/lib/db";
+import { E2E_PIN, makeStaff, signIn } from "./helpers";
 
 // A user of its own rather than the seeded admin: the seeded one must change its PIN on
 // first login, which would make this suite pass exactly once.
-const PIN = "4839";
-const mobile = () => `9${String(Math.floor(Math.random() * 1_000_000_000)).padStart(9, "0")}`;
-
-async function makeManager() {
-  const branch = await db.branch.findFirstOrThrow({ where: { status: "ACTIVE" } });
-  const user = await db.user.create({
-    data: {
-      fullName: "E2E Manager",
-      mobile: mobile(),
-      role: "MANAGER",
-      homeBranchId: branch.id,
-      pinHash: await argon2.hash(PIN),
-      mustChangePin: false,
-    },
-  });
-  return user;
-}
 
 test.describe("login and access", () => {
   const created: string[] = [];
@@ -39,7 +22,7 @@ test.describe("login and access", () => {
   });
 
   test("the wrong PIN never says which half was wrong", async ({ page }) => {
-    const user = await makeManager();
+    const user = await makeStaff("MANAGER", "E2E Manager");
     created.push(user.id);
 
     await page.goto("/login");
@@ -52,20 +35,16 @@ test.describe("login and access", () => {
   });
 
   test("a manager lands on the overview, sees their profile, and can log out", async ({ page }) => {
-    const user = await makeManager();
+    const user = await makeStaff("MANAGER", "E2E Manager");
     created.push(user.id);
 
-    await page.goto("/login");
-    await page.getByLabel(en.auth.fields.mobile).fill(user.mobile);
-    await page.getByLabel(en.auth.fields.pin).fill(PIN);
-    await page.getByRole("button", { name: en.auth.logIn }).click();
-
-    await expect(page).toHaveURL(/\/overview/);
+    await signIn(page, user.mobile, "MANAGER");
     await expect(page.getByRole("heading", { name: en.overview.title })).toBeVisible();
 
     await page.goto("/profile");
     await expect(page.getByText(user.fullName)).toBeVisible();
-    await expect(page.getByText(en.roles.MANAGER)).toBeVisible();
+    // exact: the fixture is called "E2E Manager", which contains the role name too.
+    await expect(page.getByText(en.roles.MANAGER, { exact: true })).toBeVisible();
 
     await page.getByRole("button", { name: en.auth.logOut }).first().click();
     await expect(page).toHaveURL(/\/login/);
@@ -76,16 +55,42 @@ test.describe("login and access", () => {
   });
 
   test("a manager cannot reach the admin-only branch screens", async ({ page }) => {
-    const user = await makeManager();
+    const user = await makeStaff("MANAGER", "E2E Manager");
     created.push(user.id);
 
-    await page.goto("/login");
-    await page.getByLabel(en.auth.fields.mobile).fill(user.mobile);
-    await page.getByLabel(en.auth.fields.pin).fill(PIN);
-    await page.getByRole("button", { name: en.auth.logIn }).click();
-    await expect(page).toHaveURL(/\/overview/);
+    await signIn(page, user.mobile, "MANAGER");
 
     const response = await page.goto("/branches");
     expect(response?.status()).toBe(404);
+  });
+
+  test("a locked-out account says so instead of letting the PIN be guessed", async ({ page }) => {
+    // Six logins, and argon2 is meant to be slow: with every other spec on the same
+    // machine this one test ran out of the default budget about once in three runs.
+    test.slow();
+    const user = await makeStaff("MANAGER", "E2E Manager");
+    created.push(user.id);
+
+    // BR: five wrong PINs lock the account (src/lib/validation/auth.ts).
+    // The explicit timeout is the point of this test being slow: `test.slow()` raises the
+    // test's own budget but not an expect's, and one argon2 verify with the whole suite on
+    // the same machine can outlast the default five seconds.
+    const wait = { timeout: 20_000 };
+    for (let attempt = 0; attempt < 5; attempt++) {
+      await page.goto("/login");
+      await page.getByLabel(en.auth.fields.mobile).fill(user.mobile);
+      await page.getByLabel(en.auth.fields.pin).fill("0007");
+      await page.getByRole("button", { name: en.auth.logIn }).click();
+      await expect(page.getByText(en.auth.errors.badCredentials).first()).toBeVisible(wait);
+    }
+
+    // Now even the right PIN is refused, and the screen says why.
+    await page.goto("/login");
+    await page.getByLabel(en.auth.fields.mobile).fill(user.mobile);
+    await page.getByLabel(en.auth.fields.pin).fill(E2E_PIN);
+    await page.getByRole("button", { name: en.auth.logIn }).click();
+
+    await expect(page.getByText(en.auth.errors.locked)).toBeVisible(wait);
+    await expect(page).toHaveURL(/\/login/);
   });
 });

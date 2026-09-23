@@ -1,10 +1,8 @@
-import argon2 from "argon2";
 import { expect, test } from "@playwright/test";
 import en from "../../messages/en.json";
 import { db } from "@/lib/db";
+import { makeStaff, signIn } from "./helpers";
 
-const PIN = "4839";
-const mobile = () => `9${String(Math.floor(Math.random() * 1_000_000_000)).padStart(9, "0")}`;
 const unique = (name: string) => `${name} ${Math.random().toString(36).slice(2, 7)}`;
 
 test.describe("master lists", () => {
@@ -20,24 +18,9 @@ test.describe("master lists", () => {
   test("an admin adds a category and it becomes available without a code change", async ({
     page,
   }) => {
-    const branch = await db.branch.findFirstOrThrow({ where: { status: "ACTIVE" } });
-    const admin = await db.user.create({
-      data: {
-        fullName: "E2E Lists Admin",
-        mobile: mobile(),
-        role: "ADMIN",
-        homeBranchId: branch.id,
-        pinHash: await argon2.hash(PIN),
-        mustChangePin: false,
-      },
-    });
+    const admin = await makeStaff("ADMIN", "E2E Lists Admin");
     users.push(admin.id);
-
-    await page.goto("/login");
-    await page.getByLabel(en.auth.fields.mobile).fill(admin.mobile);
-    await page.getByLabel(en.auth.fields.pin).fill(PIN);
-    await page.getByRole("button", { name: en.auth.logIn }).click();
-    await expect(page).toHaveURL(/\/overview/);
+    await signIn(page, admin.mobile, "ADMIN");
 
     await page.goto("/settings/categories");
     const name = unique("Lehenga");
@@ -58,24 +41,35 @@ test.describe("master lists", () => {
     await expect(page.getByText(name).first()).toBeVisible();
   });
 
-  test("the lists are admin-only", async ({ page }) => {
-    const branch = await db.branch.findFirstOrThrow({ where: { status: "ACTIVE" } });
-    const manager = await db.user.create({
-      data: {
-        fullName: "E2E Lists Manager",
-        mobile: mobile(),
-        role: "MANAGER",
-        homeBranchId: branch.id,
-        pinHash: await argon2.hash(PIN),
-        mustChangePin: false,
-      },
-    });
-    users.push(manager.id);
+  test("the drag handles hydrate, instead of being renumbered in the browser", async ({ page }) => {
+    const admin = await makeStaff("ADMIN", "E2E Hydration Admin");
+    users.push(admin.id);
+    await signIn(page, admin.mobile, "ADMIN");
+    await page.goto("/settings/categories");
 
-    await page.goto("/login");
-    await page.getByLabel(en.auth.fields.mobile).fill(manager.mobile);
-    await page.getByLabel(en.auth.fields.pin).fill(PIN);
-    await page.getByRole("button", { name: en.auth.logIn }).click();
+    // dnd-kit numbers its own aria-describedby from a module counter unless DndContext is
+    // given an id, and that counter does not start in the same place on the server as in
+    // the browser: the page then fails to hydrate. Comparing the two is the whole test.
+    const html = await (await page.request.get("/settings/categories")).text();
+    const fromServer = [
+      ...html.matchAll(/aria-roledescription="sortable" aria-describedby="([^"]+)"/g),
+    ].map((match) => match[1]);
+    expect(fromServer.length).toBeGreaterThan(0);
+
+    const inBrowser = await page
+      .getByRole("button", { name: en.masterLists.dragHandle })
+      .first()
+      .getAttribute("aria-describedby");
+    expect(fromServer).toContain(inBrowser);
+
+    // And it still points at dnd-kit's keyboard instructions, rather than at nothing.
+    await expect(page.locator(`#${inBrowser}`)).toHaveCount(1);
+  });
+
+  test("the lists are admin-only", async ({ page }) => {
+    const manager = await makeStaff("MANAGER", "E2E Lists Manager");
+    users.push(manager.id);
+    await signIn(page, manager.mobile, "MANAGER");
 
     expect((await page.goto("/settings/categories"))?.status()).toBe(404);
     expect((await page.goto("/settings/reasons"))?.status()).toBe(404);

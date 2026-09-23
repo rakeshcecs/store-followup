@@ -1,3 +1,6 @@
+// Playwright is not Next, so nothing has read .env yet: without this the specs' own
+// `db` falls back to the placeholder URL in src/lib/db.ts and every query pool-timeouts.
+import "dotenv/config";
 import { defineConfig, devices } from "@playwright/test";
 
 // End-to-end tests run against a production build (`npm run build` first).

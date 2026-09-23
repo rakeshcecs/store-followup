@@ -1,26 +1,10 @@
-import argon2 from "argon2";
 import { expect, test } from "@playwright/test";
 import en from "../../messages/en.json";
 import { db } from "@/lib/db";
+import { makeStaff, randomMobile, signIn } from "./helpers";
 
 // The SOW's "Done when" for M03: an admin adds a salesperson, who then logs in with the
 // temporary PIN and sets their own.
-const ADMIN_PIN = "4839";
-const mobile = () => `9${String(Math.floor(Math.random() * 1_000_000_000)).padStart(9, "0")}`;
-
-async function makeAdmin() {
-  const branch = await db.branch.findFirstOrThrow({ where: { status: "ACTIVE" } });
-  return db.user.create({
-    data: {
-      fullName: "E2E Admin",
-      mobile: mobile(),
-      role: "ADMIN",
-      homeBranchId: branch.id,
-      pinHash: await argon2.hash(ADMIN_PIN),
-      mustChangePin: false,
-    },
-  });
-}
 
 test.describe("staff", () => {
   const created: string[] = [];
@@ -31,16 +15,11 @@ test.describe("staff", () => {
   });
 
   test("an admin adds a salesperson, who logs in with the temporary PIN", async ({ page }) => {
-    const admin = await makeAdmin();
+    const admin = await makeStaff("ADMIN", "E2E Admin");
     created.push(admin.id);
+    await signIn(page, admin.mobile, "ADMIN");
 
-    await page.goto("/login");
-    await page.getByLabel(en.auth.fields.mobile).fill(admin.mobile);
-    await page.getByLabel(en.auth.fields.pin).fill(ADMIN_PIN);
-    await page.getByRole("button", { name: en.auth.logIn }).click();
-    await expect(page).toHaveURL(/\/overview/);
-
-    const newMobile = mobile();
+    const newMobile = randomMobile();
     await page.goto("/staff/new");
     await page.getByLabel(en.staff.fields.name).fill("E2E Salesperson");
     await page.getByLabel(en.staff.fields.mobile).fill(newMobile);
@@ -66,7 +45,8 @@ test.describe("staff", () => {
     await page.getByRole("button", { name: en.auth.logIn }).click();
 
     await expect(page).toHaveURL(/\/set-pin/);
-    await page.getByLabel(en.auth.fields.newPin).fill("7261");
+    // exact: "New PIN" is also a substring of "Enter the new PIN again".
+    await page.getByLabel(en.auth.fields.newPin, { exact: true }).fill("7261");
     await page.getByLabel(en.auth.fields.confirmPin).fill("7261");
     await page.getByRole("button", { name: en.auth.savePin }).click();
 
@@ -75,23 +55,9 @@ test.describe("staff", () => {
   });
 
   test("a manager sees the list but cannot add anyone", async ({ page }) => {
-    const branch = await db.branch.findFirstOrThrow({ where: { status: "ACTIVE" } });
-    const manager = await db.user.create({
-      data: {
-        fullName: "E2E Manager",
-        mobile: mobile(),
-        role: "MANAGER",
-        homeBranchId: branch.id,
-        pinHash: await argon2.hash(ADMIN_PIN),
-        mustChangePin: false,
-      },
-    });
+    const manager = await makeStaff("MANAGER", "E2E Staff Manager");
     created.push(manager.id);
-
-    await page.goto("/login");
-    await page.getByLabel(en.auth.fields.mobile).fill(manager.mobile);
-    await page.getByLabel(en.auth.fields.pin).fill(ADMIN_PIN);
-    await page.getByRole("button", { name: en.auth.logIn }).click();
+    await signIn(page, manager.mobile, "MANAGER");
 
     await page.goto("/staff");
     await expect(page.getByRole("heading", { name: en.staff.title })).toBeVisible();

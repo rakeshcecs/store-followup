@@ -2,6 +2,8 @@ import { expect, test } from "@playwright/test";
 import en from "../../messages/en.json";
 import gu from "../../messages/gu.json";
 import hi from "../../messages/hi.json";
+import { db } from "@/lib/db";
+import { makeStaff, signIn } from "./helpers";
 
 // "/" redirects by role; signed out that means the login screen, which is now the
 // only public page (M02).
@@ -35,28 +37,40 @@ test("NEXT_LOCALE=gu shows Gujarati", async ({ page, context, baseURL }) => {
 });
 
 test("a script font is fetched only when that script is on screen", async ({
-  page,
-  context,
+  browser,
   baseURL,
 }) => {
+  // A context per locale: performance entries survive a same-context navigation, so a
+  // shared page would report the previous locale's fonts as this one's.
   const fontsOn = async (locale: string) => {
-    await context.clearCookies();
-    await context.addCookies([{ name: "NEXT_LOCALE", value: locale, url: baseURL }]);
+    const context = await browser.newContext({ baseURL });
+    await context.addCookies([{ name: "NEXT_LOCALE", value: locale, url: baseURL! }]);
+    const page = await context.newPage();
     await page.goto("/");
     await expect(page.locator("html")).toHaveAttribute("lang", locale);
     await page.waitForLoadState("networkidle");
-    return page.evaluate(() =>
+    const files = await page.evaluate(() =>
       performance
         .getEntriesByType("resource")
         .map((entry) => entry.name)
         .filter((name) => name.includes(".woff")),
     );
+    await context.close();
+    return new Set(files.map((name) => name.split("/").pop()!));
   };
 
-  // The Gujarati font is loaded through its unicode-range, so an English screen must
-  // not pay for it.
-  expect((await fontsOn("gu")).some((name) => /gujarati/i.test(name))).toBe(true);
-  expect((await fontsOn("en")).some((name) => /gujarati|devanagari/i.test(name))).toBe(false);
+  const latin = await fontsOn("en");
+  const gujarati = await fontsOn("gu");
+  const devanagari = await fontsOn("hi");
+
+  // next/font self-hosts with hashed file names, so a script font is recognised by being
+  // fetched on its own screen and on no other: each script screen pays for exactly one
+  // extra file, and the English screen pays for none of them.
+  const extraGu = [...gujarati].filter((file) => !latin.has(file));
+  const extraHi = [...devanagari].filter((file) => !latin.has(file));
+  expect(extraGu).toHaveLength(1);
+  expect(extraHi).toHaveLength(1);
+  expect(extraGu).not.toEqual(extraHi);
 });
 
 test("web app manifest is linked and installable", async ({ page, request }) => {
@@ -95,6 +109,18 @@ test("offline page shows the offline message", async ({ page }) => {
   await expect(page.getByRole("button", { name: en.offline.retry })).toBeVisible();
 });
 
-test("developer components page is hidden in production", async ({ request }) => {
-  expect((await request.get("/dev/components")).status()).toBe(404);
+test("developer components page is hidden in production", async ({ page, request }) => {
+  // Signed out, the proxy stops it before the page runs at all.
+  const anonymous = await request.get("/dev/components", { maxRedirects: 0 });
+  expect(anonymous.status()).toBe(307);
+
+  // And the page itself refuses even the one role that can see everything else.
+  const admin = await makeStaff("ADMIN", "E2E Dev Gallery Admin");
+  try {
+    await signIn(page, admin.mobile, "ADMIN");
+    expect((await page.goto("/dev/components"))?.status()).toBe(404);
+  } finally {
+    await db.user.delete({ where: { id: admin.id } });
+    await db.$disconnect();
+  }
 });

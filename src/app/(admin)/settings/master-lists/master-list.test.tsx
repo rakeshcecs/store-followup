@@ -41,13 +41,17 @@ const items = [
   },
 ];
 
-function renderList(locale: "en" | "hi" | "gu" = "en") {
+function list(rows: typeof items, locale: "en" | "hi" | "gu" = "en") {
   const messages = { en, hi: en, gu: en }[locale];
-  return render(
+  return (
     <NextIntlClientProvider locale={locale} messages={messages}>
-      <MasterList kind="category" items={items} branches={[{ id: "b1", name: "Main" }]} />
-    </NextIntlClientProvider>,
+      <MasterList kind="category" items={rows} branches={[{ id: "b1", name: "Main" }]} />
+    </NextIntlClientProvider>
   );
+}
+
+function renderList(locale: "en" | "hi" | "gu" = "en") {
+  return render(list(items, locale));
 }
 
 const rowFor = (name: string) => screen.getByText(name).closest("li") as HTMLElement;
@@ -108,6 +112,20 @@ describe("MasterList", () => {
   // A real drag is not testable here: dnd-kit needs layout boxes and jsdom reports every
   // element as 0x0, so any "drag" would pass whatever the code did. The part that can be
   // wrong — which ids are sent, and in what order — is tests/unit/reorder.test.ts.
+
+  it("adopts a row the server changed, not only a row it added or moved", () => {
+    // Deactivating changes no id and no position. The screen used to compare ids alone,
+    // so it kept showing the row as active until the page was reloaded.
+    const { rerender } = render(list(items));
+    expect(within(rowFor("Sherwani")).queryByText(en.masterLists.inactive)).toBeNull();
+
+    const deactivated = items.map((item) => (item.id === "c1" ? { ...item, active: false } : item));
+    rerender(list(deactivated));
+
+    const row = rowFor("Sherwani");
+    expect(within(row).getByText(en.masterLists.inactive)).toBeInTheDocument();
+    expect(within(row).getByRole("button", { name: en.masterLists.activate })).toBeInTheDocument();
+  });
 
   it("shows each item in the reading language", () => {
     renderList("gu");
