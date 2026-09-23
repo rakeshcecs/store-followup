@@ -75,6 +75,7 @@ const eslintConfig = defineConfig([
               "method",
               "action",
               "variant",
+              "kind", // which master list a screen is showing, not text
               "size",
               "tone",
               "align",

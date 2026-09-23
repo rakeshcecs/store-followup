@@ -289,6 +289,61 @@
     "branches": "Branches",
     "branchesText": "Store locations and their details.",
     "departments": "Departments",
-    "departmentsText": "Teams staff and customers belong to."
+    "departmentsText": "Teams staff and customers belong to.",
+    "categories": "Requirement categories",
+    "categoriesText": "The chips staff pick when recording a visit.",
+    "reasons": "Not-interested reasons",
+    "reasonsText": "Why a customer decided not to buy."
+  },
+  "masterLists": {
+    "add": "Add",
+    "save": "Save",
+    "cancel": "Cancel",
+    "rename": "Rename",
+    "delete": "Delete",
+    "added": "Added",
+    "renamed": "Renamed",
+    "deleted": "Deleted",
+    "activate": "Activate",
+    "deactivate": "Make inactive",
+    "activated": "Item is active",
+    "deactivated": "Item is inactive",
+    "inactive": "Inactive",
+    "empty": "Nothing in this list yet.",
+    "allBranches": "All branches",
+    "dragHandle": "Drag to reorder",
+    "usage": "Used {count} times",
+    "cannotDelete": "Used {count} times — make it inactive instead.",
+    "fields": {
+      "nameEn": "English name",
+      "nameHi": "Hindi name",
+      "nameGu": "Gujarati name",
+      "branch": "Branch"
+    },
+    "hints": {
+      "branch": "Keep All branches unless one branch needs its own."
+    },
+    "confirmDelete": {
+      "title": "Delete this item?",
+      "text": "Nothing uses it, so it can go for good. This cannot be undone.",
+      "confirm": "Delete",
+      "cancel": "Cancel"
+    },
+    "errors": {
+      "nameEnRequired": "Enter the English name.",
+      "nameHiRequired": "Enter the Hindi name.",
+      "nameGuRequired": "Enter the Gujarati name.",
+      "nameTooLong": "Use 50 characters or fewer.",
+      "nameTaken": "{name} is already in this list.",
+      "inUse": "This is used {count} times. Make it inactive instead of deleting it."
+    }
+  },
+  "categories": {
+    "title": "Requirement categories",
+    "back": "Back"
+  },
+  "reasons": {
+    "title": "Not-interested reasons",
+    "back": "Back"
   }
 }

@@ -3,8 +3,11 @@
 // calendar dates use @db.Date, nothing is hard-deleted (status/active fields + audit log).
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  // CommonJS output. Playwright transpiles specs to CommonJS, and the ESM client's
+  // top-level `import.meta` cannot survive that, so tests/e2e could not import `db`.
+  moduleFormat = "cjs"
 }
 
 datasource db {

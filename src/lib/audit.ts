@@ -19,6 +19,16 @@ export const AUDIT = {
   departmentUpdate: "department:update",
   departmentActivate: "department:activate",
   departmentDeactivate: "department:deactivate",
+  categoryCreate: "category:create",
+  categoryUpdate: "category:update",
+  categoryActivate: "category:activate",
+  categoryDeactivate: "category:deactivate",
+  categoryDelete: "category:delete",
+  reasonCreate: "reason:create",
+  reasonUpdate: "reason:update",
+  reasonActivate: "reason:activate",
+  reasonDeactivate: "reason:deactivate",
+  reasonDelete: "reason:delete",
 } as const;
 
 export type AuditInput = {
