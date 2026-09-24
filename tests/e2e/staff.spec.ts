@@ -132,7 +132,12 @@ test.describe("staff", () => {
     const [branchA, branchB] = await Promise.all(
       ["A", "B"].map((letter) =>
         db.branch.create({
-          data: { name: `${name} ${letter}`, address: "1 Road", city: "Surat", phone: "0261 1234567" },
+          data: {
+            name: `${name} ${letter}`,
+            address: "1 Road",
+            city: "Surat",
+            phone: "0261 1234567",
+          },
         }),
       ),
     );
