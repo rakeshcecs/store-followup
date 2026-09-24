@@ -54,7 +54,7 @@ test.describe("staff", () => {
     await page.getByRole("button", { name: en.auth.savePin }).click();
 
     await expect(page).toHaveURL(/\/today/);
-    await expect(page.getByRole("heading", { name: en.today.title })).toBeVisible();
+    await expect(page.getByRole("link", { name: en.customers.findCta })).toBeVisible();
   });
 
   test("an admin gives a manager a second branch, and the switcher appears", async ({ page }) => {

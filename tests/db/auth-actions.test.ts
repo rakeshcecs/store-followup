@@ -16,6 +16,7 @@ const { AUDIT } = await import("@/lib/audit");
 const { LOCK_MINUTES, MAX_FAILED_ATTEMPTS } = await import("@/lib/validation/auth");
 const { makeBranch, makeUser, nextMobile } = await import("../helpers/branch-access");
 const { signInAs } = await import("../helpers/session");
+const { makeStore } = await import("../helpers/store");
 
 const PIN = "4839";
 const OTHER_PIN = "7261";
@@ -255,6 +256,58 @@ describe("resetPin", () => {
     await expect(resetPin({ userId: staff.id, pin: OTHER_PIN })).resolves.toMatchObject({
       code: "FORBIDDEN",
     });
+  });
+});
+
+// Found in the role audit (24 Sep 2026): a manager could reset the admin's PIN, read the
+// new one off the screen and sign in as the admin. Two branches, two managers, two
+// salespeople and an admin.
+describe("resetPin: whose PIN a manager may reset", () => {
+  const refused = { ok: false, code: "FORBIDDEN" };
+
+  it("refuses a manager resetting the admin or another manager of their own branch", async () => {
+    const store = await makeStore();
+    const secondManagerA = await makeUser({ role: "MANAGER", homeBranchId: store.branchA.id });
+    await signInAs(store.managerA.mobile);
+
+    await expect(resetPin({ userId: store.admin.id, pin: OTHER_PIN })).resolves.toMatchObject(
+      refused,
+    );
+    await expect(resetPin({ userId: secondManagerA.id, pin: OTHER_PIN })).resolves.toMatchObject(
+      refused,
+    );
+    await expect(resetPin({ userId: store.managerB.id, pin: OTHER_PIN })).resolves.toMatchObject(
+      refused,
+    );
+    // Nothing changed on the admin: same PIN hash, no audit row.
+    const admin = await db.user.findUniqueOrThrow({ where: { id: store.admin.id } });
+    expect(admin.pinHash).toBe(store.admin.pinHash);
+    expect(
+      await db.auditLog.count({ where: { entityId: store.admin.id, action: AUDIT.userPinReset } }),
+    ).toBe(0);
+  });
+
+  it("lets a manager reset their own branch's salespeople only", async () => {
+    const store = await makeStore();
+    // Home in B, also works in A: A's manager lists them, so may reset them too.
+    const alsoInA = await makeUser({
+      role: "SALESPERSON",
+      homeBranchId: store.branchB.id,
+      extraBranchIds: [store.branchA.id],
+    });
+    await signInAs(store.managerA.mobile);
+
+    await expect(resetPin({ userId: store.salesA.id })).resolves.toMatchObject({ ok: true });
+    await expect(resetPin({ userId: alsoInA.id })).resolves.toMatchObject({ ok: true });
+    await expect(resetPin({ userId: store.salesB.id })).resolves.toMatchObject(refused);
+  });
+
+  it("lets the admin reset a manager's PIN in any branch", async () => {
+    const store = await makeStore();
+    await signInAs(store.admin.mobile);
+
+    await expect(resetPin({ userId: store.managerB.id })).resolves.toMatchObject({ ok: true });
+    await expect(resetPin({ userId: store.salesB.id })).resolves.toMatchObject({ ok: true });
   });
 });
 

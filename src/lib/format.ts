@@ -95,6 +95,14 @@ export function isoDate(value: Date | string): string {
   return `${parts["year"]}-${parts["month"]}-${parts["day"]}`;
 }
 
+// 0–23, the hour in the shop (IST): "Good morning" turns into "Good afternoon" at 12.
+export function istHour(value: Date | string): number {
+  const hour = dateFormat("en", { hour: "numeric", hourCycle: "h23" })
+    .formatToParts(toDate(value))
+    .find((part) => part.type === "hour")?.value;
+  return Number(hour) % 24;
+}
+
 // "1,00,000" — Indian grouping comes from the -IN region, not from an option.
 export function formatNumber(value: number, locale: Locale): string {
   return numberFormat(locale, {}).format(value);

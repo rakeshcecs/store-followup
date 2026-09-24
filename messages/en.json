@@ -11,7 +11,8 @@
     "profile": "Profile",
     "staff": "Staff",
     "settings": "Settings",
-    "customers": "Customers"
+    "customers": "Customers",
+    "followUps": "Follow-ups"
   },
   "language": {
     "label": "Language",
@@ -164,7 +165,21 @@
   },
   "today": {
     "title": "Today",
-    "comingSoon": "Your walk-ins and follow-ups appear here."
+    "greeting": {
+      "morning": "Good morning, {name}",
+      "afternoon": "Good afternoon, {name}",
+      "evening": "Good evening, {name}"
+    },
+    "counts": {
+      "dueToday": "Follow-ups today",
+      "overdue": "Overdue",
+      "salesToday": "Sales today"
+    },
+    "overdue": "Overdue ({count})",
+    "dueToday": "Today's follow-ups ({count})",
+    "empty": "All done for today. New walk-ins will show up here when they need a follow-up.",
+    "comingUp": "Coming up",
+    "overdueMore": "{count} more on the Follow-ups screen"
   },
   "overview": {
     "title": "Store overview",
@@ -570,6 +585,42 @@
     "errors": {
       "noOpenEnquiry": "There is no open enquiry. Record the visit first.",
       "pickDate": "Pick a date."
+    },
+    "card": {
+      "today": "Today",
+      "daysLate": "{count, plural, one {# day late} other {# days late}}",
+      "update": "Update"
+    },
+    "list": {
+      "title": "Follow-ups",
+      "tabs": {
+        "pending": "Pending",
+        "overdue": "Overdue",
+        "done": "Done",
+        "all": "All"
+      },
+      "filters": {
+        "search": "Search name or mobile",
+        "from": "From",
+        "to": "To",
+        "assignedTo": "Salesperson",
+        "anyone": "Everyone"
+      },
+      "empty": {
+        "pending": "No pending follow-ups",
+        "overdue": "Nothing overdue",
+        "done": "No follow-ups done yet",
+        "all": "No follow-ups"
+      },
+      "emptyText": "Change the dates or the search to see more.",
+      "searchAll": "Search all follow-ups",
+      "showMore": "Show more",
+      "status": {
+        "PENDING": "Pending",
+        "DONE": "Done",
+        "RESCHEDULED": "Rescheduled",
+        "CANCELLED": "Cancelled"
+      }
     }
   },
   "sales": {
@@ -687,5 +738,10 @@
       "alreadyUpdated": "This follow-up was already updated.",
       "noteTooLong": "Keep the note under 250 characters."
     }
+  },
+  "refresh": {
+    "pull": "Pull down to refresh",
+    "release": "Release to refresh",
+    "refreshing": "Refreshing…"
   }
 }

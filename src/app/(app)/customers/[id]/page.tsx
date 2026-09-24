@@ -8,6 +8,7 @@ import { HistoryList } from "@/app/(app)/customers/[id]/history-list";
 import { AppShell } from "@/components/layout/app-shell";
 import type { Locale } from "@/i18n/config";
 import { requireUser } from "@/lib/auth";
+import { telHref, whatsappHref } from "@/lib/contact-links";
 import {
   canEditCustomer,
   customerProfile,
@@ -61,14 +62,14 @@ export default async function CustomerProfilePage({
       {customer.mobile && (
         <>
           <a
-            href={`tel:+91${customer.mobile}`}
+            href={telHref(customer.mobile)}
             aria-label={t("profile.call", { name: customer.name })}
             className={topBarButton}
           >
             <Phone aria-hidden className="size-6" />
           </a>
           <a
-            href={`https://wa.me/91${customer.mobile}`}
+            href={whatsappHref(customer.mobile)}
             target="_blank"
             rel="noopener noreferrer"
             aria-label={t("profile.whatsapp", { name: customer.name })}

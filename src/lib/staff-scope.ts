@@ -4,7 +4,9 @@
 // A person belongs to their home branch and, through UserBranch, to any extras, so the
 // filter has to look at both — the same shape as the staff count in
 // src/app/(admin)/branches/page.tsx.
-import type { BranchScope } from "@/lib/permissions";
+import type { Role } from "@/generated/prisma/client";
+import type { SessionUser } from "@/lib/auth";
+import { accessScope, type BranchScope } from "@/lib/permissions";
 
 export type StaffBranchWhere =
   | Record<string, never>
@@ -38,4 +40,16 @@ export function staffInScope(
     ...(staff.extraBranches ?? []).map((row) => row.branchId),
   ]);
   return scope.branchIds.some((branchId) => branchIds.has(branchId));
+}
+
+// Who may reset whose PIN. An admin: anyone. A manager: only the salespeople who work in
+// one of their branches (home or extra) — never an admin or another manager, or the reset
+// PIN they are shown would let them sign in as that person.
+export function canResetPin(
+  user: SessionUser,
+  target: { role: Role; homeBranchId: string; extraBranches?: { branchId: string }[] },
+): boolean {
+  if (user.role === "ADMIN") return true;
+  if (user.role !== "MANAGER" || target.role !== "SALESPERSON") return false;
+  return staffInScope(target, accessScope(user));
 }

@@ -16,7 +16,7 @@ import { getBranchScope } from "@/lib/current-branch";
 import { db } from "@/lib/db";
 import { formatMobile } from "@/lib/format";
 import { normalizeMobile } from "@/lib/mobile";
-import { staffBranchWhere } from "@/lib/staff-scope";
+import { canResetPin, staffBranchWhere } from "@/lib/staff-scope";
 import { openWorkFor } from "@/lib/staff-work";
 
 // Everyone who may see this screen. Only an admin may change anything on it; a manager
@@ -68,6 +68,8 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
         role: true,
         status: true,
         department: { select: { name: true } },
+        homeBranchId: true,
+        extraBranches: { select: { branchId: true } },
         homeBranch: { select: { name: true } },
         // So the list shows what the form set: a manager covering more than one branch
         // is otherwise invisible until somebody opens their edit screen.
@@ -141,7 +143,9 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
                         <Link href={`/staff/${person.id}/edit`}>{t("edit")}</Link>
                       </Button>
                     )}
-                    {active && <ResetPinButton id={person.id} name={person.fullName} />}
+                    {active && canResetPin(user, person) && (
+                      <ResetPinButton id={person.id} name={person.fullName} />
+                    )}
                     {isAdmin && (
                       <StaffStatusButton
                         id={person.id}

@@ -258,7 +258,7 @@ test.describe("a store from an empty database", () => {
     await logIn(page, salesMobile, state.salesTempPin!);
     await setNewPin(page, SALES_PIN);
     await expect(page).toHaveURL(/\/today/);
-    await expect(page.getByRole("heading", { name: en.today.title })).toBeVisible();
+    await expect(page.getByRole("link", { name: en.customers.findCta })).toBeVisible();
 
     // The overview and every admin screen are closed to them.
     for (const path of ["/overview", "/branches", "/settings", "/settings/categories"]) {
@@ -383,6 +383,10 @@ test.describe("a store from an empty database", () => {
     });
     expect(retry.notReachableCount).toBe(1);
     expect(retry.createdFrom).toBe("FOLLOWUP_RESULT");
+
+    // M11: tomorrow's retry waits on Today under "Coming up".
+    await expect(page.getByRole("heading", { name: en.today.comingUp })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Asha Patel" })).toBeVisible();
   });
 
   test("12. the other branch's staff find the same customer, and see their own app", async ({

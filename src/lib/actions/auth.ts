@@ -10,7 +10,7 @@ import { localeCookie, localeCookieMaxAge } from "@/i18n/config";
 import { AUDIT, writeAudit } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { AppError } from "@/lib/errors";
-import { assertBranchAccess } from "@/lib/permissions";
+import { canResetPin } from "@/lib/staff-scope";
 import { safeAction } from "@/lib/safe-action";
 import { generateTempPin } from "@/lib/temp-pin";
 import {
@@ -239,10 +239,17 @@ export const resetPin = safeAction({
     const oneTimePin = pin ?? generateTempPin();
     const target = await db.user.findUnique({
       where: { id: userId },
-      select: { id: true, homeBranchId: true },
+      select: {
+        id: true,
+        role: true,
+        homeBranchId: true,
+        extraBranches: { select: { branchId: true } },
+      },
     });
     if (!target) throw new AppError("NOT_FOUND");
-    assertBranchAccess(user, target.homeBranchId);
+    // A manager resets their own salespeople only: the PIN comes back to them, so
+    // resetting an admin's or another manager's would let them sign in as that person.
+    if (!canResetPin(user, target)) throw new AppError("FORBIDDEN");
 
     await db.$transaction(async (tx) => {
       await tx.user.update({

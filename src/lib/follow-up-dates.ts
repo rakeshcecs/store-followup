@@ -24,6 +24,11 @@ export function addDays(day: string, days: number): string {
   return date.toISOString().slice(0, 10);
 }
 
+// Whole days from one calendar day to another: "2026-09-21" → "2026-09-24" is 3.
+export function daysBetween(from: string, to: string): number {
+  return Math.round((utcDay(to).getTime() - utcDay(from).getTime()) / (24 * 60 * 60 * 1000));
+}
+
 export function followUpShortcut(kind: DateShortcut, today: string): string {
   const weekday = utcDay(today).getUTCDay(); // 0 = Sunday … 6 = Saturday
   switch (kind) {

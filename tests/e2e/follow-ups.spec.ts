@@ -125,7 +125,7 @@ test.describe("follow-ups", () => {
     await signIn(page, sales.mobile, "SALESPERSON");
 
     await page.goto(`/customers/${customer.id}`);
-    await page.getByRole("link", { name: en.customers.profile.followUp }).click();
+    await page.getByRole("link", { name: en.customers.profile.followUp, exact: true }).click();
     await expect(page).toHaveURL(/\/follow-ups\/new\?/);
     await expect(page.getByText(f.replaces.replace("{date}", words(today)))).toBeVisible();
 

@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 
 type TopBarProps = {
   title: string;
+  subtitle?: string; // a muted line above the title, e.g. the date on Today
   backLabel?: string; // accessible label; back button shows only when given
   backHref?: string; // go here; otherwise browser back
   statusSlot?: ReactNode; // online/offline + sync status (M19)
@@ -20,6 +21,7 @@ const iconButton =
 
 export function TopBar({
   title,
+  subtitle,
   backLabel,
   backHref,
   statusSlot,
@@ -48,7 +50,14 @@ export function TopBar({
             <ArrowLeft aria-hidden className="size-6" />
           </button>
         ))}
-      <h1 className={cn("grow font-heading-style text-[23px]", !backLabel && "pl-2")}>{title}</h1>
+      {subtitle ? (
+        <div className={cn("min-w-0 grow", !backLabel && "pl-2")}>
+          <p className="text-sm font-semibold text-muted-foreground">{subtitle}</p>
+          <h1 className="font-heading-style text-[23px]">{title}</h1>
+        </div>
+      ) : (
+        <h1 className={cn("grow font-heading-style text-[23px]", !backLabel && "pl-2")}>{title}</h1>
+      )}
       {statusSlot}
       {actions}
     </header>

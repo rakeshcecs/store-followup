@@ -12,6 +12,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Pill } from "@/components/ui/pill";
 import type { Locale } from "@/i18n/config";
 import { requireUser } from "@/lib/auth";
+import { telHref, whatsappHref } from "@/lib/contact-links";
 import { db } from "@/lib/db";
 import { followUpAccessWhere, MISSED_CALLS_ALERT } from "@/lib/follow-ups";
 import { formatDayDate, isoDate } from "@/lib/format";
@@ -112,17 +113,13 @@ export default async function UpdateFollowUpPage({ params }: { params: Promise<{
         {customer.mobile && (
           <div className="flex gap-2">
             <Button asChild variant="secondary" size="sm">
-              <a href={`tel:+91${customer.mobile}`}>
+              <a href={telHref(customer.mobile)}>
                 <Phone aria-hidden className="size-4.5" />
                 {t("call")}
               </a>
             </Button>
             <Button asChild variant="secondary" size="sm">
-              <a
-                href={`https://wa.me/91${customer.mobile}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              <a href={whatsappHref(customer.mobile)} target="_blank" rel="noopener noreferrer">
                 <MessageCircle aria-hidden className="size-4.5" />
                 {t("whatsapp")}
               </a>

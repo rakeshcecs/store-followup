@@ -11,7 +11,8 @@
     "profile": "પ્રોફાઇલ",
     "staff": "સ્ટાફ",
     "settings": "સેટિંગ",
-    "customers": "ગ્રાહકો"
+    "customers": "ગ્રાહકો",
+    "followUps": "ફોલો-અપ"
   },
   "language": {
     "label": "ભાષા",
@@ -164,7 +165,21 @@
   },
   "today": {
     "title": "આજે",
-    "comingSoon": "તમારા વૉક-ઇન અને ફોલો-અપ અહીં દેખાશે."
+    "greeting": {
+      "morning": "સુપ્રભાત, {name}",
+      "afternoon": "નમસ્તે, {name}",
+      "evening": "શુભ સાંજ, {name}"
+    },
+    "counts": {
+      "dueToday": "આજના ફોલો-અપ",
+      "overdue": "મોડા",
+      "salesToday": "આજનું વેચાણ"
+    },
+    "overdue": "મોડા ({count})",
+    "dueToday": "આજના ફોલો-અપ ({count})",
+    "empty": "આજનું બધું કામ પૂરું. નવા વૉક-ઇનને ફોલો-અપ જોઈશે ત્યારે તે અહીં દેખાશે.",
+    "comingUp": "આગળ આવનારા",
+    "overdueMore": "બીજા {count} ફોલો-અપ સ્ક્રીન પર"
   },
   "overview": {
     "title": "સ્ટોર ઝાંખી",
@@ -570,6 +585,42 @@
     "errors": {
       "noOpenEnquiry": "કોઈ ખુલ્લી પૂછપરછ નથી. પહેલાં મુલાકાત નોંધો.",
       "pickDate": "તારીખ પસંદ કરો."
+    },
+    "card": {
+      "today": "આજે",
+      "daysLate": "{count, plural, one {# દિવસ મોડું} other {# દિવસ મોડું}}",
+      "update": "અપડેટ કરો"
+    },
+    "list": {
+      "title": "ફોલો-અપ",
+      "tabs": {
+        "pending": "બાકી",
+        "overdue": "મોડા",
+        "done": "થઈ ગયા",
+        "all": "બધા"
+      },
+      "filters": {
+        "search": "નામ કે મોબાઇલથી શોધો",
+        "from": "ક્યારથી",
+        "to": "ક્યાં સુધી",
+        "assignedTo": "સેલ્સપર્સન",
+        "anyone": "બધા"
+      },
+      "empty": {
+        "pending": "કોઈ ફોલો-અપ બાકી નથી",
+        "overdue": "કોઈ ફોલો-અપ મોડું નથી",
+        "done": "હજી કોઈ ફોલો-અપ પૂરું થયું નથી",
+        "all": "કોઈ ફોલો-અપ નથી"
+      },
+      "emptyText": "વધુ જોવા માટે તારીખ કે શોધ બદલો.",
+      "searchAll": "બધા ફોલો-અપમાં શોધો",
+      "showMore": "વધુ બતાવો",
+      "status": {
+        "PENDING": "બાકી",
+        "DONE": "થઈ ગયું",
+        "RESCHEDULED": "તારીખ બદલી",
+        "CANCELLED": "રદ"
+      }
     }
   },
   "sales": {
@@ -687,5 +738,10 @@
       "alreadyUpdated": "આ ફોલો-અપ પહેલેથી અપડેટ થઈ ગયું છે.",
       "noteTooLong": "નોંધ 250 અક્ષરથી ઓછી રાખો."
     }
+  },
+  "refresh": {
+    "pull": "તાજું કરવા નીચે ખેંચો",
+    "release": "તાજું કરવા છોડો",
+    "refreshing": "તાજું થઈ રહ્યું છે…"
   }
 }
