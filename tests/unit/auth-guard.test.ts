@@ -81,6 +81,15 @@ describe("getUser with a cookie", () => {
     findUnique.mockResolvedValue(deactivated);
     await expect(getUser()).resolves.toBeNull();
   });
+
+  // Seen in the e2e logs as "Cannot read properties of null (reading 'status')": a
+  // request still in flight when the clean-up removed its user.
+  it("treats a session whose user is gone as signed out instead of crashing", async () => {
+    cookieValue.token = "a-token";
+    findUnique.mockResolvedValue(row({ user: null }));
+    await expect(getUser()).resolves.toBeNull();
+    await expect(requireUser()).rejects.toMatchObject({ code: "UNAUTHENTICATED" });
+  });
 });
 
 describe("requireUser", () => {

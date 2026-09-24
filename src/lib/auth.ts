@@ -51,7 +51,10 @@ const getSessionUser = cache(async (): Promise<SessionUser | null> => {
     },
   });
 
-  if (!session) return null;
+  // No user behind the session is possible for a moment when a user row is removed while
+  // one of their requests is in flight (the e2e clean-up does this). The relation is
+  // read in a second query, so treat it as signed out rather than crash on `.status`.
+  if (!session?.user) return null;
   if (session.expiresAt.getTime() <= Date.now()) return null;
   if (session.user.status !== "ACTIVE") return null;
 

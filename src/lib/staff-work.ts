@@ -4,6 +4,10 @@
 //
 // M15 turns these counts into the reassign screen; until then they are the reason
 // deactivating a salesperson is refused (BR-15).
+//
+// branch-scope-exempt: a salesperson's pending follow-ups can sit in any branch (a visit
+// elsewhere files them there, M08.08), and every one must be handed over before they
+// leave — so this counts across branches. Only a number comes back, never a row.
 import type { Prisma } from "@/generated/prisma/client";
 
 export type OpenWork = { customers: number; followUps: number };

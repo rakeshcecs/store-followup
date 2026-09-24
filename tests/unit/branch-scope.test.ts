@@ -27,7 +27,20 @@ function sourceFiles(): string[] {
     .filter((path) => !path.includes(join("src", "generated")));
 }
 
+// `db.followUp.` / `tx.visit.` as written in the source. Built with escaped backslashes:
+// in a template literal a bare `\b` is a backspace character, which is how this check
+// once matched nothing at all and passed for every file (found 24 Sep 2026).
+function queryPattern(model: string): RegExp {
+  return new RegExp(`\\b(?:db|tx)\\.${model}\\.`);
+}
+
 describe("branch scoping", () => {
+  it("recognises a query when it sees one", () => {
+    expect(queryPattern("followUp").test("await db.followUp.findMany({})")).toBe(true);
+    expect(queryPattern("sale").test("await tx.sale.count({})")).toBe(true);
+    expect(queryPattern("sale").test("await db.saleItem.count({})")).toBe(false);
+  });
+
   it("every query on a branch-scoped model uses a permissions helper", () => {
     const unscoped: string[] = [];
 
@@ -37,7 +50,7 @@ describe("branch scoping", () => {
       if (HELPERS.some((helper) => source.includes(helper))) continue;
 
       for (const model of SCOPED_MODELS) {
-        if (new RegExp(`\b(?:db|tx)\.${model}\.`).test(source)) unscoped.push(`${path}: ${model}`);
+        if (queryPattern(model).test(source)) unscoped.push(`${path}: ${model}`);
       }
     }
 

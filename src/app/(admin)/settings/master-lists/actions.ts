@@ -90,6 +90,9 @@ function txTable(tx: Tx, kind: ListKind): ListDelegate {
 
 // How many records already point at this item. Deleting one of those would take the
 // history with it, which is why only unused items may go.
+//
+// branch-scope-exempt: a lost reason is one list for the whole store, so "is it in use"
+// has to count visits in every branch; only a number comes back, never a row.
 async function usageCount(kind: ListKind, id: string): Promise<number> {
   if (kind === "category") {
     const [enquiries, visits] = await Promise.all([
