@@ -112,7 +112,9 @@ test.describe("staff", () => {
 
   test("a manager sees the list but cannot add anyone", async ({ page }) => {
     const manager = await makeStaff("MANAGER", "E2E Staff Manager");
-    created.push(manager.id);
+    // Someone whose PIN they may reset: an unseeded database (CI) has nobody else yet.
+    const seller = await makeStaff("SALESPERSON", "E2E Staff Seller", manager.homeBranchId);
+    created.push(manager.id, seller.id);
     await signIn(page, manager.mobile, "MANAGER");
 
     await page.goto("/staff");

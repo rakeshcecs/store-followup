@@ -9,6 +9,10 @@ const port = 3100;
 
 export default defineConfig({
   testDir: "tests/e2e",
+  globalSetup: "./tests/e2e/global-setup.ts",
+  // A save redirects through "/" and a role check; with every worker on one machine that
+  // hop has outlasted the default five seconds (flaky runs, never a wrong screen).
+  expect: { timeout: 10_000 },
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,

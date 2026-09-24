@@ -18,7 +18,14 @@ export const randomMobile = () =>
 // made ten parallel workers queue on the same rows.
 export async function makeStaff(role: Role, fullName: string, branchId?: string) {
   const homeBranchId =
-    branchId ?? (await db.branch.findFirstOrThrow({ where: { status: "ACTIVE" } })).id;
+    branchId ??
+    // The oldest: never a branch another spec made for itself (tests/e2e/global-setup.ts).
+    (
+      await db.branch.findFirstOrThrow({
+        where: { status: "ACTIVE" },
+        orderBy: { createdAt: "asc" },
+      })
+    ).id;
   return db.user.create({
     data: {
       fullName,
