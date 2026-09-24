@@ -1,6 +1,14 @@
 // Drops the database, re-applies every migration and seeds it, so a run starts from the
-// same place a new store would: `npm run db:reset`. It is also the first half of
-// `npm run test:e2e:fresh`.
+// same place a new store would:
+//
+//   npm run db:reset        one branch and the admin — what a real new store looks like
+//   npm run db:reset:demo   two branches, a manager and a salesperson in each, plus the
+//                           admin; the first manager covers both branches, so the branch
+//                           switcher and "All branches" can be tried by hand
+//
+// The demo flag lives here rather than in .env on purpose: .env is copied to servers and
+// this data must never reach one, and a flag nobody has to remember cannot be left on by
+// accident. `npm run test:e2e:fresh` is the first half of this script with the flag off.
 //
 // It refuses to touch anything that is not a local development database, because the
 // whole point of the script is that it destroys data.
@@ -12,6 +20,9 @@ const run = (...args: string[]) =>
   execFileSync("npx", args, { stdio: "inherit", shell: process.platform === "win32" });
 
 async function main() {
+  // The seed reads SEED_DEMO from the environment the child process inherits.
+  if (process.argv.includes("--demo")) process.env["SEED_DEMO"] = "true";
+
   const url = new URL(process.env.DATABASE_URL ?? "");
   const database = url.pathname.slice(1);
 

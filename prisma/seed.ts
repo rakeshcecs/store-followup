@@ -4,6 +4,7 @@ import "dotenv/config";
 import argon2 from "argon2";
 import type { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
+import { demoPin, demoStaff } from "./demo-store";
 
 const BRANCH_NAME = "[STORE NAME] – Main";
 
@@ -49,12 +50,19 @@ function requireEnv(name: string): string {
   return value;
 }
 
-function demoMobile(name: string, fallback: string): string {
-  const value = process.env[name]?.trim() || fallback;
-  if (!/^[6-9]\d{9}$/.test(value)) {
-    throw new Error(`${name} must be 10 digits starting with 6, 7, 8 or 9.`);
-  }
-  return value;
+// Printed after a demo seed so the logins do not have to be looked up every reset.
+// PINs are only ever set when a row is created, so these are the real ones only until
+// somebody changes theirs.
+function printDemoLogins(adminMobile: string, adminPin: string): void {
+  console.table([
+    { who: "Admin", branch: "Main", mobile: adminMobile, pin: `${adminPin} (must change)` },
+    ...demoStaff("Main", "Branch 2").map((person) => ({
+      who: person.fullName,
+      branch: person.homeBranchId + (person.extraBranchIds.length ? " + Branch 2" : ""),
+      mobile: person.mobile,
+      pin: demoPin(),
+    })),
+  ]);
 }
 
 async function main() {
@@ -114,45 +122,40 @@ async function main() {
       create: { name: DEMO_BRANCH_NAME, address: "[ADDRESS]", city: "[CITY]", phone: "[PHONE]" },
     });
 
-    // A manager of the main branch who also covers branch 2: the only fixture that
-    // exercises extra branches, the switcher and cross-branch denial.
-    const manager = await tx.user.upsert({
-      where: { mobile: demoMobile("SEED_MANAGER_MOBILE", "9000000001") },
-      update: {},
-      create: {
-        fullName: "Demo Manager",
-        mobile: demoMobile("SEED_MANAGER_MOBILE", "9000000001"),
-        role: "MANAGER",
-        homeBranchId: branch.id,
-        pinHash,
-        mustChangePin: true,
-      },
-    });
+    // Demo staff have their own PIN and skip the forced change: this store exists to be
+    // logged into straight after a reset, and changing four PINs first defeats that. The
+    // admin keeps mustChangePin, so the "first login must replace the seeded PIN" path
+    // is still real — tests/e2e/fresh-install.spec.ts checks exactly that.
+    const demoPinHash = await argon2.hash(demoPin());
 
-    // Never a row for the home branch itself: it would double-count the person
-    // when a branch checks whether any staff still work there.
-    await tx.userBranch.upsert({
-      where: { userId_branchId: { userId: manager.id, branchId: branch2.id } },
-      update: {},
-      create: { userId: manager.id, branchId: branch2.id },
-    });
+    for (const person of demoStaff(branch.id, branch2.id)) {
+      const user = await tx.user.upsert({
+        where: { mobile: person.mobile },
+        update: {},
+        create: {
+          fullName: person.fullName,
+          mobile: person.mobile,
+          role: person.role,
+          homeBranchId: person.homeBranchId,
+          pinHash: demoPinHash,
+          mustChangePin: false,
+        },
+      });
 
-    // Salesperson at branch 2 only: the "cannot see the other branch" counterpart.
-    await tx.user.upsert({
-      where: { mobile: demoMobile("SEED_SALES_MOBILE", "9000000002") },
-      update: {},
-      create: {
-        fullName: "Demo Salesperson",
-        mobile: demoMobile("SEED_SALES_MOBILE", "9000000002"),
-        role: "SALESPERSON",
-        homeBranchId: branch2.id,
-        pinHash,
-        mustChangePin: true,
-      },
-    });
+      // Never a row for the home branch itself: it would double-count the person when a
+      // branch checks whether any staff still work there.
+      for (const branchId of person.extraBranchIds) {
+        await tx.userBranch.upsert({
+          where: { userId_branchId: { userId: user.id, branchId } },
+          update: {},
+          create: { userId: user.id, branchId },
+        });
+      }
+    }
   });
 
   console.log("Seed done.");
+  if (process.env["SEED_DEMO"] === "true") printDemoLogins(adminMobile, adminPin);
 }
 
 main()

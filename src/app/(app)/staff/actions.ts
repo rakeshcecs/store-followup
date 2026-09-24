@@ -3,7 +3,8 @@
 import argon2 from "argon2";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
-import { requireUser, type RequireUserOptions } from "@/lib/auth";
+import type { Prisma, Role } from "@/generated/prisma/client";
+import { requireUser, type RequireUserOptions, type SessionUser } from "@/lib/auth";
 import { AUDIT, writeAudit } from "@/lib/audit";
 import { getBranchScope } from "@/lib/current-branch";
 import { db } from "@/lib/db";
@@ -45,6 +46,43 @@ async function assertMobileFree(mobile: string, exceptId?: string): Promise<void
   });
 }
 
+// Extra branches are a manager's thing (SOW: "For managers covering more than one
+// branch"). A salesperson works in one shop, and an admin reaches every branch without
+// any membership row at all, so for both of them the list can only be a mistake.
+//
+// The home branch is dropped rather than refused: an admin who moves someone's home
+// branch to one already in their extras is doing something perfectly sensible, and a
+// UserBranch row for the home branch would count that person twice when a branch asks
+// whether any staff still work there.
+function extraBranchesFor(
+  actor: SessionUser,
+  input: { role: Role; homeBranchId: string; extraBranchIds: string[] },
+): string[] {
+  const wanted = [...new Set(input.extraBranchIds)].filter((id) => id !== input.homeBranchId);
+  if (wanted.length === 0) return [];
+
+  if (input.role !== "MANAGER") {
+    throw new AppError("RULE", {
+      message: "staff.errors.extraBranchesManagerOnly",
+      field: "extraBranchIds",
+    });
+  }
+  for (const branchId of wanted) assertBranchAccess(actor, branchId);
+  return wanted;
+}
+
+// Replaces the whole set, so a branch taken off the chips is really taken away.
+async function syncExtraBranches(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  branchIds: string[],
+): Promise<void> {
+  await tx.userBranch.deleteMany({ where: { userId } });
+  if (branchIds.length > 0) {
+    await tx.userBranch.createMany({ data: branchIds.map((branchId) => ({ userId, branchId })) });
+  }
+}
+
 // Loaded for every write, so an admin on one branch cannot edit another branch's people
 // by posting an id. NOT_FOUND, not FORBIDDEN: existence is itself information.
 async function loadStaffInScope(id: string) {
@@ -73,6 +111,7 @@ export const createStaff = safeAction({
   auth: ADMIN_ONLY,
   handler: async (input, { user }) => {
     assertBranchAccess(user, input.homeBranchId);
+    const extraBranchIds = extraBranchesFor(user, input);
     await assertMobileFree(input.mobile);
 
     // Shown to the admin once and never stored in readable form. mustChangePin sends the
@@ -88,12 +127,15 @@ export const createStaff = safeAction({
           homeBranchId: input.homeBranchId,
           departmentId: input.departmentId ?? null,
           joinedOn: calendarDate(input.joinedOn),
+          language: input.language,
           pinHash: await argon2.hash(tempPin),
           mustChangePin: true,
           createdById: user.id,
           updatedById: user.id,
         },
       });
+
+      await syncExtraBranches(tx, staff.id, extraBranchIds);
 
       await writeAudit(tx, {
         userId: user.id,
@@ -108,6 +150,7 @@ export const createStaff = safeAction({
           role: staff.role,
           homeBranchId: staff.homeBranchId,
           departmentId: staff.departmentId,
+          extraBranchIds,
         },
         device: await device(),
       });
@@ -129,6 +172,7 @@ export const updateStaff = safeAction({
   handler: async (input) => {
     const { actor, staff } = await loadStaffInScope(input.id);
     assertBranchAccess(actor, input.homeBranchId);
+    const extraBranchIds = extraBranchesFor(actor, input);
     await assertMobileFree(input.mobile, staff.id);
 
     await db.$transaction(async (tx) => {
@@ -141,9 +185,12 @@ export const updateStaff = safeAction({
           homeBranchId: input.homeBranchId,
           departmentId: input.departmentId ?? null,
           joinedOn: calendarDate(input.joinedOn),
+          language: input.language,
           updatedById: actor.id,
         },
       });
+
+      await syncExtraBranches(tx, staff.id, extraBranchIds);
 
       await writeAudit(tx, {
         userId: actor.id,
@@ -156,12 +203,14 @@ export const updateStaff = safeAction({
           role: staff.role,
           homeBranchId: staff.homeBranchId,
           departmentId: staff.departmentId,
+          extraBranchIds: staff.extraBranches.map((row) => row.branchId),
         },
         newValue: {
           fullName: updated.fullName,
           role: updated.role,
           homeBranchId: updated.homeBranchId,
           departmentId: updated.departmentId,
+          extraBranchIds,
         },
         device: await device(),
       });

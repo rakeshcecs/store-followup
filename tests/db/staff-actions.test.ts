@@ -15,6 +15,7 @@ const { db } = await import("@/lib/db");
 const { AUDIT } = await import("@/lib/audit");
 const { makeBranch, makeCustomer, makeUser, nextMobile } = await import("../helpers/branch-access");
 const { signInAs } = await import("../helpers/session");
+const { staffInScope } = await import("@/lib/staff-scope");
 
 let branchId: string;
 let adminMobile: string;
@@ -268,5 +269,87 @@ describe("resetPin from the staff list", () => {
     await expect(resetPin({ userId: created.data.id })).resolves.toMatchObject({
       code: "FORBIDDEN",
     });
+  });
+});
+
+describe("extra branches", () => {
+  it("gives a manager a second branch, and takes it away again", async () => {
+    const second = await makeBranch();
+
+    const created = await createStaff(
+      await staffInput({ role: "MANAGER", extraBranchIds: second.id }),
+    );
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+
+    const rows = await db.userBranch.findMany({ where: { userId: created.data.id } });
+    expect(rows.map((row) => row.branchId)).toEqual([second.id]);
+
+    // The manager really can reach it now — this is the whole point of the field.
+    const reachable = await db.user.findUniqueOrThrow({
+      where: { id: created.data.id },
+      select: { homeBranchId: true, extraBranches: { select: { branchId: true } } },
+    });
+    expect(staffInScope(reachable, { all: false, branchIds: [second.id] })).toBe(true);
+
+    const saved = await db.user.findUniqueOrThrow({ where: { id: created.data.id } });
+    const updated = await updateStaff({
+      ...(await staffInput({ role: "MANAGER", extraBranchIds: "" })),
+      id: created.data.id,
+      mobile: saved.mobile,
+    });
+    expect(updated.ok).toBe(true);
+    // Sync, not append: an unticked branch has to go.
+    expect(await db.userBranch.count({ where: { userId: created.data.id } })).toBe(0);
+  });
+
+  it("refuses them for anyone who is not a manager", async () => {
+    const second = await makeBranch();
+
+    const result = await createStaff(
+      await staffInput({ role: "SALESPERSON", extraBranchIds: second.id }),
+    );
+
+    // A salesperson works in one shop; an admin reaches every branch without a row.
+    expect(result).toMatchObject({
+      ok: false,
+      code: "RULE",
+      message: "staff.errors.extraBranchesManagerOnly",
+      field: "extraBranchIds",
+    });
+  });
+
+  it("never writes a row for the person's own branch", async () => {
+    // An admin moving somebody's home branch onto one of their extras is doing something
+    // sensible; a row for the home branch would count them twice when a branch asks
+    // whether any staff still work there.
+    const created = await createStaff(
+      await staffInput({ role: "MANAGER", extraBranchIds: branchId }),
+    );
+
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    expect(await db.userBranch.count({ where: { userId: created.data.id } })).toBe(0);
+  });
+
+  it("records both lists in the audit row", async () => {
+    const second = await makeBranch();
+    const created = await createStaff(
+      await staffInput({ role: "MANAGER", extraBranchIds: second.id }),
+    );
+    if (!created.ok) throw new Error("setup failed");
+
+    const audit = await db.auditLog.findFirstOrThrow({
+      where: { entityId: created.data.id, action: AUDIT.userCreate },
+    });
+    expect(audit.newValue).toMatchObject({ extraBranchIds: [second.id] });
+  });
+
+  it("saves the language the admin picked", async () => {
+    const created = await createStaff(await staffInput({ language: "gu" }));
+    if (!created.ok) throw new Error("setup failed");
+
+    const saved = await db.user.findUniqueOrThrow({ where: { id: created.data.id } });
+    expect(saved.language).toBe("gu");
   });
 });

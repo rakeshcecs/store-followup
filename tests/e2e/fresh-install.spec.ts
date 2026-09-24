@@ -4,7 +4,7 @@ import gu from "../../messages/gu.json";
 import { db } from "@/lib/db";
 
 // One story, start to finish, on a database that has just been migrated and seeded:
-// the seeded admin's first login through everything M01–M04 ships, then the same app
+// the seeded admin's first login through everything M01–M05 ships, then the same app
 // seen by a manager and by a salesperson.
 //
 // It only passes on a virgin database (the seeded admin still has its first PIN), so it
@@ -19,7 +19,16 @@ const SALES_PIN = "6274";
 
 const managerMobile = "9811100011";
 const salesMobile = "9811100022";
-const state: { managerTempPin?: string; salesTempPin?: string } = {};
+const managerBMobile = "9811100033";
+const salesBMobile = "9811100044";
+const customerMobile = "9825011223";
+const BRANCH_B = "Second Branch";
+const state: {
+  managerTempPin?: string;
+  salesTempPin?: string;
+  managerBTempPin?: string;
+  salesBTempPin?: string;
+} = {};
 
 // `landsOn` is not optional politeness: without waiting for the landing screen the next
 // navigation can overtake the session cookie and look like a permission failure.
@@ -46,6 +55,14 @@ async function setNewPin(page: Page, pin: string) {
 async function logOut(page: Page, label = en.auth.logOut) {
   await page.getByRole("button", { name: label }).first().click();
   await expect(page).toHaveURL(/\/login/);
+}
+
+// The M17 switcher in the top bar. Staff and walk-ins are filed against the branch on
+// screen, so several steps here have to move between the two.
+async function switchBranch(page: Page, name: string) {
+  await page.getByRole("button", { name: en.branch.switch }).click();
+  await page.getByRole("menuitemradio", { name }).click();
+  await expect(page.getByRole("button", { name: en.branch.switch })).toBeVisible();
 }
 
 // Adds a staff member and returns the temporary PIN shown once on the way out.
@@ -102,14 +119,14 @@ test.describe("a store from an empty database", () => {
     await expect(page.getByRole("heading", { name: en.branches.title })).toBeVisible();
 
     await page.goto("/branches/new");
-    await page.getByLabel(en.branches.fields.name).fill("Second Branch");
+    await page.getByLabel(en.branches.fields.name).fill(BRANCH_B);
     await page.getByLabel(en.branches.fields.address).fill("14 Ring Road");
     await page.getByLabel(en.branches.fields.city).fill("Surat");
     await page.getByLabel(en.branches.fields.phone).fill("9825012345");
     await page.getByRole("button", { name: en.branches.save }).click();
 
     await expect(page).toHaveURL(/\/branches/);
-    await expect(page.getByText("Second Branch")).toBeVisible();
+    await expect(page.getByText(BRANCH_B)).toBeVisible();
     expect(await db.branch.count()).toBe(2);
   });
 
@@ -126,19 +143,37 @@ test.describe("a store from an empty database", () => {
     expect(await db.department.count()).toBe(before + 1);
   });
 
-  test("5. the admin adds a manager and a salesperson, each with a one-time PIN", async ({
-    page,
-  }) => {
+  test("5. the admin staffs both branches: a manager and a salesperson each", async ({ page }) => {
     await logIn(page, SEED_MOBILE, ADMIN_PIN, OVERVIEW);
 
+    // New staff land in the branch on screen, and /staff/new offers no other one (M03),
+    // so staffing the second branch means switching to it first.
     state.managerTempPin = await addStaff(page, "Priya Manager", managerMobile, "MANAGER");
     state.salesTempPin = await addStaff(page, "Ravi Salesperson", salesMobile, "SALESPERSON");
 
-    expect(state.managerTempPin).not.toBe(state.salesTempPin);
-    for (const mobile of [managerMobile, salesMobile]) {
+    await switchBranch(page, BRANCH_B);
+    state.managerBTempPin = await addStaff(page, "Nita Manager", managerBMobile, "MANAGER");
+    state.salesBTempPin = await addStaff(page, "Imran Seller", salesBMobile, "SALESPERSON");
+
+    // Nobody was handed a PIN somebody else already has.
+    const pins = [
+      state.managerTempPin,
+      state.salesTempPin,
+      state.managerBTempPin,
+      state.salesBTempPin,
+    ];
+    expect(new Set(pins).size).toBeGreaterThan(1);
+    for (const mobile of [managerMobile, salesMobile, managerBMobile, salesBMobile]) {
       const person = await db.user.findUniqueOrThrow({ where: { mobile } });
       expect(person.mustChangePin).toBe(true);
       expect(person.status).toBe("ACTIVE");
+    }
+
+    // One pair in each branch, which is what the rest of this walkthrough leans on.
+    const second = await db.branch.findFirstOrThrow({ where: { name: BRANCH_B } });
+    for (const mobile of [managerBMobile, salesBMobile]) {
+      const person = await db.user.findUniqueOrThrow({ where: { mobile } });
+      expect(person.homeBranchId).toBe(second.id);
     }
   });
 
@@ -250,12 +285,69 @@ test.describe("a store from an empty database", () => {
     await logIn(page, salesMobile, "5193", /\/today/);
   });
 
-  test("11. the audit log has a row for everything that changed", async () => {
+  test("11. the salesperson takes the store's first walk-in", async ({ page }) => {
+    await logIn(page, salesMobile, "5193", /\/today/);
+
+    await page.getByRole("link", { name: en.customers.findCta }).click();
+    await page.getByLabel(en.customers.fields.mobile).fill(customerMobile);
+    await page.getByRole("button", { name: en.customers.search }).click();
+
+    // Nobody yet, so the screen offers to add them and carries the number across.
+    await page.getByRole("link", { name: en.customers.create }).click();
+    await page.getByLabel(en.customers.fields.name).fill("Asha Patel");
+    await page.getByRole("button", { name: en.customers.save }).click();
+    await expect(page).toHaveURL(/\/visits\/new\?customerId=/);
+
+    const customer = await db.customer.findUniqueOrThrow({ where: { mobile: customerMobile } });
+    expect(customer.consentGiven).toBe(true);
+    expect(await db.timelineEvent.count({ where: { customerId: customer.id } })).toBe(1);
+
+    // And from now on that number finds them instead of offering to add them again.
+    await page.goto(`/customers?mobile=${customerMobile}`);
+    await expect(page.getByText(en.customers.existing)).toBeVisible();
+  });
+
+  test("12. the other branch's staff find the same customer, and see their own app", async ({
+    page,
+  }) => {
+    // Branch B's salesperson has never met this customer and works somewhere else.
+    await logIn(page, salesBMobile, state.salesBTempPin!);
+    await setNewPin(page, "4062");
+    await expect(page).toHaveURL(/\/today/);
+
+    await page.goto(`/customers?mobile=${customerMobile}`);
+    // BR-16: customers are shared, so the number must find them from either branch —
+    // otherwise the same person is added twice (BR-01).
+    await expect(page.getByText(en.customers.existing)).toBeVisible();
+    await expect(page.getByText("Asha Patel")).toBeVisible();
+
+    // "Recently handled by you" is per person, so theirs is still empty.
+    await page.goto("/customers");
+    await expect(page.getByText(en.customers.emptyRecent)).toBeVisible();
+
+    // And branch B's manager still cannot reach anything an admin owns. A signed-in
+    // visitor is sent away from /login, so this has to log out first.
+    await logOut(page);
+    await logIn(page, managerBMobile, state.managerBTempPin!);
+    await setNewPin(page, "5931");
+    await expect(page).toHaveURL(OVERVIEW);
+    for (const path of ["/branches", "/settings"]) {
+      expect((await page.goto(path))?.status(), path).toBe(404);
+    }
+  });
+
+  test("13. the audit log has a row for everything that changed", async () => {
     const actions = await db.auditLog.groupBy({ by: ["action"], _count: true });
     const byAction = Object.fromEntries(actions.map((row) => [row.action, row._count]));
 
-    // Nothing in M01–M04 changes data without leaving a trace.
-    for (const action of ["branch:create", "department:create", "user:create", "category:create"]) {
+    // Nothing in M01–M05 changes data without leaving a trace.
+    for (const action of [
+      "branch:create",
+      "department:create",
+      "user:create",
+      "category:create",
+      "customer:create",
+    ]) {
       expect(byAction[action], action).toBeGreaterThanOrEqual(1);
     }
     expect(byAction["category:delete"]).toBe(1);

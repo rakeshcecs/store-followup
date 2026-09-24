@@ -1,4 +1,12 @@
-import { CalendarCheck, LayoutDashboard, LogOut, Settings, User, Users } from "lucide-react";
+import {
+  CalendarCheck,
+  LayoutDashboard,
+  LogOut,
+  Settings,
+  User,
+  Users,
+  UserSearch,
+} from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { BranchSwitcher } from "@/components/branch/branch-switcher";
@@ -31,6 +39,7 @@ export async function AppShell({ role, title, backHref, backLabel, children }: A
   const items: NavItem[] = salesperson
     ? [
         { href: "/today", label: t("nav.today"), icon: <CalendarCheck /> },
+        { href: "/customers", label: t("nav.customers"), icon: <UserSearch /> },
         { href: "/profile", label: t("nav.profile"), icon: <User /> },
       ]
     : [

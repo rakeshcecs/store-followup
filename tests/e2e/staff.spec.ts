@@ -8,9 +8,12 @@ import { makeStaff, randomMobile, signIn } from "./helpers";
 
 test.describe("staff", () => {
   const created: string[] = [];
+  const branches: string[] = [];
 
   test.afterAll(async () => {
+    await db.userBranch.deleteMany({ where: { userId: { in: created } } });
     await db.user.deleteMany({ where: { id: { in: created } } });
+    await db.branch.deleteMany({ where: { id: { in: branches } } });
     await db.$disconnect();
   });
 
@@ -52,6 +55,59 @@ test.describe("staff", () => {
 
     await expect(page).toHaveURL(/\/today/);
     await expect(page.getByRole("heading", { name: en.today.title })).toBeVisible();
+  });
+
+  test("an admin gives a manager a second branch, and the switcher appears", async ({ page }) => {
+    // Until now this could only be done by editing the database — the seed did it. SOW:
+    // "Admin can give a manager access to more than one branch."
+    const admin = await makeStaff("ADMIN", "E2E Branch Admin");
+    created.push(admin.id);
+    const second = await db.branch.create({
+      data: {
+        name: `E2E Second ${Math.random().toString(36).slice(2, 7)}`,
+        address: "14 Ring Road",
+        city: "Surat",
+        phone: "9825012345",
+      },
+    });
+    branches.push(second.id);
+
+    await signIn(page, admin.mobile, "ADMIN");
+    const managerMobile = randomMobile();
+    await page.goto("/staff/new");
+    await page.getByLabel(en.staff.fields.name).fill("Two Branch Manager");
+    await page.getByLabel(en.staff.fields.mobile).fill(managerMobile);
+    await page.getByLabel(en.staff.fields.role).selectOption("MANAGER");
+
+    // The chips only exist for a manager, and never offer the home branch.
+    const chips = page.getByRole("toolbar", { name: en.staff.fields.extraBranches });
+    await expect(chips).toBeVisible();
+    await chips.getByRole("button", { name: second.name }).click();
+    await page.getByRole("button", { name: en.staff.save }).click();
+
+    const pin = (await page.locator("p.tracking-\\[0\\.35em\\]").innerText()).trim();
+    await page.getByRole("button", { name: en.staff.tempPin.done }).first().click();
+
+    const manager = await db.user.findUniqueOrThrow({ where: { mobile: managerMobile } });
+    created.push(manager.id);
+    expect(await db.userBranch.count({ where: { userId: manager.id } })).toBe(1);
+    // And the list says so, instead of hiding it behind the edit screen.
+    // .first(): the demo seed has a two-branch manager of its own.
+    await expect(page.getByText("+1 more branch").first()).toBeVisible();
+
+    // The manager themselves can now reach both branches.
+    await page.getByRole("button", { name: en.auth.logOut }).first().click();
+    await page.getByLabel(en.auth.fields.mobile).fill(managerMobile);
+    await page.getByLabel(en.auth.fields.pin).fill(pin);
+    await page.getByRole("button", { name: en.auth.logIn }).click();
+    await expect(page).toHaveURL(/\/set-pin/);
+    await page.getByLabel(en.auth.fields.newPin, { exact: true }).fill("7248");
+    await page.getByLabel(en.auth.fields.confirmPin).fill("7248");
+    await page.getByRole("button", { name: en.auth.savePin }).click();
+    await expect(page).toHaveURL(/\/overview/);
+
+    await page.getByRole("button", { name: en.branch.switch }).click();
+    await expect(page.getByRole("menuitemradio", { name: second.name })).toBeVisible();
   });
 
   test("a manager sees the list but cannot add anyone", async ({ page }) => {

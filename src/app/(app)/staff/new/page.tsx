@@ -15,11 +15,18 @@ export default async function NewStaffPage() {
   const scope = await getBranchScope(user);
   const t = await getTranslations("staff");
 
-  const [branches, departments] = await Promise.all([
+  const [branches, coverableBranches, departments] = await Promise.all([
     db.branch.findMany({
       // Only branches this admin is currently looking at, so a new person cannot land in
       // a branch that is not on screen. Branch has a real branchId column, hence branchWhere.
       where: { status: "ACTIVE", ...branchesInScope(scope) },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
+    // Not scoped: giving a manager a second branch is precisely about the branches the
+    // admin is not looking at, so the current view must not hide them.
+    db.branch.findMany({
+      where: { status: "ACTIVE" },
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
@@ -32,7 +39,11 @@ export default async function NewStaffPage() {
 
   return (
     <AppShell role={user.role} title={t("new")} backHref="/staff" backLabel={t("back")}>
-      <StaffForm branches={branches} departments={departments} />
+      <StaffForm
+        branches={branches}
+        coverableBranches={coverableBranches}
+        departments={departments}
+      />
     </AppShell>
   );
 }

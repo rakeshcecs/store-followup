@@ -68,6 +68,10 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
         role: true,
         status: true,
         department: { select: { name: true } },
+        homeBranch: { select: { name: true } },
+        // So the list shows what the form set: a manager covering more than one branch
+        // is otherwise invisible until somebody opens their edit screen.
+        _count: { select: { extraBranches: true } },
       },
     }),
     db.department.findMany({
@@ -116,6 +120,11 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
                       <p className="font-heading-style text-lg">{person.fullName}</p>
                       <p className="text-[15px] text-muted-foreground">
                         {formatMobile(person.mobile)} · {t(`roles.${person.role}`)}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {person.homeBranch.name}
+                        {person._count.extraBranches > 0 &&
+                          ` · ${t("alsoCovers", { count: person._count.extraBranches })}`}
                       </p>
                       {person.department && (
                         <p className="text-sm text-muted-foreground">{person.department.name}</p>

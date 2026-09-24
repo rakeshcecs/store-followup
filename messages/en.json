@@ -10,7 +10,8 @@
     "overview": "Overview",
     "profile": "Profile",
     "staff": "Staff",
-    "settings": "Settings"
+    "settings": "Settings",
+    "customers": "Customers"
   },
   "language": {
     "label": "Language",
@@ -207,11 +208,14 @@
       "branch": "Home branch",
       "department": "Department",
       "noDepartment": "No department",
-      "joinedOn": "Joined on"
+      "joinedOn": "Joined on",
+      "extraBranches": "Extra branches",
+      "language": "Language"
     },
     "hints": {
       "mobile": "They log in with this number.",
-      "branch": "The branch they work at every day."
+      "branch": "The branch they work at every day.",
+      "extraBranches": "Branches this manager also covers, besides their home branch."
     },
     "tempPin": {
       "title": "Temporary PIN",
@@ -243,8 +247,10 @@
       "mobileTaken": "This mobile number is already used by {name}.",
       "reassignFirst": "Give their work to someone else first: {customers} customers and {followUps} pending follow-ups.",
       "cannotDeactivateSelf": "You cannot make your own account inactive.",
-      "lastAdmin": "This is the only active admin. Make someone else an admin first."
-    }
+      "lastAdmin": "This is the only active admin. Make someone else an admin first.",
+      "extraBranchesManagerOnly": "Only a manager can cover more than one branch."
+    },
+    "alsoCovers": "{count, plural, one {+# more branch} other {+# more branches}}"
   },
   "departments": {
     "title": "Departments",
@@ -345,5 +351,70 @@
   "reasons": {
     "title": "Not-interested reasons",
     "back": "Back"
+  },
+  "customers": {
+    "title": "Find customer",
+    "new": "New customer",
+    "back": "Back",
+    "search": "Search",
+    "recent": "Recently handled by you",
+    "emptyRecent": "No customers yet",
+    "emptyRecentText": "Customers you handle appear here.",
+    "existing": "Existing customer",
+    "visits": "{count, plural, =0 {No visits} one {# visit} other {# visits}}",
+    "lastVisit": "last visit {date}",
+    "handledBy": "Handled by {name}",
+    "openEnquiry": "Open enquiry: {title}",
+    "openHistory": "Open history",
+    "addVisit": "Add today's visit",
+    "notFound": "No customer with {mobile}",
+    "notFoundText": "This is a new customer. Adding them takes about 20 seconds.",
+    "create": "Create new customer",
+    "moreDetails": "Add more details (optional)",
+    "hideDetails": "Hide extra details",
+    "consent": "Customer agreed that we can save their details and contact them about this purchase.",
+    "save": "Save and record visit",
+    "cancel": "Cancel",
+    "saved": "Customer saved",
+    "findCta": "New walk-in / Find customer",
+    "historyComingSoon": "Visits, follow-ups and sales appear here.",
+    "fields": {
+      "mobile": "Customer's mobile number",
+      "name": "Customer name",
+      "department": "Department",
+      "assignedTo": "Handled by",
+      "altMobile": "Alternate mobile number",
+      "area": "Area",
+      "city": "City",
+      "address": "Address",
+      "occasion": "Occasion",
+      "occasionDate": "Occasion date"
+    },
+    "hints": {
+      "mobile": "10 digits, starting with 6, 7, 8 or 9."
+    },
+    "errors": {
+      "mobileInvalid": "Enter a 10-digit mobile number.",
+      "nameRequired": "Enter the customer's name.",
+      "nameTooLong": "That name is too long.",
+      "mobileTaken": "{name} already has this number.",
+      "areaTooLong": "That area is too long.",
+      "cityTooLong": "That city is too long.",
+      "addressTooLong": "That address is too long.",
+      "occasionTooLong": "That occasion is too long.",
+      "occasionDateInvalid": "Pick a valid date.",
+      "assigneeUnknown": "That person does not work in this branch."
+    },
+    "pickBranch": "Choose one branch first",
+    "pickBranchText": "A walk-in happens in one shop. Pick the branch at the top of the screen, then add the customer."
+  },
+  "timeline": {
+    "customerAdded": "Customer added"
+  },
+  "visits": {
+    "new": "Record visit",
+    "back": "Back",
+    "comingSoon": "The visit screen arrives next.",
+    "comingSoonFor": "Recording a visit for {name} arrives with the visit screen."
   }
 }

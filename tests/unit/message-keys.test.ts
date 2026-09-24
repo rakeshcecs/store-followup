@@ -34,13 +34,18 @@ describe("message keys used in the source", () => {
       // useTranslations("staff.errors") names a namespace, not a message: it resolves to
       // an object, and global.d.ts already type-checks it at compile time.
       const namespaces = new Set(
-        [...source.matchAll(/useTranslations\("([^"]+)"\)/g)].map(([, name]) => name),
+        [...source.matchAll(/(?:use|get)Translations\("([^"]+)"\)/g)].map(([, name]) => name),
       );
 
       for (const [, key] of source.matchAll(KEY)) {
         if (!NAMESPACES.includes(key.split(".")[0] as string)) continue;
         if (namespaces.has(key)) continue;
-        if (!has(key)) missing.push(`${file}: ${key}`);
+        // A key inside a namespace can start with a word that is also a top-level
+        // namespace — t("errors.mobileInvalid") under getTranslations("customers") is
+        // customers.errors.mobileInvalid, not the top-level errors.
+        if (has(key)) continue;
+        if ([...namespaces].some((namespace) => has(`${namespace}.${key}`))) continue;
+        missing.push(`${file}: ${key}`);
       }
     }
 

@@ -11,7 +11,10 @@ const run = (args: string[], env: Record<string, string> = {}) =>
     env: { ...process.env, ...env },
   });
 
-run(["tsx", "scripts/reset-db.ts"]);
+// SEED_DEMO=false whatever the .env says: the walkthrough counts branches and staff as it
+// goes ("the admin sees the seeded branch and adds a second one"), so a demo store seeded
+// underneath it would make every one of those numbers wrong.
+run(["tsx", "scripts/reset-db.ts"], { SEED_DEMO: "false" });
 // One project and one worker: this is a single story, and running it twice over would
 // find the seeded PIN already changed by the first pass.
 run(

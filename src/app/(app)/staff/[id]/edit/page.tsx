@@ -25,6 +25,7 @@ export default async function EditStaffPage({ params }: { params: Promise<{ id: 
       homeBranchId: true,
       departmentId: true,
       joinedOn: true,
+      language: true,
       extraBranches: { select: { branchId: true } },
     },
   });
@@ -53,6 +54,7 @@ export default async function EditStaffPage({ params }: { params: Promise<{ id: 
     >
       <StaffForm
         branches={branches}
+        coverableBranches={branches}
         departments={departments}
         staff={{
           id: staff.id,
@@ -63,6 +65,8 @@ export default async function EditStaffPage({ params }: { params: Promise<{ id: 
           departmentId: staff.departmentId,
           // <input type="date"> wants "2026-09-23", and isoDate reads the day in IST.
           joinedOn: staff.joinedOn ? isoDate(staff.joinedOn) : null,
+          extraBranchIds: staff.extraBranches.map((row) => row.branchId),
+          language: staff.language,
         }}
       />
     </AppShell>

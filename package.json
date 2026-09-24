@@ -21,6 +21,7 @@
     "worker:test": "tsx worker/enqueue-test.ts",
     "test:e2e": "playwright test",
     "db:reset": "tsx scripts/reset-db.ts",
+    "db:reset:demo": "tsx scripts/reset-db.ts --demo",
     "test:e2e:fresh": "tsx scripts/e2e-fresh.ts"
   },
   "dependencies": {
