@@ -1,4 +1,4 @@
-import { Building2, ChevronRight, ListChecks, Tags, Users } from "lucide-react";
+import { Building2, ChevronRight, ListChecks, Receipt, Tags, Users } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/app-shell";
@@ -22,6 +22,7 @@ export default async function SettingsPage() {
     },
     { href: "/settings/categories", label: t("categories"), text: t("categoriesText"), icon: Tags },
     { href: "/settings/reasons", label: t("reasons"), text: t("reasonsText"), icon: ListChecks },
+    { href: "/settings/sales", label: t("sales"), text: t("salesText"), icon: Receipt },
   ];
 
   return (

@@ -2,6 +2,7 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { FieldError } from "@/components/ui/field-error";
 import { TextInput } from "@/components/ui/text-input";
@@ -9,6 +10,7 @@ import { useActionForm } from "@/hooks/use-action-form";
 import { useErrorMessage } from "@/hooks/use-error-message";
 import { login } from "@/lib/actions/auth";
 import { loginInput } from "@/lib/validation/auth";
+import { clearAllVisitDrafts } from "@/lib/visit-draft";
 
 export function LoginForm() {
   const t = useTranslations("auth");
@@ -16,6 +18,10 @@ export function LoginForm() {
   const locale = useLocale();
   const router = useRouter();
   const nextPath = useSearchParams().get("next");
+
+  // Whoever used this phone before has logged out or been switched off: nothing they
+  // left half-done may stay on it (SOW M19, security NFR).
+  useEffect(() => clearAllVisitDrafts(), []);
 
   const { formAction, pending, errors, formError } = useActionForm(
     login,

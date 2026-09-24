@@ -31,6 +31,7 @@ const eslintConfig = defineConfig([
               "i18n(ext)?",
               "t",
               "t[A-Z]\\w*", // tApp, tAuth, tRole: the same t, bound to another namespace
+              "t\\.rich", // t.rich("key", { b: … }): a key with tags, same as t
               "require",
               "addEventListener",
               "removeEventListener",

@@ -17,6 +17,7 @@ export const TIMELINE = {
   followUpSet: { type: "followup.set", title: "timeline.followUpSet" },
   followUpResult: { type: "followup.result", title: "timeline.followUpResult" },
   saleCompleted: { type: "sale.completed", title: "timeline.saleCompleted" },
+  saleEdited: { type: "sale.edited", title: "timeline.saleEdited" },
   saleCancelled: { type: "sale.cancelled", title: "timeline.saleCancelled" },
   notInterested: { type: "enquiry.lost", title: "timeline.notInterested" },
 } as const;
@@ -38,7 +39,14 @@ export function timelineTone(type: string): TimelineTone {
 
 export async function writeTimelineEvent(
   tx: Prisma.TransactionClient,
-  input: { customerId: string; staffId: string; kind: TimelineKind; detail?: string },
+  input: {
+    customerId: string;
+    staffId: string;
+    kind: TimelineKind;
+    detail?: string;
+    entityId?: string; // the record the row is about, e.g. the Sale
+    branchId?: string; // where it happened; left out for rows that belong to no branch
+  },
 ): Promise<void> {
   const { type, title } = TIMELINE[input.kind];
   await tx.timelineEvent.create({
@@ -48,6 +56,8 @@ export async function writeTimelineEvent(
       type,
       title,
       detail: input.detail ?? null,
+      entityId: input.entityId ?? null,
+      branchId: input.branchId ?? null,
     },
   });
 }

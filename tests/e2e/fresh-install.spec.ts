@@ -318,6 +318,55 @@ test.describe("a store from an empty database", () => {
     await page.getByRole("button", { name: en.customers.edit.save }).click();
     await expect(page.getByText(en.timeline.detailsEdited)).toBeVisible();
     await expect(page.getByText(/Satellite/)).toBeVisible();
+
+    // Their first visit (M07), from the profile, read from the seeded master lists: they
+    // looked at sherwanis and left over the price.
+    await page.getByRole("link", { name: en.customers.profile.addVisit }).click();
+    await page.getByRole("button", { name: "Sherwani" }).click();
+    await page
+      .getByRole("radio", { name: new RegExp(en.visits.outcome.NOT_INTERESTED.label) })
+      .click();
+    await page.getByRole("radio", { name: "Price", exact: true }).click();
+    await page.getByRole("button", { name: en.visits.saveAndClose }).click();
+    await expect(page).toHaveURL(/\/today/);
+
+    const visit = await db.visit.findFirstOrThrow({ where: { customerId: customer.id } });
+    expect(visit.visitType).toBe("NEW");
+    expect(visit.outcome).toBe("NOT_INTERESTED");
+
+    // …and came back the same day and bought (M10): the visit and the sale are saved
+    // together, with the amount the store requires by default.
+    await page.goto(`/visits/new?customerId=${customer.id}`);
+    await page.getByRole("button", { name: "Suit" }).click();
+    await page.getByRole("radio", { name: new RegExp(en.visits.outcome.PURCHASED.label) }).click();
+    await page.getByRole("button", { name: en.visits.nextBill }).click();
+    await page.getByLabel(en.sales.billNumber).fill("inv-0001");
+    await expect(page.getByText(en.sales.billFree)).toBeVisible();
+    await page.getByLabel(en.sales.amount).fill("18500");
+    await page.getByRole("button", { name: en.sales.save }).click();
+    await expect(page.getByText(en.sales.saved.replace("{bill}", "INV-0001"))).toBeVisible();
+
+    const sale = await db.sale.findFirstOrThrow({ where: { customerId: customer.id } });
+    expect(sale.billNumber).toBe("INV-0001");
+    expect(Number(sale.billAmount)).toBe(18500);
+
+    // Later they come back for another suit and will decide later (M08): the visit and
+    // its follow-up are saved together, on This Saturday evening by default.
+    await page.goto(`/visits/new?customerId=${customer.id}`);
+    await page.getByRole("button", { name: "Suit" }).click();
+    await page
+      .getByRole("radio", { name: new RegExp(en.visits.outcome.DECIDE_LATER.label) })
+      .click();
+    await page.getByRole("button", { name: en.visits.nextFollowUp }).click();
+    await expect(page).toHaveURL(/\/follow-ups\/new\?/);
+    await page.getByRole("radio", { name: en.followUps.method.WHATSAPP }).click();
+    await page.getByRole("button", { name: en.followUps.save }).click();
+    await expect(page).toHaveURL(/\/today/);
+
+    const followUp = await db.followUp.findFirstOrThrow({ where: { customerId: customer.id } });
+    expect(followUp.status).toBe("PENDING");
+    expect(followUp.method).toBe("WHATSAPP");
+    expect(followUp.assignedToId).toBe(customer.assignedToId);
   });
 
   test("12. the other branch's staff find the same customer, and see their own app", async ({
@@ -358,7 +407,7 @@ test.describe("a store from an empty database", () => {
     const actions = await db.auditLog.groupBy({ by: ["action"], _count: true });
     const byAction = Object.fromEntries(actions.map((row) => [row.action, row._count]));
 
-    // Nothing in M01–M06 changes data without leaving a trace.
+    // Nothing in M01–M10 changes data without leaving a trace.
     for (const action of [
       "branch:create",
       "department:create",
@@ -366,6 +415,10 @@ test.describe("a store from an empty database", () => {
       "category:create",
       "customer:create",
       "customer:update",
+      "visit:create",
+      "enquiry:close",
+      "sale:create",
+      "followUp:create",
     ]) {
       expect(byAction[action], action).toBeGreaterThanOrEqual(1);
     }

@@ -299,7 +299,9 @@
     "categories": "Requirement categories",
     "categoriesText": "The chips staff pick when recording a visit.",
     "reasons": "Not-interested reasons",
-    "reasonsText": "Why a customer decided not to buy."
+    "reasonsText": "Why a customer decided not to buy.",
+    "sales": "Sales",
+    "salesText": "Whether a sale needs its bill amount"
   },
   "masterLists": {
     "add": "Add",
@@ -430,6 +432,7 @@
       "followUp": "Follow-up",
       "saleDone": "Sale done",
       "history": "History",
+      "byAt": "{name} · {branch}",
       "noHistory": "No history yet.",
       "showMore": "Show older entries",
       "olderInAudit": "Older entries are kept in the audit log."
@@ -450,24 +453,169 @@
     "followUpResult": "Follow-up call",
     "saleCompleted": "Sale completed",
     "saleCancelled": "Sale cancelled",
-    "notInterested": "Not interested"
+    "notInterested": "Not interested",
+    "saleEdited": "Sale edited",
+    "followUpSetFor": "Follow-up set for {date}, {slot}"
   },
   "visits": {
     "new": "Record visit",
     "back": "Back",
-    "comingSoon": "The visit screen arrives next.",
-    "comingSoonFor": "Recording a visit for {name} arrives with the visit screen."
+    "strip": "Today, {date} · Handled by {name}",
+    "lookingFor": "What are they looking for?",
+    "expectBuy": "When do they expect to buy?",
+    "expected": {
+      "THIS_WEEK": "This week",
+      "THIS_MONTH": "This month",
+      "NEXT_MONTH": "Next month",
+      "NOT_SURE": "Not sure"
+    },
+    "remarks": "Remarks",
+    "remarksPlaceholder": "e.g. Liked blue sherwani, coming back with family on Sunday",
+    "boughtToday": "Did the customer buy today?",
+    "outcome": {
+      "PURCHASED": {
+        "label": "Yes, bought something",
+        "hint": "You will enter the bill number next"
+      },
+      "DECIDE_LATER": {
+        "label": "No, will decide later",
+        "hint": "You will set a follow-up date next"
+      },
+      "NOT_INTERESTED": {
+        "label": "Not interested",
+        "hint": "Pick a reason so we can learn from it"
+      }
+    },
+    "whyNot": "Why not?",
+    "chooseAnswer": "Choose an answer above",
+    "nextBill": "Next: enter bill number",
+    "nextFollowUp": "Next: set follow-up date",
+    "saveAndClose": "Save and close",
+    "saved": "Visit saved",
+    "pickBranch": "Choose one branch first",
+    "pickBranchText": "A visit happens in one shop. Pick the branch at the top of the screen, then record the visit.",
+    "errors": {
+      "categoryRequired": "Pick at least one thing they are looking for.",
+      "categoryUnknown": "That choice is not available in this branch any more. Pick again.",
+      "remarksTooLong": "Keep the remarks under 500 characters.",
+      "reasonRequired": "Pick a reason.",
+      "reasonUnknown": "That reason is not available any more. Pick again.",
+      "billRequired": "Enter the bill number.",
+      "billTooLong": "A bill number is at most 30 characters.",
+      "billTaken": "This bill number is already saved for {name} ({date}). Check the bill and try again.",
+      "billDateInvalid": "Pick a valid bill date.",
+      "billDateFuture": "The bill date cannot be in the future.",
+      "billAmountInvalid": "Enter the amount in whole rupees.",
+      "saleRemarksTooLong": "Keep the remarks under 250 characters.",
+      "dueDateInvalid": "Pick a valid date.",
+      "dueDatePast": "Pick today or a later date.",
+      "timeSlotRequired": "Pick a time of day.",
+      "methodRequired": "Pick how to follow up.",
+      "followUpReasonTooLong": "Keep the reason under 250 characters.",
+      "billAmountRequired": "Enter the amount."
+    }
   },
   "followUps": {
     "new": "Set follow-up",
     "back": "Back",
-    "comingSoon": "The follow-up screen arrives next.",
-    "comingSoonFor": "Setting a follow-up for {name} arrives with the follow-up screen."
+    "when": "When should we follow up?",
+    "shortcut": {
+      "TOMORROW": "Tomorrow",
+      "SATURDAY": "This Saturday",
+      "NEXT_WEEK": "Next week",
+      "TEN_DAYS": "After 10 days",
+      "PICK": "Pick a date"
+    },
+    "dateLabel": "Follow-up date",
+    "on": "Follow-up on {date}, {slot}",
+    "bestTime": "Best time",
+    "slot": {
+      "MORNING": "Morning",
+      "AFTERNOON": "Afternoon",
+      "EVENING": "Evening"
+    },
+    "slotWord": {
+      "MORNING": "morning",
+      "AFTERNOON": "afternoon",
+      "EVENING": "evening"
+    },
+    "how": "How?",
+    "method": {
+      "CALL": "Phone call",
+      "WHATSAPP": "WhatsApp",
+      "VISIT": "Customer will visit"
+    },
+    "reason": "Reason / what to say",
+    "reasonPlaceholder": "e.g. Will visit with family on Sunday. Call Saturday evening.",
+    "info": "On that day, this customer appears on your <b>Today</b> screen and you get a phone notification.",
+    "replaces": "This replaces the follow-up on {date}.",
+    "save": "Save follow-up",
+    "saved": "Follow-up saved for {date}",
+    "visitFirst": "Record the visit first",
+    "visitFirstText": "{name} has no open enquiry. A follow-up starts with a visit: record it and choose “No, will decide later”.",
+    "recordVisit": "Record visit",
+    "pickBranch": "Choose one branch first",
+    "pickBranchText": "A follow-up belongs to one shop. Pick the branch at the top of the screen, then set the follow-up.",
+    "errors": {
+      "noOpenEnquiry": "There is no open enquiry. Record the visit first.",
+      "pickDate": "Pick a date."
+    }
   },
   "sales": {
-    "new": "Sale done",
+    "new": "Sale completed",
     "back": "Back",
-    "comingSoon": "The sale screen arrives next.",
-    "comingSoonFor": "Recording a sale for {name} arrives with the sale screen."
+    "billNumber": "Bill number *",
+    "billPlaceholder": "e.g. INV-24567",
+    "billFree": "New bill number. Ready to save.",
+    "billDate": "Bill date",
+    "amount": "Amount (₹)",
+    "amountOptional": "Amount (optional)",
+    "remarks": "Remarks (optional)",
+    "remarksPlaceholder": "e.g. Blue sherwani and stole. Alteration ready on 26 Sep.",
+    "closesEnquiry": "Saving this closes the enquiry <b>{title}</b> and any pending follow-ups for it.",
+    "enterBill": "Enter the bill number to save",
+    "fixBill": "Fix the bill number to save",
+    "save": "Save sale",
+    "saved": "Sale saved with bill {bill}",
+    "visitFirst": "Record the visit first",
+    "visitFirstText": "{name} has no open enquiry. A purchase starts with a visit: record it and choose “Yes, bought something”.",
+    "recordVisit": "Record visit",
+    "pickBranch": "Choose one branch first",
+    "pickBranchText": "A sale happens in one shop. Pick the branch at the top of the screen, then record the sale.",
+    "detail": {
+      "title": "Sale",
+      "customer": "Customer",
+      "branch": "Branch",
+      "salesperson": "Salesperson",
+      "remarks": "Remarks",
+      "cancelled": "Cancelled",
+      "cancelledBy": "Cancelled by {name} on {date}: {reason}",
+      "edit": "Edit sale",
+      "reason": "Reason for the change",
+      "saveEdit": "Save changes",
+      "edited": "Sale updated",
+      "cancel": "Cancel sale",
+      "cancelReason": "Reason for cancelling",
+      "cancelTitle": "Cancel this sale?",
+      "cancelText": "The sale stays in the records as cancelled. Its bill number cannot be used again in this branch.",
+      "cancelConfirm": "Cancel sale",
+      "keep": "Keep sale",
+      "cancelledToast": "Sale cancelled",
+      "noAmount": "No amount"
+    },
+    "errors": {
+      "reasonRequired": "Give a reason.",
+      "reasonTooLong": "Keep the reason under 255 characters.",
+      "noOpenEnquiry": "There is no open enquiry. Record the visit first.",
+      "cancelled": "This sale is cancelled and cannot be changed.",
+      "salespersonUnknown": "That person does not work in this branch."
+    }
+  },
+  "salesSettings": {
+    "title": "Sales",
+    "billAmountRequired": "Bill amount is required",
+    "billAmountRequiredHint": "When on, a sale cannot be saved without its amount, so reports can show sales value and not only the count.",
+    "save": "Save",
+    "saved": "Settings saved"
   }
 }

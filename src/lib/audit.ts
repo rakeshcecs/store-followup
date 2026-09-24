@@ -31,6 +31,14 @@ export const AUDIT = {
   reasonDelete: "reason:delete",
   customerCreate: "customer:create",
   customerUpdate: "customer:update",
+  visitCreate: "visit:create",
+  saleCreate: "sale:create",
+  followUpCreate: "followUp:create",
+  followUpReschedule: "followUp:reschedule",
+  enquiryClose: "enquiry:close",
+  saleUpdate: "sale:update",
+  saleCancel: "sale:cancel",
+  settingUpdate: "setting:update",
 } as const;
 
 export type AuditInput = {

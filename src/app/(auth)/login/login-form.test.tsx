@@ -31,6 +31,18 @@ beforeEach(() => {
 });
 
 describe("LoginForm", () => {
+  it("clears every half-recorded visit left on the phone (SOW M19: cleared on log out)", () => {
+    window.sessionStorage.setItem("visit-draft:user-a:cust-1", "{}");
+    window.sessionStorage.setItem("visit-draft:user-b:cust-2", "{}");
+    window.sessionStorage.setItem("something-else", "kept");
+
+    renderForm();
+
+    expect(window.sessionStorage.getItem("visit-draft:user-a:cust-1")).toBeNull();
+    expect(window.sessionStorage.getItem("visit-draft:user-b:cust-2")).toBeNull();
+    expect(window.sessionStorage.getItem("something-else")).toBe("kept");
+  });
+
   it("hides the PIN and asks the phone for a number pad", () => {
     renderForm();
     const pin = screen.getByLabelText(en.auth.fields.pin);

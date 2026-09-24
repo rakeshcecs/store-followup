@@ -15,6 +15,7 @@ import {
   TIMELINE_MAX,
   TIMELINE_PAGE,
 } from "@/lib/customers";
+import { accessScope } from "@/lib/permissions";
 
 // Customer profile and history (M06). Every role uses it — the SOW's screen list says
 // "Used by: All" — and there is no branch filter: customers are shared across branches
@@ -104,6 +105,7 @@ export default async function CustomerProfilePage({
         hasMore={timeline.hasMore}
         take={take}
         locale={locale}
+        saleScope={user.role === "SALESPERSON" ? null : accessScope(user)}
       />
     </AppShell>
   );

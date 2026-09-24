@@ -260,4 +260,29 @@ describe("customerTimeline", () => {
     );
     expect(new Set(more.events.map((event) => event.id)).size).toBe(25);
   });
+
+  it("names the branch of a row that has one (M17), and none for the rest", async () => {
+    await db.timelineEvent.create({
+      data: {
+        customerId: customer.id,
+        staffId: store.salesB.id,
+        type: TIMELINE.visit.type,
+        title: TIMELINE.visit.title,
+        branchId: store.branchB.id,
+        createdAt: new Date("2026-09-02T00:00:00.000Z"),
+      },
+    });
+    await db.timelineEvent.create({
+      data: {
+        customerId: customer.id,
+        staffId: store.salesA.id,
+        type: TIMELINE.customerAdded.type,
+        title: TIMELINE.customerAdded.title,
+        createdAt: new Date("2026-09-01T00:00:00.000Z"),
+      },
+    });
+
+    const { events } = await customerTimeline(customer.id, 20);
+    expect(events.map((event) => event.branchName)).toEqual([store.branchB.name, null]);
+  });
 });

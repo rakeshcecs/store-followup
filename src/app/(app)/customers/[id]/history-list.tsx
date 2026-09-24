@@ -2,7 +2,8 @@ import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import type { Locale } from "@/i18n/config";
 import { TIMELINE_MAX, TIMELINE_PAGE, type TimelineRow } from "@/lib/customers";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTime, formatDayDate } from "@/lib/format";
+import type { BranchScope } from "@/lib/permissions";
 import { timelineTone, type TimelineTone } from "@/lib/timeline";
 import { cn } from "@/lib/utils";
 
@@ -20,12 +21,16 @@ export async function HistoryList({
   hasMore,
   take,
   locale,
+  saleScope,
 }: {
   customerId: string;
   events: TimelineRow[];
   hasMore: boolean;
   take: number;
   locale: Locale;
+  // The branches whose sales the reader may open from their row to correct or cancel them
+  // (M10.09): a manager's or an admin's. Null for a salesperson, who opens none.
+  saleScope: BranchScope | null;
 }) {
   const t = await getTranslations("customers.profile");
   // The title is a message key stored on the row (src/lib/timeline.ts), so it is only
@@ -33,6 +38,22 @@ export async function HistoryList({
   const tAll = await getTranslations();
   const title = (key: string) =>
     tAll.has(key as Parameters<typeof tAll>[0]) ? tAll(key as Parameters<typeof tAll>[0]) : key;
+  // "Follow-up set for Sat, 26 Sep, evening" (M08); rows written before M08 point at no
+  // follow-up and keep the plain title.
+  const tFollowUps = await getTranslations("followUps");
+  const heading = (event: TimelineRow) =>
+    event.followUp
+      ? tAll("timeline.followUpSetFor", {
+          date: formatDayDate(event.followUp.dueDate, locale),
+          slot: tFollowUps(`slotWord.${event.followUp.timeSlot}`),
+        })
+      : title(event.title);
+  const canOpen = (event: TimelineRow) =>
+    saleScope !== null &&
+    event.entityId !== null &&
+    event.type.startsWith("sale.") &&
+    event.branchId !== null &&
+    (saleScope.all || saleScope.branchIds.includes(event.branchId));
 
   return (
     <section className="flex flex-col gap-3.5">
@@ -55,13 +76,25 @@ export async function HistoryList({
                 <p className="text-[13px] font-bold text-muted-foreground">
                   {formatDateTime(event.createdAt, locale)}
                 </p>
-                <p className="text-[15px] font-extrabold">{title(event.title)}</p>
+                <p className="text-[15px] font-extrabold">
+                  {canOpen(event) ? (
+                    <Link href={`/sales/${event.entityId}`} className="text-primary">
+                      {title(event.title)}
+                    </Link>
+                  ) : (
+                    heading(event)
+                  )}
+                </p>
                 {event.detail && (
                   <p className="text-sm leading-relaxed whitespace-pre-line text-ink-2">
                     {event.detail}
                   </p>
                 )}
-                <p className="mt-0.5 text-[13px] text-muted-foreground">{event.staffName}</p>
+                <p className="mt-0.5 text-[13px] text-muted-foreground">
+                  {event.branchName
+                    ? t("byAt", { name: event.staffName, branch: event.branchName })
+                    : event.staffName}
+                </p>
               </div>
             </li>
           ))}

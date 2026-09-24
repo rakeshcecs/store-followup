@@ -62,6 +62,14 @@ export function branchScope(user: SessionUser, choice: BranchChoice | undefined)
   return { all: false, branchIds: [choice] };
 }
 
+// Every branch the user may reach, whatever the switcher shows. For opening ONE record by
+// its id (a link from a customer's history): the switcher narrows lists and dashboards,
+// but a manager with two branches must still open a sale made in the other one.
+export function accessScope(user: SessionUser): BranchScope {
+  if (canSeeAllBranches(user)) return { all: true };
+  return { all: false, branchIds: allowedBranchIds(user) };
+}
+
 // For models where branchId is REQUIRED: Visit, FollowUp, Sale, ImportJob, WhatsAppMessage.
 // An admin on "All branches" adds no filter (building the id list would cost a query).
 export function branchWhere(scope: BranchScope): { branchId?: { in: string[] } } {

@@ -7,6 +7,9 @@
 import type { SessionUser } from "@/lib/auth";
 import { customerStatus, type CustomerStatus } from "@/lib/customer-status";
 import { db } from "@/lib/db";
+import { followUpDays } from "@/lib/follow-ups";
+import { TIMELINE } from "@/lib/timeline";
+import type { TimeSlot } from "@/generated/prisma/client";
 import { normalizeMobile } from "@/lib/mobile";
 
 // What the "Existing customer" card shows (M05.04).
@@ -207,8 +210,13 @@ export type TimelineRow = {
   type: string;
   title: string; // a next-intl key
   detail: string | null;
+  entityId: string | null; // the record the row is about, e.g. the Sale
+  branchId: string | null; // where it happened (M17), null for rows of no branch
+  branchName: string | null;
   staffName: string;
   createdAt: Date;
+  // For "Follow-up set" rows: the day and slot it was set for, shown in the reader's language.
+  followUp: { dueDate: Date; timeSlot: TimeSlot } | null;
 };
 
 // The newest `take` events, and whether there are older ones. Every event of the
@@ -228,15 +236,28 @@ export async function customerTimeline(
       type: true,
       title: true,
       detail: true,
+      entityId: true,
       createdAt: true,
       staff: { select: { fullName: true } },
+      branchId: true,
+      branch: { select: { name: true } },
     },
   });
 
+  const events = rows.slice(0, take);
+  const days = await followUpDays(
+    db,
+    events.flatMap((event) =>
+      event.type === TIMELINE.followUpSet.type && event.entityId ? [event.entityId] : [],
+    ),
+  );
+
   return {
-    events: rows.slice(0, take).map(({ staff, ...event }) => ({
+    events: events.map(({ staff, branch, ...event }) => ({
       ...event,
       staffName: staff.fullName,
+      branchName: branch?.name ?? null,
+      followUp: (event.entityId && days.get(event.entityId)) || null,
     })),
     hasMore: rows.length > take,
   };
