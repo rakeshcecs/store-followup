@@ -70,6 +70,37 @@ export function clearVisitDraft(userId: string, customerId: string): void {
   }
 }
 
+// Update follow-up's note, carried to the Sale screen when the customer "already bought"
+// (M09.07): the follow-up is saved with the sale, so its note waits here until then.
+// Same rules as the visit draft: per person, per tab, gone at the login screen.
+const NOTE_PREFIX = "followup-note:";
+const noteKey = (userId: string, followUpId: string) => `${NOTE_PREFIX}${userId}:${followUpId}`;
+
+export function writeFollowUpNote(userId: string, followUpId: string, note: string): void {
+  try {
+    if (note) window.sessionStorage.setItem(noteKey(userId, followUpId), note);
+    else window.sessionStorage.removeItem(noteKey(userId, followUpId));
+  } catch {
+    // Without storage the note is simply not carried across.
+  }
+}
+
+export function readFollowUpNote(userId: string, followUpId: string): string | null {
+  try {
+    return window.sessionStorage.getItem(noteKey(userId, followUpId));
+  } catch {
+    return null;
+  }
+}
+
+export function clearFollowUpNote(userId: string, followUpId: string): void {
+  try {
+    window.sessionStorage.removeItem(noteKey(userId, followUpId));
+  } catch {
+    // Nothing to clear if storage is unavailable.
+  }
+}
+
 // "Data kept on the phone is cleared on log out and when a user is deactivated" (SOW M19;
 // NFR: no customer data on the phone beyond the current screen). Both end on the login
 // screen — log out goes there, and a deactivated person's next request is sent there —
@@ -80,7 +111,7 @@ export function clearAllVisitDrafts(): void {
     const keys: string[] = [];
     for (let index = 0; index < storage.length; index++) {
       const name = storage.key(index);
-      if (name?.startsWith(PREFIX)) keys.push(name);
+      if (name?.startsWith(PREFIX) || name?.startsWith(NOTE_PREFIX)) keys.push(name);
     }
     for (const name of keys) storage.removeItem(name);
   } catch {

@@ -2,13 +2,26 @@
 
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
+import { AUDIT, writeAudit } from "@/lib/audit";
 import { getCurrentBranch } from "@/lib/current-branch";
 import { db } from "@/lib/db";
 import { AppError } from "@/lib/errors";
-import { assertDueDate, recordFollowUpSet, writeFollowUp } from "@/lib/follow-ups";
+import { addDays } from "@/lib/follow-up-dates";
+import {
+  assertDueDate,
+  closeNotInterested,
+  completeFollowUp,
+  followUpAccessWhere,
+  MISSED_CALLS_ALERT,
+  notifyManagersOfMissedCalls,
+  recordFollowUpSet,
+  writeFollowUp,
+} from "@/lib/follow-ups";
+import { isoDate } from "@/lib/format";
 import { writeBranchId } from "@/lib/permissions";
 import { safeAction } from "@/lib/safe-action";
-import { setFollowUpInput } from "@/lib/validation/follow-up";
+import { FOLLOW_UP_CALL_TITLE, writeTimelineEvent } from "@/lib/timeline";
+import { recordFollowUpResultInput, setFollowUpInput } from "@/lib/validation/follow-up";
 
 // M08. Setting a follow-up is open to every role (SOW 3.1 "Add … follow-up: Yes"). With a
 // visit it goes through recordVisit (BR-04); this is the profile's "Follow-up" (M08.07),
@@ -103,6 +116,176 @@ export const setFollowUp = safeAction({
         // …or another follow-up for the customer won the race. Setting a new one
         // replaces the pending one (M08.06), so try again: this one replaces that one.
       }
+    }
+  },
+});
+
+// M09: what happened on a follow-up. It is marked Done with the result (M09.10) and,
+// for "will visit", "call later" and "not reachable", the next one is set in the same
+// transaction; "not interested" closes the enquiry (BR-05). The next follow-up stays in
+// the old one's branch and with the same person — it is the same case, carried on.
+export const recordFollowUpResult = safeAction({
+  name: "recordFollowUpResult",
+  schema: recordFollowUpResultInput,
+  auth: {},
+  handler: async (input, { user }) => {
+    const now = new Date();
+    const followUp = await db.followUp.findFirst({
+      where: { id: input.id, ...followUpAccessWhere(user) },
+      select: {
+        id: true,
+        branchId: true,
+        customerId: true,
+        enquiryId: true,
+        assignedToId: true,
+        timeSlot: true,
+        method: true,
+        status: true,
+        notReachableCount: true,
+      },
+    });
+    if (!followUp) throw new AppError("NOT_FOUND");
+
+    // Sent twice — a retry, a double tap: the same answer, not a second result.
+    const same = async () => {
+      const row = await db.followUp.findUnique({
+        where: { id: followUp.id },
+        select: { status: true, result: true, completedById: true },
+      });
+      if (row?.status !== "DONE" || row.result !== input.result || row.completedById !== user.id) {
+        return null;
+      }
+      const next = await db.followUp.findUnique({
+        where: { clientId: input.clientId },
+        select: { id: true },
+      });
+      return { followUpId: followUp.id, nextFollowUpId: next?.id ?? null };
+    };
+    if (followUp.status !== "PENDING") {
+      const earlier = await same();
+      if (earlier) return earlier;
+      throw new AppError("RULE", { message: "followUpResult.errors.alreadyUpdated" });
+    }
+
+    // M09.04–06: the day of the next follow-up. "Not reachable" is always tomorrow.
+    const nextDate =
+      input.result === "WILL_VISIT" || input.result === "CALL_LATER"
+        ? input.nextDate
+        : input.result === "NOT_REACHABLE"
+          ? addDays(isoDate(now), 1)
+          : null;
+    if (nextDate) assertDueDate(nextDate, now);
+
+    const reason =
+      input.result === "NOT_INTERESTED"
+        ? await db.lostReason.findFirst({
+            where: { id: input.lostReasonId, active: true },
+            select: { id: true, nameEn: true },
+          })
+        : null;
+    if (input.result === "NOT_INTERESTED" && !reason) {
+      throw new AppError("NOT_FOUND", {
+        message: "visits.errors.reasonUnknown",
+        field: "lostReasonId",
+      });
+    }
+
+    const userDevice = (await headers()).get("user-agent");
+    const missed = input.result === "NOT_REACHABLE" ? followUp.notReachableCount + 1 : 0;
+
+    try {
+      const saved = await db.$transaction(async (tx) => {
+        await completeFollowUp(tx, {
+          id: followUp.id,
+          result: input.result,
+          note: input.note,
+          userId: user.id,
+          now,
+        });
+        await writeAudit(tx, {
+          userId: user.id,
+          branchId: followUp.branchId,
+          action: AUDIT.followUpResult,
+          entityType: "FollowUp",
+          entityId: followUp.id,
+          oldValue: { status: "PENDING" },
+          newValue: { status: "DONE", result: input.result, note: input.note ?? null },
+          device: userDevice,
+        });
+
+        let nextId: string | null = null;
+        if (nextDate) {
+          const written = await writeFollowUp(tx, {
+            branchId: followUp.branchId,
+            customerId: followUp.customerId,
+            enquiryId: followUp.enquiryId,
+            assignedToId: followUp.assignedToId,
+            clientId: input.clientId,
+            dueDate: nextDate,
+            // M09.04: "method VISIT, same slot"; M09.05: method CALL; "not reachable"
+            // tries again the same way.
+            timeSlot: followUp.timeSlot,
+            method:
+              input.result === "WILL_VISIT"
+                ? "VISIT"
+                : input.result === "CALL_LATER"
+                  ? "CALL"
+                  : followUp.method,
+            createdFrom: "FOLLOWUP_RESULT",
+            notReachableCount: missed,
+          });
+          await recordFollowUpSet(tx, {
+            userId: user.id,
+            branchId: followUp.branchId,
+            customerId: followUp.customerId,
+            device: userDevice,
+            written,
+            history: false,
+          });
+          nextId = written.followUp.id;
+          if (missed === MISSED_CALLS_ALERT) {
+            await notifyManagersOfMissedCalls(tx, {
+              branchId: followUp.branchId,
+              customerId: followUp.customerId,
+              followUpId: nextId,
+            });
+          }
+        }
+
+        if (reason) {
+          await closeNotInterested(tx, {
+            enquiryId: followUp.enquiryId,
+            customerId: followUp.customerId,
+            lostReasonId: reason.id,
+            userId: user.id,
+            branchId: followUp.branchId,
+            device: userDevice,
+            now,
+          });
+        }
+
+        await writeTimelineEvent(tx, {
+          customerId: followUp.customerId,
+          staffId: user.id,
+          branchId: followUp.branchId,
+          kind: "followUpResult",
+          title: FOLLOW_UP_CALL_TITLE[input.result],
+          detail: [reason?.nameEn, input.note].filter(Boolean).join(" · ") || undefined,
+          entityId: nextId ?? followUp.id,
+        });
+
+        return { followUpId: followUp.id, nextFollowUpId: nextId };
+      });
+
+      revalidatePath(`/customers/${followUp.customerId}`);
+      return saved;
+    } catch (error) {
+      // Someone saved a result a moment ago: if it was this very request, the same answer.
+      if (error instanceof AppError || isRace(error)) {
+        const earlier = await same();
+        if (earlier) return earlier;
+      }
+      throw error;
     }
   },
 });

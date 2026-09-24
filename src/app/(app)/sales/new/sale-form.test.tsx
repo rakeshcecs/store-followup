@@ -25,6 +25,7 @@ function renderForm(extra: Partial<Parameters<typeof SaleForm>[0]> = {}) {
         userId="user-a"
         customer={{ id: "cust-1", name: "Asha Patel" }}
         draftId={null}
+        followUpId={null}
         openEnquiryTitle="Sherwani, Wedding Clothes"
         amountRequired
         today="2026-09-24"
@@ -110,6 +111,23 @@ describe("SaleForm", () => {
     );
     expect(recordVisitAction).not.toHaveBeenCalled();
     expect(push).toHaveBeenCalledWith("/");
+  });
+
+  it("completes the follow-up it came from, with its note (M09.07)", async () => {
+    window.sessionStorage.setItem("followup-note:user-a:fu-1", "Bought on Sunday");
+    renderForm({ followUpId: "fu-1" });
+
+    await userEvent.type(screen.getByLabelText(s.billNumber), "inv-3");
+    await userEvent.type(screen.getByLabelText(s.amount), "900");
+    await screen.findByText(s.billFree);
+    await userEvent.click(screen.getByRole("button", { name: s.save }));
+
+    await waitFor(() =>
+      expect(recordSaleAction).toHaveBeenCalledWith(
+        expect.objectContaining({ followUpId: "fu-1", followUpNote: "Bought on Sunday" }),
+      ),
+    );
+    expect(window.sessionStorage.getItem("followup-note:user-a:fu-1")).toBeNull();
   });
 
   it("saves the visit draft and the sale together (BR-03), then forgets the draft", async () => {

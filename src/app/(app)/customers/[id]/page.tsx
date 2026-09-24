@@ -15,6 +15,7 @@ import {
   TIMELINE_MAX,
   TIMELINE_PAGE,
 } from "@/lib/customers";
+import { canUpdateFollowUp } from "@/lib/follow-ups";
 import { accessScope } from "@/lib/permissions";
 
 // Customer profile and history (M06). Every role uses it — the SOW's screen list says
@@ -98,7 +99,13 @@ export default async function CustomerProfilePage({
       actions={actions}
     >
       <CustomerHeader customer={customer} />
-      <EnquiryCard customer={customer} locale={locale} />
+      <EnquiryCard
+        customer={customer}
+        locale={locale}
+        canUpdateFollowUp={
+          customer.pendingFollowUp !== null && canUpdateFollowUp(user, customer.pendingFollowUp)
+        }
+      />
       <HistoryList
         customerId={customer.id}
         events={timeline.events}

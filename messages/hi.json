@@ -435,7 +435,10 @@
       "byAt": "{name}, {branch} में",
       "noHistory": "अभी कोई इतिहास नहीं।",
       "showMore": "पुरानी एंट्री दिखाएँ",
-      "olderInAudit": "पुरानी एंट्री ऑडिट लॉग में रखी जाती हैं।"
+      "olderInAudit": "पुरानी एंट्री ऑडिट लॉग में रखी जाती हैं।",
+      "followUpDue": "फ़ॉलो-अप: {date}, {slot}",
+      "followUpWasDue": "फ़ॉलो-अप {date} को था",
+      "updateFollowUp": "अपडेट करें"
     },
     "edit": {
       "title": "जानकारी बदलें",
@@ -455,7 +458,14 @@
     "saleCancelled": "बिक्री रद्द",
     "notInterested": "रुचि नहीं",
     "saleEdited": "बिक्री बदली गई",
-    "followUpSetFor": "फ़ॉलो-अप तय हुआ: {date}, {slot}"
+    "followUpSetFor": "फ़ॉलो-अप तय हुआ: {date}, {slot}",
+    "followUpCall": {
+      "WILL_VISIT": "फ़ॉलो-अप कॉल · बात हुई, {date} को आएँगे",
+      "CALL_LATER": "फ़ॉलो-अप कॉल · {date} को फिर कॉल करने को कहा",
+      "NOT_REACHABLE": "फ़ॉलो-अप कॉल · कॉल नहीं लगा",
+      "ALREADY_BOUGHT": "फ़ॉलो-अप कॉल · पहले ही खरीद लिया",
+      "NOT_INTERESTED": "फ़ॉलो-अप कॉल · रुचि नहीं"
+    }
   },
   "visits": {
     "new": "विज़िट दर्ज करें",
@@ -617,5 +627,64 @@
     "billAmountRequiredHint": "चालू होने पर रकम के बिना बिक्री सहेजी नहीं जा सकती, ताकि रिपोर्ट में बिक्री की गिनती के साथ कीमत भी दिखे।",
     "save": "सहेजें",
     "saved": "सेटिंग सहेजी गई"
+  },
+  "followUpResult": {
+    "title": "फ़ॉलो-अप अपडेट करें",
+    "back": "वापस",
+    "dueToday": "आज, {slot}",
+    "dueOn": "{date}, {slot}",
+    "wasDue": "{date} को था",
+    "missedCalls": "{count} कॉल नहीं लगे",
+    "call": "कॉल",
+    "whatsapp": "व्हाट्सऐप",
+    "whatHappened": "क्या हुआ?",
+    "option": {
+      "WILL_VISIT": {
+        "label": "बात हुई, ग्राहक आएगा",
+        "hint": "आने का दिन चुनें"
+      },
+      "CALL_LATER": {
+        "label": "बाद में कॉल करने को कहा",
+        "hint": "कॉल की नई तारीख चुनें"
+      },
+      "NOT_REACHABLE": {
+        "label": "कॉल नहीं लगा",
+        "hint": "आपको कल फिर याद दिलाया जाएगा"
+      },
+      "ALREADY_BOUGHT": {
+        "label": "ग्राहक ने खरीद लिया",
+        "hint": "आगे आप बिल नंबर डालेंगे"
+      },
+      "NOT_INTERESTED": {
+        "label": "रुचि नहीं",
+        "hint": "कारण चुनें"
+      }
+    },
+    "visitDay": "ग्राहक कब आएगा?",
+    "callAgain": "फिर कॉल करें",
+    "shortcut": {
+      "TOMORROW": "कल",
+      "SUNDAY": "रविवार",
+      "IN_3_DAYS": "3 दिन बाद",
+      "NEXT_WEEK": "अगले हफ़्ते",
+      "PICK": "तारीख चुनें"
+    },
+    "dateLabel": "तारीख",
+    "nextOn": "अगला फ़ॉलो-अप {date}",
+    "notReachableInfo": "आपको <b>कल</b> फिर याद दिलाया जाएगा। 3 बार कॉल न लगने पर आपके मैनेजर को उनके ओवरव्यू पर दिखेगा।",
+    "whyNot": "क्यों नहीं?",
+    "note": "नोट (वैकल्पिक)",
+    "notePlaceholder": "ग्राहक ने क्या कहा?",
+    "choose": "चुनें कि क्या हुआ",
+    "save": "सहेजें",
+    "nextBill": "आगे: बिल नंबर डालें",
+    "saved": "फ़ॉलो-अप अपडेट हुआ",
+    "done": "यह फ़ॉलो-अप पहले ही अपडेट हो चुका है",
+    "doneText": "{name} के फ़ॉलो-अप का नतीजा पहले से दर्ज है। देखने के लिए प्रोफ़ाइल खोलें।",
+    "openProfile": "प्रोफ़ाइल खोलें",
+    "errors": {
+      "alreadyUpdated": "यह फ़ॉलो-अप पहले ही अपडेट हो चुका है।",
+      "noteTooLong": "नोट 250 अक्षरों से कम रखें।"
+    }
   }
 }

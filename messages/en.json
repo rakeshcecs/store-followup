@@ -435,7 +435,10 @@
       "byAt": "{name} · {branch}",
       "noHistory": "No history yet.",
       "showMore": "Show older entries",
-      "olderInAudit": "Older entries are kept in the audit log."
+      "olderInAudit": "Older entries are kept in the audit log.",
+      "followUpDue": "Follow-up due {date}, {slot}",
+      "followUpWasDue": "Follow-up was due {date}",
+      "updateFollowUp": "Update"
     },
     "edit": {
       "title": "Edit details",
@@ -455,7 +458,14 @@
     "saleCancelled": "Sale cancelled",
     "notInterested": "Not interested",
     "saleEdited": "Sale edited",
-    "followUpSetFor": "Follow-up set for {date}, {slot}"
+    "followUpSetFor": "Follow-up set for {date}, {slot}",
+    "followUpCall": {
+      "WILL_VISIT": "Follow-up call · Spoke, will visit {date}",
+      "CALL_LATER": "Follow-up call · Asked to call again {date}",
+      "NOT_REACHABLE": "Follow-up call · Not reachable",
+      "ALREADY_BOUGHT": "Follow-up call · Already bought",
+      "NOT_INTERESTED": "Follow-up call · Not interested"
+    }
   },
   "visits": {
     "new": "Record visit",
@@ -617,5 +627,64 @@
     "billAmountRequiredHint": "When on, a sale cannot be saved without its amount, so reports can show sales value and not only the count.",
     "save": "Save",
     "saved": "Settings saved"
+  },
+  "followUpResult": {
+    "title": "Update follow-up",
+    "back": "Back",
+    "dueToday": "Due today, {slot}",
+    "dueOn": "Due {date}, {slot}",
+    "wasDue": "Was due {date}",
+    "missedCalls": "{count} missed calls",
+    "call": "Call",
+    "whatsapp": "WhatsApp",
+    "whatHappened": "What happened?",
+    "option": {
+      "WILL_VISIT": {
+        "label": "Spoke, customer will visit",
+        "hint": "Set the visit day"
+      },
+      "CALL_LATER": {
+        "label": "Asked to call later",
+        "hint": "Pick a new call date"
+      },
+      "NOT_REACHABLE": {
+        "label": "Not reachable",
+        "hint": "You will be reminded tomorrow"
+      },
+      "ALREADY_BOUGHT": {
+        "label": "Customer already bought",
+        "hint": "Enter the bill number next"
+      },
+      "NOT_INTERESTED": {
+        "label": "Not interested",
+        "hint": "Pick a reason"
+      }
+    },
+    "visitDay": "When will they visit?",
+    "callAgain": "Call again",
+    "shortcut": {
+      "TOMORROW": "Tomorrow",
+      "SUNDAY": "Sunday",
+      "IN_3_DAYS": "In 3 days",
+      "NEXT_WEEK": "Next week",
+      "PICK": "Pick a date"
+    },
+    "dateLabel": "Date",
+    "nextOn": "Next follow-up on {date}",
+    "notReachableInfo": "You will be reminded again <b>tomorrow</b>. After 3 missed calls, your manager sees it on their overview.",
+    "whyNot": "Why not?",
+    "note": "Note (optional)",
+    "notePlaceholder": "What did the customer say?",
+    "choose": "Choose what happened",
+    "save": "Save",
+    "nextBill": "Next: enter bill number",
+    "saved": "Follow-up updated",
+    "done": "This follow-up was already updated",
+    "doneText": "{name}'s follow-up already has a result. Open the profile to see it.",
+    "openProfile": "Open profile",
+    "errors": {
+      "alreadyUpdated": "This follow-up was already updated.",
+      "noteTooLong": "Keep the note under 250 characters."
+    }
   }
 }

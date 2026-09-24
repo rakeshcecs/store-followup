@@ -1,14 +1,17 @@
-// Writing follow-ups (M07 with a visit; M08 draws its own screen and reuses this).
+// Writing follow-ups (M07 with a visit; M08 draws its own screen and reuses this; M09
+// records what happened on one).
 //
 // branch-scope-exempt: BR-02 allows one pending follow-up per customer across the whole
 // store, and customers are shared (BR-16), so replacing or cancelling "the customer's
 // pending follow-up" must look in every branch. New rows are written to the branch
 // given by the caller, which comes from writeBranchId().
 import { randomUUID } from "node:crypto";
-import type { FollowUpMethod, Prisma, TimeSlot } from "@/generated/prisma/client";
+import type { FollowUpMethod, FollowUpResult, Prisma, TimeSlot } from "@/generated/prisma/client";
 import { AUDIT, writeAudit } from "@/lib/audit";
+import type { SessionUser } from "@/lib/auth";
 import { AppError } from "@/lib/errors";
 import { isoDate } from "@/lib/format";
+import { accessScope, branchWhere } from "@/lib/permissions";
 import { writeTimelineEvent } from "@/lib/timeline";
 
 // BR-08 / M08.05: a follow-up is today or later — today in the shop, i.e. IST.
@@ -61,6 +64,7 @@ export type NewFollowUp = {
   method: FollowUpMethod;
   reason?: string;
   createdFrom: "VISIT" | "FOLLOWUP_RESULT" | "PROFILE";
+  notReachableCount?: number; // M09.06: "Not reachable" in a row; anything else starts at 0
 };
 
 // M08.06: a new follow-up replaces the pending one, which is marked Rescheduled. The old
@@ -90,6 +94,7 @@ export async function writeFollowUp(tx: Prisma.TransactionClient, input: NewFoll
       method: input.method,
       reason: input.reason ?? null,
       createdFrom: input.createdFrom,
+      notReachableCount: input.notReachableCount ?? 0,
     },
     select: {
       id: true,
@@ -98,6 +103,7 @@ export async function writeFollowUp(tx: Prisma.TransactionClient, input: NewFoll
       method: true,
       reason: true,
       assignedToId: true,
+      notReachableCount: true,
     },
   });
   return { followUp, replaced };
@@ -105,7 +111,8 @@ export async function writeFollowUp(tx: Prisma.TransactionClient, input: NewFoll
 
 // The rows that go with every new follow-up, whichever screen set it: the history line
 // "Follow-up set for …" (it points at the follow-up, so the profile can show its date),
-// and audit rows for the new one and for the one it replaced.
+// and audit rows for the new one and for the one it replaced. Update follow-up (M09)
+// writes its own "Follow-up call · …" line instead, so it leaves the history out.
 export async function recordFollowUpSet(
   tx: Prisma.TransactionClient,
   input: {
@@ -114,17 +121,20 @@ export async function recordFollowUpSet(
     customerId: string;
     device: string | null;
     written: Awaited<ReturnType<typeof writeFollowUp>>;
+    history?: boolean;
   },
 ): Promise<void> {
   const { followUp, replaced } = input.written;
-  await writeTimelineEvent(tx, {
-    customerId: input.customerId,
-    staffId: input.userId,
-    branchId: input.branchId,
-    kind: "followUpSet",
-    detail: followUp.reason ?? undefined,
-    entityId: followUp.id,
-  });
+  if (input.history !== false) {
+    await writeTimelineEvent(tx, {
+      customerId: input.customerId,
+      staffId: input.userId,
+      branchId: input.branchId,
+      kind: "followUpSet",
+      detail: followUp.reason ?? undefined,
+      entityId: followUp.id,
+    });
+  }
   for (const old of replaced) {
     await writeAudit(tx, {
       userId: input.userId,
@@ -145,5 +155,115 @@ export async function recordFollowUpSet(
     entityId: followUp.id,
     newValue: { ...followUp, customerId: input.customerId },
     device: input.device,
+  });
+}
+
+// Who may record what happened on a follow-up (M09), from SOW 3 and 3.1: a salesperson
+// the ones assigned to them ("own customers only", and they cannot reassign), a manager
+// every one in the branches they work in, an admin all of them. Setting one (M08) stays
+// open to everyone ("Add … follow-up: Yes").
+//
+// A salesperson's own follow-ups count in any branch: customers are shared (BR-16), so a
+// visit in the other branch files the next follow-up there while it stays assigned to
+// the customer's own salesperson (M08.08) — who must still be able to update it.
+export function followUpAccessWhere(user: SessionUser): Prisma.FollowUpWhereInput {
+  if (user.role === "SALESPERSON") return { assignedToId: user.id };
+  return branchWhere(accessScope(user));
+}
+
+export function canUpdateFollowUp(
+  user: SessionUser,
+  followUp: { assignedToId: string; branchId: string },
+): boolean {
+  if (user.role === "SALESPERSON") return followUp.assignedToId === user.id;
+  const scope = accessScope(user);
+  return scope.all || scope.branchIds.includes(followUp.branchId);
+}
+
+// M09.10: Done, with the result, the note, when and by whom. Only a PENDING one: of two
+// people saving at once, one wins and the other is told it was already updated.
+export async function completeFollowUp(
+  tx: Prisma.TransactionClient,
+  input: { id: string; result: FollowUpResult; note?: string; userId: string; now: Date },
+): Promise<void> {
+  const { count } = await tx.followUp.updateMany({
+    where: { id: input.id, status: "PENDING" },
+    data: {
+      status: "DONE",
+      result: input.result,
+      resultNote: input.note ?? null,
+      completedAt: input.now,
+      completedById: input.userId,
+    },
+  });
+  if (count === 0) {
+    throw new AppError("RULE", { message: "followUpResult.errors.alreadyUpdated" });
+  }
+}
+
+// BR-05: "not interested" closes the enquiry with the reason and cancels what is pending.
+// The caller writes its own history line (a visit and a follow-up call read differently).
+export async function closeNotInterested(
+  tx: Prisma.TransactionClient,
+  input: {
+    enquiryId: string;
+    customerId: string;
+    lostReasonId: string;
+    userId: string;
+    branchId: string;
+    device: string | null;
+    now: Date;
+  },
+): Promise<void> {
+  await tx.enquiry.update({
+    where: { id: input.enquiryId },
+    data: { status: "NOT_INTERESTED", lostReasonId: input.lostReasonId, closedAt: input.now },
+  });
+  await cancelPendingFollowUps(tx, input.customerId);
+  await writeAudit(tx, {
+    userId: input.userId,
+    branchId: input.branchId,
+    action: AUDIT.enquiryClose,
+    entityType: "Enquiry",
+    entityId: input.enquiryId,
+    newValue: { status: "NOT_INTERESTED", lostReasonId: input.lostReasonId },
+    device: input.device,
+  });
+}
+
+// M09.06: "After 3 not-reachable results in a row, the case is flagged on the manager
+// dashboard." Raised once, when the count reaches 3, for the managers of the follow-up's
+// branch and every admin. M14's overview and M12's screen read these rows.
+export const MISSED_CALLS_ALERT = 3;
+
+export async function notifyManagersOfMissedCalls(
+  tx: Prisma.TransactionClient,
+  input: { branchId: string; customerId: string; followUpId: string },
+): Promise<void> {
+  const managers = await tx.user.findMany({
+    where: {
+      status: "ACTIVE",
+      OR: [
+        { role: "ADMIN" },
+        {
+          role: "MANAGER",
+          OR: [
+            { homeBranchId: input.branchId },
+            { extraBranches: { some: { branchId: input.branchId } } },
+          ],
+        },
+      ],
+    },
+    select: { id: true },
+  });
+  if (managers.length === 0) return;
+  await tx.notification.createMany({
+    data: managers.map((manager) => ({
+      userId: manager.id,
+      type: "followup-missed",
+      // The reader's own language is applied when the screen renders it; the row keeps ids.
+      message: `followup-missed:${input.customerId}:${input.followUpId}`,
+      link: `/customers/${input.customerId}`,
+    })),
   });
 }

@@ -8,7 +8,7 @@ import type { SessionUser } from "@/lib/auth";
 import { getCurrentBranch } from "@/lib/current-branch";
 import { db } from "@/lib/db";
 import { AppError } from "@/lib/errors";
-import { calendarDay } from "@/lib/follow-ups";
+import { calendarDay, completeFollowUp, followUpAccessWhere } from "@/lib/follow-ups";
 import { accessScope, branchWhere, writeBranchId } from "@/lib/permissions";
 import { safeAction } from "@/lib/safe-action";
 import {
@@ -21,7 +21,7 @@ import {
 } from "@/lib/sales";
 import { billAmountRequired } from "@/lib/settings";
 import { staffBranchWhere } from "@/lib/staff-scope";
-import { writeTimelineEvent } from "@/lib/timeline";
+import { FOLLOW_UP_CALL_TITLE, writeTimelineEvent } from "@/lib/timeline";
 import { formatDate } from "@/lib/format";
 import {
   cancelSaleInput,
@@ -66,6 +66,8 @@ export const checkBill = safeAction({
 
 // A sale on its own — "Sale done" on the profile — added to the customer's open enquiry.
 // With no open enquiry the purchase is a visit, recorded through Record visit (BR-03).
+// From Update follow-up's "Customer already bought" (M09.07) it also names the follow-up:
+// that one is marked Done only now, with the sale, and becomes its linked follow-up.
 export const recordSale = safeAction({
   name: "recordSale",
   schema: recordSaleInput,
@@ -93,6 +95,18 @@ export const recordSale = safeAction({
     const enquiry = customer.enquiries[0];
     if (!enquiry) throw new AppError("RULE", { message: "sales.errors.noOpenEnquiry" });
 
+    // The same rule as Update follow-up: the person who may record its result (M09).
+    const followUp = input.followUpId
+      ? await db.followUp.findFirst({
+          where: { id: input.followUpId, customerId: customer.id, ...followUpAccessWhere(user) },
+          select: { id: true, branchId: true, status: true },
+        })
+      : null;
+    if (input.followUpId && !followUp) throw new AppError("NOT_FOUND");
+    if (followUp && followUp.status !== "PENDING") {
+      throw new AppError("RULE", { message: "followUpResult.errors.alreadyUpdated" });
+    }
+
     assertBillDate(input.sale.billDate, now);
     assertBillAmount(input.sale.billAmount, await billAmountRequired());
     await assertBillFree(branchId, input.sale.billNumber, user.language);
@@ -100,6 +114,40 @@ export const recordSale = safeAction({
 
     try {
       const sale = await db.$transaction(async (tx) => {
+        // Done before the sale is written, so writeSale links it as "the last completed
+        // follow-up of the enquiry" (SOW 5.7) and the sale counts as a conversion (BR-11).
+        if (followUp) {
+          await completeFollowUp(tx, {
+            id: followUp.id,
+            result: "ALREADY_BOUGHT",
+            note: input.followUpNote,
+            userId: user.id,
+            now,
+          });
+          await writeAudit(tx, {
+            userId: user.id,
+            branchId: followUp.branchId,
+            action: AUDIT.followUpResult,
+            entityType: "FollowUp",
+            entityId: followUp.id,
+            oldValue: { status: "PENDING" },
+            newValue: {
+              status: "DONE",
+              result: "ALREADY_BOUGHT",
+              note: input.followUpNote ?? null,
+            },
+            device: userDevice,
+          });
+          await writeTimelineEvent(tx, {
+            customerId: customer.id,
+            staffId: user.id,
+            branchId: followUp.branchId,
+            kind: "followUpResult",
+            title: FOLLOW_UP_CALL_TITLE.ALREADY_BOUGHT,
+            detail: input.followUpNote,
+            entityId: followUp.id,
+          });
+        }
         const created = await writeSale(tx, {
           branchId,
           customerId: customer.id,

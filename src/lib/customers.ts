@@ -138,6 +138,15 @@ export type CustomerProfile = {
     latestRemarks: string | null;
     openedAt: Date;
   } | null;
+  // The one pending follow-up (BR-02), shown with an Update button (M09) until the Today
+  // screen (M11) becomes the usual way in.
+  pendingFollowUp: {
+    id: string;
+    dueDate: Date;
+    timeSlot: TimeSlot;
+    assignedToId: string;
+    branchId: string;
+  } | null;
 };
 
 // No branch filter (BR-16): anyone who found the customer by mobile may open them.
@@ -168,7 +177,11 @@ export async function customerProfile(
         select: { status: true, title: true, latestRemarks: true, openedAt: true },
       },
       // BR-02 allows one pending follow-up per customer.
-      followUps: { where: { status: "PENDING" }, take: 1, select: { dueDate: true } },
+      followUps: {
+        where: { status: "PENDING" },
+        take: 1,
+        select: { id: true, dueDate: true, timeSlot: true, assignedToId: true, branchId: true },
+      },
     },
   });
   if (!row) return null;
@@ -198,6 +211,7 @@ export async function customerProfile(
     openEnquiry: open
       ? { title: open.title, latestRemarks: open.latestRemarks, openedAt: open.openedAt }
       : null,
+    pendingFollowUp: open ? (row.followUps[0] ?? null) : null,
   };
 }
 
@@ -215,7 +229,8 @@ export type TimelineRow = {
   branchName: string | null;
   staffName: string;
   createdAt: Date;
-  // For "Follow-up set" rows: the day and slot it was set for, shown in the reader's language.
+  // For "Follow-up set" and "Follow-up call" rows: the day and slot of the follow-up the
+  // row points at, shown in the reader's language.
   followUp: { dueDate: Date; timeSlot: TimeSlot } | null;
 };
 
@@ -248,7 +263,10 @@ export async function customerTimeline(
   const days = await followUpDays(
     db,
     events.flatMap((event) =>
-      event.type === TIMELINE.followUpSet.type && event.entityId ? [event.entityId] : [],
+      (event.type === TIMELINE.followUpSet.type || event.type === TIMELINE.followUpResult.type) &&
+      event.entityId
+        ? [event.entityId]
+        : [],
     ),
   );
 

@@ -15,16 +15,17 @@ import { formatDayDate, isoDate } from "@/lib/format";
 import { ALL_BRANCHES } from "@/lib/permissions";
 import { billAmountRequired } from "@/lib/settings";
 
-// Sale completed (M10). Reached two ways: from Record visit's "Yes, bought something",
-// carrying the visit as a draft (?draft=…), and from the profile's "Sale done". Every
-// role records sales (SOW 3.1).
+// Sale completed (M10). Reached three ways: from Record visit's "Yes, bought something",
+// carrying the visit as a draft (?draft=…), from the profile's "Sale done", and from
+// Update follow-up's "Customer already bought" (?followUpId=…, M09.07). Every role
+// records sales (SOW 3.1).
 export default async function NewSalePage({
   searchParams,
 }: {
-  searchParams: Promise<{ customerId?: string; draft?: string }>;
+  searchParams: Promise<{ customerId?: string; draft?: string; followUpId?: string }>;
 }) {
   const user = await requireUser();
-  const { customerId, draft } = await searchParams;
+  const { customerId, draft, followUpId } = await searchParams;
   if (!customerId) notFound();
   const t = await getTranslations("sales");
   const tVisits = await getTranslations("visits");
@@ -46,7 +47,13 @@ export default async function NewSalePage({
     <AppShell
       role={user.role}
       title={t("new")}
-      backHref={draft ? `/visits/new?customerId=${customer.id}` : `/customers/${customer.id}`}
+      backHref={
+        draft
+          ? `/visits/new?customerId=${customer.id}`
+          : followUpId
+            ? `/follow-ups/${followUpId}`
+            : `/customers/${customer.id}`
+      }
       backLabel={t("back")}
     >
       {children}
@@ -77,6 +84,7 @@ export default async function NewSalePage({
         userId={user.id}
         customer={{ id: customer.id, name: customer.name }}
         draftId={draft ?? null}
+        followUpId={followUpId ?? null}
         openEnquiryTitle={customer.enquiries[0]?.title ?? null}
         amountRequired={await billAmountRequired()}
         today={isoDate(now)}

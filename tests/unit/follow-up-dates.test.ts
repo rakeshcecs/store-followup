@@ -24,6 +24,21 @@ describe("follow-up date shortcuts (M08.01)", () => {
     expect(followUpShortcut("TEN_DAYS", today)).toBe(tenDays);
   });
 
+  // M09's "will visit" and "call later" chips.
+  it.each([
+    // today, Sunday, in 3 days
+    ["2026-09-21", "2026-09-27", "2026-09-24"], // Mon
+    ["2026-09-22", "2026-09-27", "2026-09-25"], // Tue
+    ["2026-09-23", "2026-09-27", "2026-09-26"], // Wed
+    ["2026-09-24", "2026-09-27", "2026-09-27"], // Thu
+    ["2026-09-25", "2026-09-27", "2026-09-28"], // Fri
+    ["2026-09-26", "2026-09-27", "2026-09-29"], // Sat
+    ["2026-09-27", "2026-09-27", "2026-09-30"], // Sun: Sunday is today
+  ] as const)("Sunday and In 3 days from %s", (today, sunday, inThreeDays) => {
+    expect(followUpShortcut("SUNDAY", today)).toBe(sunday);
+    expect(followUpShortcut("IN_3_DAYS", today)).toBe(inThreeDays);
+  });
+
   it("crosses a month and a year end", () => {
     const today = "2026-12-31"; // Thursday
     expect(followUpShortcut("TOMORROW", today)).toBe("2027-01-01");

@@ -35,6 +35,7 @@ export const AUDIT = {
   saleCreate: "sale:create",
   followUpCreate: "followUp:create",
   followUpReschedule: "followUp:reschedule",
+  followUpResult: "followUp:result",
   enquiryClose: "enquiry:close",
   saleUpdate: "sale:update",
   saleCancel: "sale:cancel",

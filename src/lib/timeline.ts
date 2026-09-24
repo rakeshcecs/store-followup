@@ -7,7 +7,7 @@
 //
 // Every kind the profile shows is listed here up front, so M07–M15 only call
 // writeTimelineEvent() with their own kind and never touch the screen.
-import type { Prisma } from "@/generated/prisma/client";
+import type { FollowUpResult, Prisma } from "@/generated/prisma/client";
 
 export const TIMELINE = {
   customerAdded: { type: "customer.added", title: "timeline.customerAdded" },
@@ -23,6 +23,17 @@ export const TIMELINE = {
 } as const;
 
 export type TimelineKind = keyof typeof TIMELINE;
+
+// M09: a follow-up call reads by its result — "Follow-up call · Spoke, will visit Sun,
+// 27 Sep". The ones with a next day point at the new follow-up (entityId), and the
+// profile fills in its date in the reader's language, as for "Follow-up set for …".
+export const FOLLOW_UP_CALL_TITLE: Record<FollowUpResult, string> = {
+  WILL_VISIT: "timeline.followUpCall.WILL_VISIT",
+  CALL_LATER: "timeline.followUpCall.CALL_LATER",
+  NOT_REACHABLE: "timeline.followUpCall.NOT_REACHABLE",
+  ALREADY_BOUGHT: "timeline.followUpCall.ALREADY_BOUGHT",
+  NOT_INTERESTED: "timeline.followUpCall.NOT_INTERESTED",
+};
 
 export type TimelineTone = "amber" | "green" | "grey" | "indigo";
 
@@ -46,9 +57,11 @@ export async function writeTimelineEvent(
     detail?: string;
     entityId?: string; // the record the row is about, e.g. the Sale
     branchId?: string; // where it happened; left out for rows that belong to no branch
+    title?: string; // a more exact message key than the kind's own, e.g. FOLLOW_UP_CALL_TITLE
   },
 ): Promise<void> {
-  const { type, title } = TIMELINE[input.kind];
+  const { type } = TIMELINE[input.kind];
+  const title = input.title ?? TIMELINE[input.kind].title;
   await tx.timelineEvent.create({
     data: {
       customerId: input.customerId,

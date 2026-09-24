@@ -39,11 +39,15 @@ export const saleInput = z.object({
   remarks: optionalText(250, "visits.errors.saleRemarksTooLong"),
 });
 
-// A sale on its own, from the profile's "Sale done" (the enquiry must be open).
+// A sale on its own, from the profile's "Sale done" (the enquiry must be open), or from
+// Update follow-up's "Customer already bought" (M09.07), which names the follow-up that
+// the sale completes and carries the note written there.
 export const recordSaleInput = z.object({
   clientId: z.uuid(),
   customerId: id,
   sale: saleInput,
+  followUpId: id.optional(),
+  followUpNote: optionalText(250, "followUpResult.errors.noteTooLong"),
 });
 
 // The live check while typing (M10.02, M10.03).

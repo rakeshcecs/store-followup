@@ -8,7 +8,7 @@ import { db } from "@/lib/db";
 import { AppError } from "@/lib/errors";
 import {
   assertDueDate,
-  cancelPendingFollowUps,
+  closeNotInterested,
   recordFollowUpSet,
   writeFollowUp,
 } from "@/lib/follow-ups";
@@ -236,26 +236,21 @@ export const recordVisit = safeAction({
 
         if (input.outcome === "NOT_INTERESTED" && reason) {
           // BR-05: the enquiry closes with the reason, and nothing stays pending.
-          await tx.enquiry.update({
-            where: { id: enquiry.id },
-            data: { status: "NOT_INTERESTED", lostReasonId: reason.id, closedAt: now },
+          await closeNotInterested(tx, {
+            enquiryId: enquiry.id,
+            customerId: customer.id,
+            lostReasonId: reason.id,
+            userId: user.id,
+            branchId,
+            device: userDevice,
+            now,
           });
-          await cancelPendingFollowUps(tx, customer.id);
           await writeTimelineEvent(tx, {
             customerId: customer.id,
             staffId: user.id,
             branchId,
             kind: "notInterested",
             detail: reason.nameEn,
-          });
-          await writeAudit(tx, {
-            userId: user.id,
-            branchId,
-            action: AUDIT.enquiryClose,
-            entityType: "Enquiry",
-            entityId: enquiry.id,
-            newValue: { status: "NOT_INTERESTED", lostReasonId: reason.id },
-            device: userDevice,
           });
         }
 

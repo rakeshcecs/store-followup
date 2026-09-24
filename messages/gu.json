@@ -435,7 +435,10 @@
       "byAt": "{name}, {branch}માં",
       "noHistory": "હજી કોઈ ઇતિહાસ નથી.",
       "showMore": "જૂની એન્ટ્રી બતાવો",
-      "olderInAudit": "જૂની એન્ટ્રી ઑડિટ લૉગમાં રાખવામાં આવે છે."
+      "olderInAudit": "જૂની એન્ટ્રી ઑડિટ લૉગમાં રાખવામાં આવે છે.",
+      "followUpDue": "ફોલો-અપ: {date}, {slot}",
+      "followUpWasDue": "ફોલો-અપ {date} એ હતું",
+      "updateFollowUp": "અપડેટ કરો"
     },
     "edit": {
       "title": "વિગતો બદલો",
@@ -455,7 +458,14 @@
     "saleCancelled": "વેચાણ રદ",
     "notInterested": "રસ નથી",
     "saleEdited": "વેચાણ બદલાયું",
-    "followUpSetFor": "ફોલો-અપ નક્કી થયું: {date}, {slot}"
+    "followUpSetFor": "ફોલો-અપ નક્કી થયું: {date}, {slot}",
+    "followUpCall": {
+      "WILL_VISIT": "ફોલો-અપ કૉલ · વાત થઈ, {date} એ આવશે",
+      "CALL_LATER": "ફોલો-અપ કૉલ · {date} એ ફરી કૉલ કરવા કહ્યું",
+      "NOT_REACHABLE": "ફોલો-અપ કૉલ · કૉલ ન લાગ્યો",
+      "ALREADY_BOUGHT": "ફોલો-અપ કૉલ · પહેલેથી ખરીદી લીધું",
+      "NOT_INTERESTED": "ફોલો-અપ કૉલ · રસ નથી"
+    }
   },
   "visits": {
     "new": "મુલાકાત નોંધો",
@@ -617,5 +627,64 @@
     "billAmountRequiredHint": "ચાલુ હોય ત્યારે રકમ વગર વેચાણ સાચવી શકાશે નહીં, જેથી રિપોર્ટમાં ગણતરી સાથે વેચાણની કિંમત પણ દેખાય.",
     "save": "સાચવો",
     "saved": "સેટિંગ સાચવ્યું"
+  },
+  "followUpResult": {
+    "title": "ફોલો-અપ અપડેટ કરો",
+    "back": "પાછળ",
+    "dueToday": "આજે, {slot}",
+    "dueOn": "{date}, {slot}",
+    "wasDue": "{date} એ હતું",
+    "missedCalls": "{count} કૉલ ન લાગ્યા",
+    "call": "કૉલ",
+    "whatsapp": "વૉટ્સએપ",
+    "whatHappened": "શું થયું?",
+    "option": {
+      "WILL_VISIT": {
+        "label": "વાત થઈ, ગ્રાહક આવશે",
+        "hint": "આવવાનો દિવસ પસંદ કરો"
+      },
+      "CALL_LATER": {
+        "label": "પછી કૉલ કરવા કહ્યું",
+        "hint": "કૉલની નવી તારીખ પસંદ કરો"
+      },
+      "NOT_REACHABLE": {
+        "label": "કૉલ ન લાગ્યો",
+        "hint": "તમને કાલે ફરી યાદ કરાવાશે"
+      },
+      "ALREADY_BOUGHT": {
+        "label": "ગ્રાહકે ખરીદી લીધું",
+        "hint": "હવે પછી તમે બિલ નંબર નાખશો"
+      },
+      "NOT_INTERESTED": {
+        "label": "રસ નથી",
+        "hint": "કારણ પસંદ કરો"
+      }
+    },
+    "visitDay": "ગ્રાહક ક્યારે આવશે?",
+    "callAgain": "ફરી કૉલ કરો",
+    "shortcut": {
+      "TOMORROW": "આવતીકાલે",
+      "SUNDAY": "રવિવારે",
+      "IN_3_DAYS": "3 દિવસ પછી",
+      "NEXT_WEEK": "આવતા અઠવાડિયે",
+      "PICK": "તારીખ પસંદ કરો"
+    },
+    "dateLabel": "તારીખ",
+    "nextOn": "આગલું ફોલો-અપ {date}",
+    "notReachableInfo": "તમને <b>કાલે</b> ફરી યાદ કરાવાશે. 3 વાર કૉલ ન લાગે તો તમારા મેનેજરને તેમના ઓવરવ્યૂ પર દેખાશે.",
+    "whyNot": "કેમ નહીં?",
+    "note": "નોંધ (વૈકલ્પિક)",
+    "notePlaceholder": "ગ્રાહકે શું કહ્યું?",
+    "choose": "શું થયું તે પસંદ કરો",
+    "save": "સાચવો",
+    "nextBill": "આગળ: બિલ નંબર નાખો",
+    "saved": "ફોલો-અપ અપડેટ થયું",
+    "done": "આ ફોલો-અપ પહેલેથી અપડેટ થઈ ગયું છે",
+    "doneText": "{name} ના ફોલો-અપનું પરિણામ પહેલેથી નોંધાયેલું છે. જોવા માટે પ્રોફાઇલ ખોલો.",
+    "openProfile": "પ્રોફાઇલ ખોલો",
+    "errors": {
+      "alreadyUpdated": "આ ફોલો-અપ પહેલેથી અપડેટ થઈ ગયું છે.",
+      "noteTooLong": "નોંધ 250 અક્ષરથી ઓછી રાખો."
+    }
   }
 }

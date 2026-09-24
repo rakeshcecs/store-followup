@@ -1,11 +1,12 @@
-import { CalendarPlus, Check, Plus } from "lucide-react";
+import { CalendarClock, CalendarPlus, Check, Plus } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { Locale } from "@/i18n/config";
 import type { CustomerProfile } from "@/lib/customers";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatDayDate, isoDate } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 // M06.03 / M06.04: the open enquiry, or the note that there is none, and the three ways
 // on — Record visit (M07), Follow-up (M08), Sale done (M10). The three buttons stay
@@ -13,11 +14,16 @@ import { formatDate } from "@/lib/format";
 export async function EnquiryCard({
   customer,
   locale,
+  canUpdateFollowUp,
 }: {
   customer: CustomerProfile;
   locale: Locale;
+  canUpdateFollowUp: boolean; // M09: the reader may record what happened on it
 }) {
   const t = await getTranslations("customers.profile");
+  const tFollowUps = await getTranslations("followUps");
+  const pending = customer.pendingFollowUp;
+  const overdue = pending !== null && isoDate(pending.dueDate) < isoDate(new Date());
   const enquiry = customer.openEnquiry;
   const query = `customerId=${customer.id}`;
 
@@ -46,6 +52,27 @@ export async function EnquiryCard({
           )}
           {occasion && (
             <p className="text-sm text-muted-foreground">{t("occasion", { value: occasion })}</p>
+          )}
+          {pending && (
+            <div className="flex items-center gap-2.5 rounded-md bg-muted px-3 py-2">
+              <CalendarClock
+                aria-hidden
+                className={cn("size-5 shrink-0", overdue ? "text-danger" : "text-primary")}
+              />
+              <p className={cn("grow text-sm font-bold", overdue && "text-danger")}>
+                {overdue
+                  ? t("followUpWasDue", { date: formatDayDate(pending.dueDate, locale) })
+                  : t("followUpDue", {
+                      date: formatDayDate(pending.dueDate, locale),
+                      slot: tFollowUps(`slotWord.${pending.timeSlot}`),
+                    })}
+              </p>
+              {canUpdateFollowUp && (
+                <Button asChild size="sm" variant="secondary">
+                  <Link href={`/follow-ups/${pending.id}`}>{t("updateFollowUp")}</Link>
+                </Button>
+              )}
+            </div>
           )}
         </>
       ) : (

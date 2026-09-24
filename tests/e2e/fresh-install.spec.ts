@@ -367,6 +367,22 @@ test.describe("a store from an empty database", () => {
     expect(followUp.status).toBe("PENDING");
     expect(followUp.method).toBe("WHATSAPP");
     expect(followUp.assignedToId).toBe(customer.assignedToId);
+
+    // They do not pick up when called (M09): the profile's Update records it, and the
+    // next try is set for tomorrow.
+    await page.goto(`/customers/${customer.id}`);
+    await page.getByRole("link", { name: en.customers.profile.updateFollowUp }).click();
+    await page
+      .getByRole("radio", { name: new RegExp(en.followUpResult.option.NOT_REACHABLE.label) })
+      .click();
+    await page.getByRole("button", { name: en.followUpResult.save }).click();
+    await expect(page).toHaveURL(/\/today/);
+
+    const retry = await db.followUp.findFirstOrThrow({
+      where: { customerId: customer.id, status: "PENDING" },
+    });
+    expect(retry.notReachableCount).toBe(1);
+    expect(retry.createdFrom).toBe("FOLLOWUP_RESULT");
   });
 
   test("12. the other branch's staff find the same customer, and see their own app", async ({
@@ -419,6 +435,7 @@ test.describe("a store from an empty database", () => {
       "enquiry:close",
       "sale:create",
       "followUp:create",
+      "followUp:result",
     ]) {
       expect(byAction[action], action).toBeGreaterThanOrEqual(1);
     }

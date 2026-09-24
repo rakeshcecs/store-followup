@@ -4,7 +4,7 @@ import type { Locale } from "@/i18n/config";
 import { TIMELINE_MAX, TIMELINE_PAGE, type TimelineRow } from "@/lib/customers";
 import { formatDateTime, formatDayDate } from "@/lib/format";
 import type { BranchScope } from "@/lib/permissions";
-import { timelineTone, type TimelineTone } from "@/lib/timeline";
+import { TIMELINE, timelineTone, type TimelineTone } from "@/lib/timeline";
 import { cn } from "@/lib/utils";
 
 const DOT: Record<TimelineTone, string> = {
@@ -38,16 +38,18 @@ export async function HistoryList({
   const tAll = await getTranslations();
   const title = (key: string) =>
     tAll.has(key as Parameters<typeof tAll>[0]) ? tAll(key as Parameters<typeof tAll>[0]) : key;
-  // "Follow-up set for Sat, 26 Sep, evening" (M08); rows written before M08 point at no
-  // follow-up and keep the plain title.
+  // "Follow-up set for Sat, 26 Sep, evening" (M08) and "Follow-up call · Spoke, will visit
+  // Sun, 27 Sep" (M09) take the day from the follow-up the row points at; rows written
+  // before M08 point at none and keep the plain title.
   const tFollowUps = await getTranslations("followUps");
-  const heading = (event: TimelineRow) =>
-    event.followUp
-      ? tAll("timeline.followUpSetFor", {
-          date: formatDayDate(event.followUp.dueDate, locale),
-          slot: tFollowUps(`slotWord.${event.followUp.timeSlot}`),
-        })
-      : title(event.title);
+  const heading = (event: TimelineRow) => {
+    const key = event.type === TIMELINE.followUpSet.type ? "timeline.followUpSetFor" : event.title;
+    if (!event.followUp || !tAll.has(key as Parameters<typeof tAll>[0])) return title(event.title);
+    return tAll(key as Parameters<typeof tAll>[0], {
+      date: formatDayDate(event.followUp.dueDate, locale),
+      slot: tFollowUps(`slotWord.${event.followUp.timeSlot}`),
+    });
+  };
   const canOpen = (event: TimelineRow) =>
     saleScope !== null &&
     event.entityId !== null &&

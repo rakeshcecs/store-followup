@@ -17,8 +17,10 @@ import { checkBill, recordSale } from "@/lib/actions/sale";
 import { recordVisit } from "@/lib/actions/visit";
 import type { MessageValues } from "@/lib/errors";
 import {
+  clearFollowUpNote,
   clearVisitDraft,
   parseVisitDraft,
+  readFollowUpNote,
   readVisitDraftRaw,
   type VisitDraft,
 } from "@/lib/visit-draft";
@@ -30,6 +32,7 @@ type SaleFormProps = {
   userId: string;
   customer: { id: string; name: string };
   draftId: string | null; // ?draft= from Record visit
+  followUpId: string | null; // ?followUpId= from Update follow-up (M09.07)
   openEnquiryTitle: string | null;
   amountRequired: boolean; // store setting (SOW Open point #1)
   today: string; // "2026-09-24", IST
@@ -59,6 +62,7 @@ export function SaleForm(props: SaleFormProps) {
 function SaleFields({
   userId,
   customer,
+  followUpId,
   openEnquiryTitle,
   amountRequired,
   today,
@@ -137,7 +141,17 @@ function SaleFields({
             outcome: "PURCHASED",
             sale: { ...sale, clientId: saleClientId },
           })
-        : await recordSale({ clientId: saleClientId, customerId: customer.id, sale });
+        : await recordSale({
+            clientId: saleClientId,
+            customerId: customer.id,
+            sale,
+            ...(followUpId
+              ? {
+                  followUpId,
+                  followUpNote: readFollowUpNote(userId, followUpId) ?? undefined,
+                }
+              : {}),
+          });
 
       if (!result.ok) {
         // "sale.billNumber" from the visit action, "billNumber" from the zod parse.
@@ -147,6 +161,7 @@ function SaleFields({
         return;
       }
       clearVisitDraft(userId, customer.id);
+      if (followUpId) clearFollowUpNote(userId, followUpId);
       toast(t("saved", { bill }));
       // "/" sends each role home: Today for a salesperson, Overview otherwise.
       router.push("/");
