@@ -47,7 +47,7 @@ export function EditCustomerForm({
   const [departmentId, setDepartmentId] = useState(customer.departmentId);
   const profilePath = `/customers/${customer.id}`;
 
-  const { formAction, pending, errors, formError, errorValues } = useActionForm(
+  const { onSubmit, pending, errors, formError, errorValues } = useActionForm(
     updateCustomer,
     updateCustomerInput,
     () => {
@@ -73,7 +73,7 @@ export function EditCustomerForm({
   const bottomError = formError ?? strayError;
 
   return (
-    <form action={formAction} className="flex flex-col gap-4.5" noValidate>
+    <form onSubmit={onSubmit} className="flex flex-col gap-4.5" noValidate>
       <input type="hidden" name="id" value={customer.id} />
 
       <TextInput

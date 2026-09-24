@@ -82,7 +82,7 @@ function DepartmentForm({ department, onSaved }: { department?: Department; onSa
   const t = useTranslations("departments");
   const tError = useErrorMessage();
 
-  const { formAction, pending, errors, formError, errorValues } = useActionForm(
+  const { onSubmit, pending, errors, formError, errorValues } = useActionForm(
     department ? renameDepartment : createDepartment,
     department ? renameDepartmentInput : createDepartmentInput,
     () => {
@@ -92,7 +92,7 @@ function DepartmentForm({ department, onSaved }: { department?: Department; onSa
   );
 
   return (
-    <form action={formAction} className="flex flex-col gap-3 sm:flex-row sm:items-end" noValidate>
+    <form onSubmit={onSubmit} className="flex flex-col gap-3 sm:flex-row sm:items-end" noValidate>
       {department && <input type="hidden" name="id" value={department.id} />}
       <div className="grow">
         <TextInput

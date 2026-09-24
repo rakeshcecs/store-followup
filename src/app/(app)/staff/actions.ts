@@ -8,6 +8,7 @@ import { requireUser, type RequireUserOptions, type SessionUser } from "@/lib/au
 import { AUDIT, writeAudit } from "@/lib/audit";
 import { getBranchScope } from "@/lib/current-branch";
 import { db } from "@/lib/db";
+import { assertDepartmentUsable } from "@/lib/departments";
 import { AppError } from "@/lib/errors";
 import { assertBranchAccess } from "@/lib/permissions";
 import { safeAction } from "@/lib/safe-action";
@@ -113,6 +114,7 @@ export const createStaff = safeAction({
     assertBranchAccess(user, input.homeBranchId);
     const extraBranchIds = extraBranchesFor(user, input);
     await assertMobileFree(input.mobile);
+    await assertDepartmentUsable(input.departmentId);
 
     // Shown to the admin once and never stored in readable form. mustChangePin sends the
     // new person to /set-pin at their first login (M02).
@@ -174,6 +176,7 @@ export const updateStaff = safeAction({
     assertBranchAccess(actor, input.homeBranchId);
     const extraBranchIds = extraBranchesFor(actor, input);
     await assertMobileFree(input.mobile, staff.id);
+    await assertDepartmentUsable(input.departmentId, staff.departmentId);
 
     await db.$transaction(async (tx) => {
       const updated = await tx.user.update({

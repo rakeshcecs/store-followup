@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Field, fieldControlClass } from "@/components/ui/field";
+import { mobileDigits } from "@/lib/mobile";
 import { cn } from "@/lib/utils";
 
 type MobileInputProps = {
@@ -18,8 +19,9 @@ type MobileInputProps = {
 const COUNTRY_CODE = "+91";
 
 // M05.02: "spaces and dashes are removed automatically". Doing it as the person types
-// rather than on submit means the box always shows exactly what will be saved, and the
-// 10-digit limit can then be the browser's own.
+// rather than on submit means the box always shows exactly what will be saved. No
+// maxLength: the browser cuts a pasted "98765 43210" to its first 10 characters before
+// the spaces are removed, which lost the last digit; mobileDigits() caps it instead.
 export function MobileInput({
   label,
   hint,
@@ -46,10 +48,9 @@ export function MobileInput({
             inputMode="numeric"
             autoComplete="off"
             autoFocus={autoFocus}
-            maxLength={10}
             name={name}
             value={value}
-            onChange={(event) => setValue(event.target.value.replace(/\D/g, "").slice(0, 10))}
+            onChange={(event) => setValue(mobileDigits(event.target.value))}
             className={cn(fieldControlClass, "h-13 rounded-md px-3.5 text-[17px]")}
             {...control}
           />

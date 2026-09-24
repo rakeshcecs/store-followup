@@ -23,7 +23,7 @@ export function PinForm({ askCurrentPin, nextHref }: PinFormProps) {
   const tError = useErrorMessage();
   const router = useRouter();
 
-  const { formAction, pending, errors, formError } = useActionForm(setPin, setPinInput, () => {
+  const { onSubmit, pending, errors, formError } = useActionForm(setPin, setPinInput, () => {
     toast(t("pinSaved"));
     router.replace(nextHref);
   });
@@ -38,7 +38,7 @@ export function PinForm({ askCurrentPin, nextHref }: PinFormProps) {
   };
 
   return (
-    <form action={formAction} className="flex flex-col gap-4" noValidate>
+    <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
       {askCurrentPin && (
         <TextInput
           name="currentPin"

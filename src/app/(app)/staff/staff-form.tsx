@@ -62,7 +62,7 @@ export function StaffForm({ branches, coverableBranches, departments, staff }: S
   // Moving someone's home branch to one of their extras must not leave it in both.
   const extras = extraBranchIds.filter((id) => id !== homeBranchId);
 
-  const { formAction, pending, errors, formError, errorValues } = useActionForm(
+  const { onSubmit, pending, errors, formError, errorValues } = useActionForm(
     staff ? updateStaff : createStaff,
     staff ? updateStaffInput : createStaffInput,
     (data: { id: string; fullName: string; tempPin?: string }) => {
@@ -81,7 +81,7 @@ export function StaffForm({ branches, coverableBranches, departments, staff }: S
 
   return (
     <>
-      <form action={formAction} className="flex flex-col gap-4.5" noValidate>
+      <form onSubmit={onSubmit} className="flex flex-col gap-4.5" noValidate>
         {staff && <input type="hidden" name="id" value={staff.id} />}
 
         <TextInput
@@ -150,12 +150,16 @@ export function StaffForm({ branches, coverableBranches, departments, staff }: S
         <Select
           name="departmentId"
           label={t("fields.department")}
-          placeholder={t("fields.noDepartment")}
           defaultValue={staff?.departmentId ?? ""}
-          options={departments.map((department) => ({
-            value: department.id,
-            label: department.name,
-          }))}
+          // Optional (SOW 5.1), so "No department" is a real choice, not a disabled prompt:
+          // once someone had a department there was no way back to none.
+          options={[
+            { value: "", label: t("fields.noDepartment") },
+            ...departments.map((department) => ({
+              value: department.id,
+              label: department.name,
+            })),
+          ]}
           error={errorFor("departmentId")}
         />
         <TextInput

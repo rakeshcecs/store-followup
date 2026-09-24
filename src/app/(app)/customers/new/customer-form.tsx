@@ -57,7 +57,7 @@ export function CustomerForm({
   const [departmentId, setDepartmentId] = useState("");
   const [showMore, setShowMore] = useState(false);
 
-  const { formAction, pending, errors, formError, errorValues } = useActionForm(
+  const { onSubmit, pending, errors, formError, errorValues } = useActionForm(
     createCustomer,
     createCustomerInput,
     (data: { id: string }) => {
@@ -82,7 +82,7 @@ export function CustomerForm({
   const bottomError = formError ?? strayError;
 
   return (
-    <form action={formAction} className="flex flex-col gap-4.5" noValidate>
+    <form onSubmit={onSubmit} className="flex flex-col gap-4.5" noValidate>
       <TextInput
         name="name"
         label={t("fields.name")}

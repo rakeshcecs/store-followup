@@ -23,7 +23,7 @@ export function LoginForm() {
   // left half-done may stay on it (SOW M19, security NFR).
   useEffect(() => clearAllVisitDrafts(), []);
 
-  const { formAction, pending, errors, formError } = useActionForm(
+  const { onSubmit, pending, errors, formError } = useActionForm(
     login,
     loginInput,
     ({ mustChangePin }) => {
@@ -40,7 +40,7 @@ export function LoginForm() {
   const errorFor = (field: string) => (errors[field] ? tError(errors[field]) : undefined);
 
   return (
-    <form action={formAction} className="flex flex-col gap-4" noValidate>
+    <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
       {/* Whatever they picked with the switcher above is saved onto their account. */}
       <input type="hidden" name="language" value={locale} />
 

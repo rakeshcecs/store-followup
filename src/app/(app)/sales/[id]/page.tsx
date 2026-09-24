@@ -19,7 +19,9 @@ import { staffBranchWhere } from "@/lib/staff-scope";
 // sale is read through every branch they work in, not only the one the switcher shows, so
 // only a sale in a branch they do not work in is not found (M17).
 export default async function SalePage({ params }: { params: Promise<{ id: string }> }) {
-  const user = await requireUser({ roles: ["MANAGER", "ADMIN"] });
+  const user = await requireUser();
+  // A wrong role is "not found", not an error page (a thrown FORBIDDEN renders a 500).
+  if (user.role === "SALESPERSON") notFound();
   const { id } = await params;
   const t = await getTranslations("sales");
   const locale = (await getLocale()) as Locale;

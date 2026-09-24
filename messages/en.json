@@ -286,8 +286,9 @@
     },
     "errors": {
       "nameRequired": "Enter a department name.",
-      "nameTooLong": "Use 100 characters or fewer.",
-      "nameTaken": "A department with this name already exists."
+      "nameTooLong": "Use 50 characters or fewer.",
+      "nameTaken": "A department with this name already exists.",
+      "unavailable": "That department is no longer in use. Pick another."
     }
   },
   "settings": {

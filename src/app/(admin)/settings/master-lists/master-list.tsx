@@ -261,7 +261,7 @@ function ItemForm({
   const t = useTranslations("masterLists");
   const tError = useErrorMessage();
 
-  const { formAction, pending, errors, formError, errorValues } = useActionForm(
+  const { onSubmit, pending, errors, formError, errorValues } = useActionForm(
     item ? renameItem : createItem,
     item ? renameItemInput : createItemInput,
     () => {
@@ -274,7 +274,7 @@ function ItemForm({
     errors[field] ? tError(errors[field], errorValues) : undefined;
 
   return (
-    <form action={formAction} className="flex flex-col gap-3" noValidate>
+    <form onSubmit={onSubmit} className="flex flex-col gap-3" noValidate>
       <input type="hidden" name="kind" value={kind} />
       {item && <input type="hidden" name="id" value={item.id} />}
 

@@ -49,9 +49,9 @@ export const createCustomerInput = z
     departmentId: z.preprocess(emptyToUndefined, id.optional()),
     assignedToId: id,
     altMobile: altMobileField,
-    area: optionalText(100, "customers.errors.areaTooLong"),
-    city: optionalText(100, "customers.errors.cityTooLong"),
-    address: optionalText(255, "customers.errors.addressTooLong"),
+    area: optionalText(60, "customers.errors.areaTooLong"), // SOW 5.3: Text (60)
+    city: optionalText(60, "customers.errors.cityTooLong"), // Text (60)
+    address: optionalText(250, "customers.errors.addressTooLong"), // Text (250)
     occasion: optionalText(100, "customers.errors.occasionTooLong"),
     occasionDate: isoDateField,
     consentGiven: checkboxField,
@@ -73,9 +73,9 @@ export const updateCustomerInput = z
     mobile: z.preprocess(emptyToUndefined, z.union([mobileField, z.undefined()]).optional()),
     departmentId: z.preprocess(emptyToUndefined, id.optional()),
     altMobile: altMobileField,
-    area: optionalText(100, "customers.errors.areaTooLong"),
-    city: optionalText(100, "customers.errors.cityTooLong"),
-    address: optionalText(255, "customers.errors.addressTooLong"),
+    area: optionalText(60, "customers.errors.areaTooLong"), // SOW 5.3: Text (60)
+    city: optionalText(60, "customers.errors.cityTooLong"), // Text (60)
+    address: optionalText(250, "customers.errors.addressTooLong"), // Text (250)
     occasion: optionalText(100, "customers.errors.occasionTooLong"),
     occasionDate: isoDateField,
   })

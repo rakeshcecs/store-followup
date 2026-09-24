@@ -38,8 +38,12 @@ export default async function EditStaffPage({ params }: { params: Promise<{ id: 
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
+    // The person's current department stays offerable even if it was since switched off;
+    // otherwise the browser picks another option and saving moves them without a word.
     db.department.findMany({
-      where: { status: "ACTIVE" },
+      where: {
+        OR: [{ status: "ACTIVE" }, ...(staff.departmentId ? [{ id: staff.departmentId }] : [])],
+      },
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),

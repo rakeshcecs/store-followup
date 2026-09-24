@@ -35,7 +35,7 @@ export function SaleEditForm({ sale, staff, amountRequired, today }: SaleEditFor
   const tError = useErrorMessage();
   const router = useRouter();
 
-  const { formAction, pending, errors, formError, errorValues } = useActionForm(
+  const { onSubmit, pending, errors, formError, errorValues } = useActionForm(
     updateSale,
     updateSaleInput,
     () => {
@@ -55,7 +55,7 @@ export function SaleEditForm({ sale, staff, amountRequired, today }: SaleEditFor
   const bottomError = formError ?? stray;
 
   return (
-    <form action={formAction} className="flex flex-col gap-4" noValidate>
+    <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
       <input type="hidden" name="id" value={sale.id} />
       <TextInput
         name="billNumber"

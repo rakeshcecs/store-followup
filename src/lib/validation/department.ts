@@ -4,7 +4,8 @@ import { id, requiredText } from "@/lib/validation/common";
 // Departments carry a single name (not one per language): they are internal labels an
 // admin types, unlike the master lists in M04, which the schema gives three names.
 export const departmentInput = z.object({
-  name: requiredText(2, 100, "departments.errors.nameRequired", "departments.errors.nameTooLong"),
+  // SOW 5.2: Text (50). The column stays 100 wide; only longer names are refused.
+  name: requiredText(2, 50, "departments.errors.nameRequired", "departments.errors.nameTooLong"),
 });
 
 export const createDepartmentInput = departmentInput;

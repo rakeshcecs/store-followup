@@ -29,7 +29,7 @@ export function BranchForm({ branch }: { branch?: BranchFormValues }) {
   const tError = useErrorMessage(); // field errors arrive as full message keys
   const router = useRouter();
 
-  const { formAction, pending, errors, formError } = useActionForm(
+  const { onSubmit, pending, errors, formError } = useActionForm(
     branch ? updateBranch : createBranch,
     branch ? updateBranchInput : branchInput,
     () => {
@@ -42,7 +42,7 @@ export function BranchForm({ branch }: { branch?: BranchFormValues }) {
     errors[field] ? tError(errors[field]) : undefined;
 
   return (
-    <form action={formAction} className="flex flex-col gap-4.5" noValidate>
+    <form onSubmit={onSubmit} className="flex flex-col gap-4.5" noValidate>
       {branch && <input type="hidden" name="id" value={branch.id} />}
 
       <TextInput

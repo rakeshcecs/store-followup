@@ -18,3 +18,13 @@ export function normalizeMobile(value: unknown): string | null {
 
   return /^[6-9]\d{9}$/.test(digits) ? digits : null;
 }
+
+// What a mobile box shows while someone types or pastes (M05.02): digits only, a leading
+// "+91" or "0" dropped the same way as above, at most 10. It never refuses — checking
+// the number is normalizeMobile's job when the form is sent.
+export function mobileDigits(value: string): string {
+  let digits = value.replace(/\D/g, "");
+  if (digits.length === 12 && digits.startsWith("91")) digits = digits.slice(2);
+  else if (digits.length === 11 && digits.startsWith("0")) digits = digits.slice(1);
+  return digits.slice(0, 10);
+}

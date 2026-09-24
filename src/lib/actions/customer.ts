@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { AUDIT, writeAudit } from "@/lib/audit";
 import { getBranchScope, getCurrentBranch } from "@/lib/current-branch";
 import { db } from "@/lib/db";
+import { assertDepartmentUsable } from "@/lib/departments";
 import { canChangeMobile, canEditCustomer } from "@/lib/customers";
 import { AppError } from "@/lib/errors";
 import { writeBranchId } from "@/lib/permissions";
@@ -45,6 +46,7 @@ export const createCustomer = safeAction({
     // The branch the customer is first recorded in. Customers are shared across
     // branches (BR-16); this only says where they walked in.
     const homeBranchId = writeBranchId(user, await getCurrentBranch(user));
+    await assertDepartmentUsable(input.departmentId);
 
     // "Handled by" only offers people from the branch on screen, but the id arrives in a
     // form post and nothing stopped one from another branch — which would leave a
@@ -169,6 +171,7 @@ export const updateCustomer = safeAction({
     });
     if (!current) throw new AppError("NOT_FOUND");
     if (!canEditCustomer(user, current)) throw new AppError("FORBIDDEN");
+    await assertDepartmentUsable(input.departmentId, current.departmentId);
 
     // An absent number means "unchanged" — a salesperson's form has no box for it.
     const mobile = input.mobile ?? current.mobile;

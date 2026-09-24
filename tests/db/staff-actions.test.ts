@@ -353,3 +353,55 @@ describe("extra branches", () => {
     expect(saved.language).toBe("gu");
   });
 });
+
+// Found in the cross-role audit: an optional department could not be cleared, and a
+// switched-off one could still be sent in a form post.
+describe("department", () => {
+  const department = (status: "ACTIVE" | "INACTIVE") =>
+    db.department.create({ data: { name: `Dept ${nextMobile()}`, status } });
+
+  it("can be cleared back to none (SOW 5.1: optional)", async () => {
+    const dept = await department("ACTIVE");
+    const created = await createStaff(await staffInput({ departmentId: dept.id }));
+    if (!created.ok) throw new Error("setup failed");
+
+    const result = await updateStaff({
+      ...(await staffInput()),
+      id: created.data.id,
+      departmentId: "",
+    });
+
+    expect(result.ok).toBe(true);
+    expect((await db.user.findUniqueOrThrow({ where: { id: created.data.id } })).departmentId).toBe(
+      null,
+    );
+  });
+
+  it("refuses a switched-off department on a new person", async () => {
+    const dept = await department("INACTIVE");
+
+    await expect(createStaff(await staffInput({ departmentId: dept.id }))).resolves.toMatchObject({
+      ok: false,
+      field: "departmentId",
+      message: "departments.errors.unavailable",
+    });
+  });
+
+  it("keeps a switched-off department the person already has", async () => {
+    const dept = await department("ACTIVE");
+    const created = await createStaff(await staffInput({ departmentId: dept.id }));
+    if (!created.ok) throw new Error("setup failed");
+    await db.department.update({ where: { id: dept.id }, data: { status: "INACTIVE" } });
+    const person = await db.user.findUniqueOrThrow({ where: { id: created.data.id } });
+
+    const result = await updateStaff({
+      ...(await staffInput()),
+      id: person.id,
+      mobile: person.mobile,
+      fullName: "Still Here",
+      departmentId: dept.id,
+    });
+
+    expect(result.ok).toBe(true);
+  });
+});

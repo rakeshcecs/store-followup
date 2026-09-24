@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, type FormEvent } from "react";
 import type { z } from "zod";
 import type { ActionResult, MessageValues } from "@/lib/errors";
 
 type SafeActionFn<T> = (input: unknown) => Promise<ActionResult<T>>;
 
 type UseActionForm = {
-  formAction: (formData: FormData) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   pending: boolean;
   errors: Record<string, string>; // field name -> message key
   formError: string | null; // message key for errors that belong to no field
@@ -15,7 +15,13 @@ type UseActionForm = {
   errorValues: MessageValues | undefined;
 };
 
-// Bridges a plain <form> to a safeAction().
+// Bridges a plain <form onSubmit={onSubmit}> to a safeAction().
+//
+// onSubmit, not <form action>: React 19 resets every uncontrolled field of a form whose
+// action is a function once the action finishes — including when the server said no —
+// so a refused form came back empty and the person had to type everything again. Here
+// the form keeps what was typed while there is something to fix, and is cleared only
+// after a successful save (which an "Add" form relies on to start the next entry).
 //
 // The same zod schema runs here first so the person sees every wrong field at once:
 // safeAction only reports the first problem, which on a six-field form would mean
@@ -30,7 +36,7 @@ export function useActionForm<T>(
   const [errorValues, setErrorValues] = useState<MessageValues | undefined>(undefined);
   const [pending, startTransition] = useTransition();
 
-  function formAction(formData: FormData) {
+  function submit(formData: FormData, clear: () => void) {
     const parsed = schema.safeParse(Object.fromEntries(formData));
 
     if (!parsed.success) {
@@ -53,6 +59,7 @@ export function useActionForm<T>(
       const result = await action(parsed.data);
       if (result.ok) {
         onSuccess?.(result.data);
+        clear();
         return;
       }
       setErrorValues(result.values);
@@ -61,5 +68,11 @@ export function useActionForm<T>(
     });
   }
 
-  return { formAction, pending, errors, formError, errorValues };
+  function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    submit(new FormData(form), () => form.reset());
+  }
+
+  return { onSubmit, pending, errors, formError, errorValues };
 }

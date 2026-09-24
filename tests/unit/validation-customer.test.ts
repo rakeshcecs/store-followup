@@ -68,3 +68,19 @@ describe("createCustomerInput", () => {
     expect(firstIssue(result)?.message).toBe("customers.errors.nameTooLong");
   });
 });
+
+// SOW 5.3: Area and City Text (60), Address Text (250). Found in the cross-role audit,
+// where a 61-character area was saved.
+describe("customer detail lengths (SOW 5.3)", () => {
+  it.each([
+    ["area", 60, "customers.errors.areaTooLong"],
+    ["city", 60, "customers.errors.cityTooLong"],
+    ["address", 250, "customers.errors.addressTooLong"],
+  ] as const)("%s takes %i characters and no more", (field, max, message) => {
+    expect(createCustomerInput.safeParse({ ...valid, [field]: "a".repeat(max) }).success).toBe(
+      true,
+    );
+    const over = createCustomerInput.safeParse({ ...valid, [field]: "a".repeat(max + 1) });
+    expect(firstIssue(over)?.message).toBe(message);
+  });
+});

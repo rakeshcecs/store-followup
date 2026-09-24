@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeMobile } from "@/lib/mobile";
+import { mobileDigits, normalizeMobile } from "@/lib/mobile";
 
 describe("normalizeMobile", () => {
   it.each([
@@ -35,5 +35,19 @@ describe("normalizeMobile", () => {
     expect(normalizeMobile(9876543210)).toBeNull();
     expect(normalizeMobile(null)).toBeNull();
     expect(normalizeMobile(undefined)).toBeNull();
+  });
+});
+
+describe("mobileDigits (what the mobile box shows, M05.02)", () => {
+  it.each([
+    ["98765 43210", "9876543210"], // pasted with a space: the last digit used to be lost
+    ["98765-43210", "9876543210"],
+    ["+91 98765 43210", "9876543210"],
+    ["098765 43210", "9876543210"],
+    ["98ab765", "98765"], // typed letters vanish
+    ["9876543210123", "9876543210"], // never more than 10
+    ["9123456789", "9123456789"], // a number that itself starts with 91 is left alone
+  ])("%s → %s", (typed, shown) => {
+    expect(mobileDigits(typed)).toBe(shown);
   });
 });

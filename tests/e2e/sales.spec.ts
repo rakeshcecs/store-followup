@@ -90,8 +90,10 @@ test.describe("sales", () => {
 
     await page.goto(`/customers/${first.id}`);
     await expect(page.getByText(en.customers.profile.status.saleCompleted).first()).toBeVisible();
-    // A salesperson cannot open the sale to change it.
+    // A salesperson cannot open the sale to change it — not even by its address, where the
+    // answer is "not found", not an error page.
     await expect(page.getByRole("link", { name: en.timeline.saleCompleted })).toHaveCount(0);
+    expect((await page.goto(`/sales/${sale.id}`))?.status()).toBe(404);
 
     // The same bill for another customer in the same branch: blocked before saving.
     await page.goto(`/visits/new?customerId=${second.id}`);
