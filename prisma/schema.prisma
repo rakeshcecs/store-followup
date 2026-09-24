@@ -541,10 +541,14 @@ model Notification {
   link    String?   @db.VarChar(255)
   sentAt  DateTime  @default(now()) @db.DateTime(3)
   readAt  DateTime? @db.DateTime(3)
+  // When the worker took it for phone push (M14): set before sending, so two workers
+  // or a retried job never push the same row twice. Null = not pushed yet.
+  pushedAt DateTime? @db.DateTime(3)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, readAt])
+  @@index([pushedAt, sentAt])
   @@map("notifications")
 }
 

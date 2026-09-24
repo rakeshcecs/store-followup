@@ -3,6 +3,7 @@
 // test path — requireUser() runs its normal query against it.
 import { randomBytes } from "node:crypto";
 import { BRANCH_COOKIE } from "@/lib/current-branch";
+import { PUSH_COOKIE } from "@/lib/push-device";
 import { db } from "@/lib/db";
 import { hashToken, SESSION_COOKIE } from "@/lib/session";
 
@@ -43,16 +44,24 @@ export function currentSessionToken(): string | null {
   return token;
 }
 
+// The device's push subscription cookie (M14) is kept, so logging out can be tested to
+// remove it. Only that one: the others keep their old behaviour for every other test.
+let pushEndpoint: string | null = null;
+
 export function sessionCookieStore() {
   return {
     get: (name: string) => {
       if (name === SESSION_COOKIE) return token ? { name, value: token } : undefined;
       if (name === BRANCH_COOKIE) return branch ? { name, value: branch } : undefined;
+      if (name === PUSH_COOKIE) return pushEndpoint ? { name, value: pushEndpoint } : undefined;
       return undefined;
     },
-    set: () => {},
-    delete: () => {
-      token = null;
+    set: (name: string, value: string) => {
+      if (name === PUSH_COOKIE) pushEndpoint = value;
+    },
+    delete: (name?: string) => {
+      if (name === PUSH_COOKIE) pushEndpoint = null;
+      else token = null;
     },
   };
 }

@@ -49,9 +49,10 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
 
   const isAdmin = user.role === "ADMIN";
 
+  // AND, not two spreads: both are an OR, and the search's would silently replace the
+  // branch filter — a manager searching the list then saw every branch's staff.
   const where: Prisma.UserWhereInput = {
-    ...staffBranchWhere(scope),
-    ...searchWhere(filters.q),
+    AND: [staffBranchWhere(scope), searchWhere(filters.q)],
     ...(filters.role ? { role: filters.role as Prisma.EnumRoleFilter["equals"] } : {}),
     ...(filters.department ? { departmentId: filters.department } : {}),
     ...(filters.status ? { status: filters.status as "ACTIVE" | "INACTIVE" } : {}),

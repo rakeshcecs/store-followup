@@ -10,6 +10,7 @@ import { localeCookie, localeCookieMaxAge } from "@/i18n/config";
 import { AUDIT, writeAudit } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { AppError } from "@/lib/errors";
+import { PUSH_COOKIE } from "@/lib/push-device";
 import { canResetPin } from "@/lib/staff-scope";
 import { safeAction } from "@/lib/safe-action";
 import { generateTempPin } from "@/lib/temp-pin";
@@ -182,6 +183,13 @@ export const logout = safeAction({
   handler: async () => {
     const token = await currentToken();
     if (token) await destroySession(token);
+    // This device stops getting their reminders (M14).
+    const store = await cookies();
+    const endpoint = store.get(PUSH_COOKIE)?.value;
+    if (endpoint) {
+      await db.pushSubscription.deleteMany({ where: { endpoint } });
+      store.delete(PUSH_COOKIE);
+    }
     revalidatePath("/", "layout");
     return { ok: true };
   },

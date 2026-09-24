@@ -12,9 +12,9 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 };
 
-type Platform = "server" | "standalone" | "ios" | "other";
+export type Platform = "server" | "standalone" | "ios" | "other";
 
-function detectPlatform(): Platform {
+export function detectPlatform(): Platform {
   const standalone =
     window.matchMedia("(display-mode: standalone)").matches ||
     (navigator as Navigator & { standalone?: boolean }).standalone === true;

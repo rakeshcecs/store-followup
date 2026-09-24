@@ -103,6 +103,21 @@ export function istHour(value: Date | string): number {
   return Number(hour) % 24;
 }
 
+// "09:30" — the IST clock minute, 24-hour, in the shape the reminder settings store.
+export function istMinute(value: Date | string): string {
+  const parts = dateFormat("en", { hour: "2-digit", minute: "2-digit", hourCycle: "h23" })
+    .formatToParts(toDate(value))
+    .reduce<Record<string, string>>((all, part) => ({ ...all, [part.type]: part.value }), {});
+  return `${parts["hour"]}:${parts["minute"]}`;
+}
+
+// "Rajesh Patel and Neha Shah" in the reading language.
+export function formatList(items: string[], locale: Locale): string {
+  return new Intl.ListFormat(intlLocale(locale), { style: "long", type: "conjunction" }).format(
+    items,
+  );
+}
+
 // "1,00,000" — Indian grouping comes from the -IN region, not from an option.
 export function formatNumber(value: number, locale: Locale): string {
   return numberFormat(locale, {}).format(value);

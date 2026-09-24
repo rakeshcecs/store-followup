@@ -317,7 +317,9 @@
     "reasons": "Not-interested reasons",
     "reasonsText": "Why a customer decided not to buy.",
     "sales": "Sales",
-    "salesText": "Whether a sale needs its bill amount"
+    "salesText": "Whether a sale needs its bill amount",
+    "reminders": "Reminders",
+    "remindersText": "When phone reminders and summaries go out"
   },
   "masterLists": {
     "add": "Add",
@@ -743,5 +745,61 @@
     "pull": "Pull down to refresh",
     "release": "Release to refresh",
     "refreshing": "Refreshing…"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "bell": "{count, plural, =0 {No new notifications} one {# new notification} other {# new notifications}}",
+    "empty": "No notifications yet.",
+    "emptyText": "Reminders and alerts from the last 30 days show up here.",
+    "someone": "a customer",
+    "morning": {
+      "title": "Today's follow-ups",
+      "body": "Good morning! You have {today, plural, one {# follow-up} other {# follow-ups}} today and {overdue} overdue."
+    },
+    "slot": {
+      "MORNING": "Morning follow-ups",
+      "AFTERNOON": "Afternoon follow-ups",
+      "EVENING": "Evening follow-ups",
+      "more": "{names} and {count} more"
+    },
+    "manager": {
+      "title": "Today at {branch}",
+      "titleAll": "Today at all branches",
+      "body": "{visits, plural, one {# visit} other {# visits}}, {sales, plural, one {# sale} other {# sales}}, {done} of {due} follow-ups done, {overdue} overdue."
+    },
+    "locked": {
+      "title": "Account locked",
+      "body": "{name} typed a wrong PIN too many times. The account is locked for 15 minutes."
+    },
+    "missed": {
+      "title": "3 missed calls",
+      "body": "{name} did not pick up 3 times in a row."
+    },
+    "permission": {
+      "title": "Phone reminders",
+      "text": "Allow notifications so we can remind you about follow-ups.",
+      "allow": "Allow",
+      "notNow": "Not now",
+      "iosTitle": "Reminders on iPhone",
+      "ios": "To get reminders on an iPhone, first add this app to your Home Screen: tap Share, then “Add to Home Screen”. Then open the app from there."
+    }
+  },
+  "reminderSettings": {
+    "title": "Reminders",
+    "intro": "Times are for all branches, Indian time. Changes apply from the next minute.",
+    "morningSummary": "Morning summary",
+    "morningSummaryHint": "To each salesperson: today's follow-ups and overdue.",
+    "slotMorning": "Morning follow-ups reminder",
+    "slotAfternoon": "Afternoon follow-ups reminder",
+    "slotEvening": "Evening follow-ups reminder",
+    "slotHint": "Lists that slot's follow-ups for today.",
+    "managerSummary": "Manager summary",
+    "managerSummaryHint": "To managers and admins: the day's visits, sales and follow-ups.",
+    "save": "Save times",
+    "saved": "Reminder times saved",
+    "errors": {
+      "time": "Enter a time, for example 09:30.",
+      "slotOrder": "Keep the slots in order: morning, then afternoon, then evening."
+    }
   }
 }

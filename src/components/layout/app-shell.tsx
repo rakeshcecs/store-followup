@@ -1,4 +1,5 @@
 import {
+  Bell,
   BellRing,
   CalendarCheck,
   LayoutDashboard,
@@ -13,6 +14,7 @@ import type { ReactNode } from "react";
 import { BranchSwitcher } from "@/components/branch/branch-switcher";
 import { LanguageSwitcher } from "@/components/language/language-switcher";
 import { ManagerShell } from "@/components/layout/manager-shell";
+import { PushPrompt } from "@/components/pwa/push-prompt";
 import { SalesShell } from "@/components/layout/sales-shell";
 import { Avatar } from "@/components/ui/avatar";
 import type { NavAction, NavItem } from "@/components/ui/bottom-nav";
@@ -20,6 +22,7 @@ import { TopBar } from "@/components/ui/top-bar";
 import type { Role } from "@/generated/prisma/client";
 import { logoutAndReturnToLogin } from "@/lib/actions/auth";
 import { getUser } from "@/lib/auth";
+import { unreadCount } from "@/lib/notifications";
 import { staffName } from "@/lib/staff-name";
 
 type AppShellProps = {
@@ -52,6 +55,7 @@ export async function AppShell({
   const salesperson = role === "SALESPERSON";
   const user = await getUser();
   const name = user ? await staffName(user.id) : "";
+  const unread = user ? await unreadCount(user.id) : 0;
 
   const followUps = { href: "/follow-ups", label: t("nav.followUps"), icon: <BellRing /> };
   const items: NavItem[] = salesperson
@@ -87,6 +91,24 @@ export async function AppShell({
           {actions}
           {!salesperson && <BranchSwitcher />}
           <LanguageSwitcher />
+          {user && (
+            // M14.06: the bell and its unread count, on every screen.
+            <Link
+              href="/notifications"
+              aria-label={t("notifications.bell", { count: unread })}
+              className="relative flex size-11 shrink-0 items-center justify-center rounded-md hover:bg-black/5"
+            >
+              <Bell aria-hidden className="size-6" />
+              {unread > 0 && (
+                <span
+                  data-testid="bell-count"
+                  className="absolute top-1 right-1 min-w-5 rounded-full bg-danger px-1 text-center text-xs leading-5 font-extrabold text-white"
+                >
+                  {unread > 99 ? "99+" : unread}
+                </span>
+              )}
+            </Link>
+          )}
           {name && (
             <Link href="/profile" aria-label={t("nav.profile")} className="ml-1 rounded-full">
               <Avatar name={name} />
@@ -97,9 +119,19 @@ export async function AppShell({
     />
   );
 
+  // M14.01: asked after login, on whichever screen they land.
+  const prompt = user ? (
+    <PushPrompt
+      publicKey={process.env.VAPID_PUBLIC_KEY ?? ""}
+      // The service worker is registered in production builds only (pwa-provider.tsx).
+      worker={process.env.NODE_ENV === "production"}
+    />
+  ) : null;
+
   if (salesperson) {
     return (
       <SalesShell topBar={topBar} navLabel={t("nav.label")} navItems={items} navAction={logOut}>
+        {prompt}
         {children}
       </SalesShell>
     );
@@ -113,6 +145,7 @@ export async function AppShell({
       navItems={items}
       navAction={logOut}
     >
+      {prompt}
       {children}
     </ManagerShell>
   );

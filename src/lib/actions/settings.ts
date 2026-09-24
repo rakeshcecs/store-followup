@@ -6,7 +6,8 @@ import { z } from "zod";
 import { AUDIT, writeAudit } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { safeAction } from "@/lib/safe-action";
-import { billAmountRequired, SETTING, setSetting } from "@/lib/settings";
+import { billAmountRequired, reminderTimes, SETTING, setSetting } from "@/lib/settings";
+import { reminderTimesInput } from "@/lib/validation/reminders";
 
 // Settings → Sales. Admin only: a store-wide rule, not a branch one.
 
@@ -38,6 +39,35 @@ export const updateSalesSettings = safeAction({
     });
 
     revalidatePath("/settings/sales");
+    return { saved: true };
+  },
+});
+
+// Settings → Reminders (M14). The worker reads these every minute, so a change applies
+// from the next minute without a restart.
+export const updateReminderSettings = safeAction({
+  name: "updateReminderSettings",
+  schema: reminderTimesInput,
+  auth: { roles: ["ADMIN"] },
+  handler: async (input, { user }) => {
+    const before = await reminderTimes();
+    if (JSON.stringify(before) === JSON.stringify(input)) return { saved: true };
+
+    const device = (await headers()).get("user-agent");
+    await db.$transaction(async (tx) => {
+      await setSetting(tx, SETTING.reminderTimes, input, user.id);
+      await writeAudit(tx, {
+        userId: user.id,
+        action: AUDIT.settingUpdate,
+        entityType: "Setting",
+        entityId: SETTING.reminderTimes,
+        oldValue: before,
+        newValue: input,
+        device,
+      });
+    });
+
+    revalidatePath("/settings/reminders");
     return { saved: true };
   },
 });

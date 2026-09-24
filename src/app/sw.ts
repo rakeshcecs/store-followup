@@ -34,3 +34,42 @@ const serwist = new Serwist({
 });
 
 serwist.addEventListeners();
+
+// M14: a reminder from the worker (src/lib/push.ts sends { title, body, link, tag }).
+// The tag is the notification id, so a push delivered twice shows once.
+self.addEventListener("push", (event) => {
+  const data = (event.data?.json() ?? {}) as {
+    title?: string;
+    body?: string;
+    link?: string;
+    tag?: string;
+  };
+  event.waitUntil(
+    self.registration.showNotification(data.title ?? "", {
+      body: data.body,
+      tag: data.tag,
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      data: { link: data.link ?? "/" },
+    }),
+  );
+});
+
+// M14.05: tapping opens the matching screen — in the app window if one is open.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const link = (event.notification.data as { link?: string } | null)?.link ?? "/";
+  const url = new URL(link, self.location.origin).href;
+  event.waitUntil(
+    (async () => {
+      const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      const open = windows.find((client) => new URL(client.url).origin === self.location.origin);
+      if (open) {
+        await open.focus();
+        await open.navigate(url);
+        return;
+      }
+      await self.clients.openWindow(url);
+    })(),
+  );
+});

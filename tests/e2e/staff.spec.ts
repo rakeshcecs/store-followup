@@ -124,4 +124,29 @@ test.describe("staff", () => {
     // Settings is admin-only, and so is the form.
     expect((await page.goto("/settings/departments"))?.status()).toBe(404);
   });
+
+  test("a manager's search stays inside their branch", async ({ page }) => {
+    // The search and the branch filter are both an OR; spread into one object, the
+    // search used to replace the branch filter and list every branch's staff.
+    const name = `Search Scope ${randomMobile()}`;
+    const [branchA, branchB] = await Promise.all(
+      ["A", "B"].map((letter) =>
+        db.branch.create({
+          data: { name: `${name} ${letter}`, address: "1 Road", city: "Surat", phone: "0261 1234567" },
+        }),
+      ),
+    );
+    branches.push(branchA!.id, branchB!.id);
+    const manager = await makeStaff("MANAGER", `${name} Manager A`, branchA!.id);
+    const own = await makeStaff("SALESPERSON", `${name} Seller A`, branchA!.id);
+    const other = await makeStaff("SALESPERSON", `${name} Seller B`, branchB!.id);
+    created.push(manager.id, own.id, other.id);
+
+    await signIn(page, manager.mobile, "MANAGER");
+    await page.goto(`/staff?q=${encodeURIComponent(name)}`);
+    await expect(page.getByText(`${name} Seller A`)).toBeVisible();
+    await expect(page.getByText(`${name} Seller B`)).toHaveCount(0);
+    await page.goto(`/staff?q=${other.mobile}`);
+    await expect(page.getByText(`${name} Seller B`)).toHaveCount(0);
+  });
 });
