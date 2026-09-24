@@ -377,7 +377,6 @@
     "cancel": "Cancel",
     "saved": "Customer saved",
     "findCta": "New walk-in / Find customer",
-    "historyComingSoon": "Visits, follow-ups and sales appear here.",
     "fields": {
       "mobile": "Customer's mobile number",
       "name": "Customer name",
@@ -403,18 +402,72 @@
       "addressTooLong": "That address is too long.",
       "occasionTooLong": "That occasion is too long.",
       "occasionDateInvalid": "Pick a valid date.",
-      "assigneeUnknown": "That person does not work in this branch."
+      "assigneeUnknown": "That person does not work in this branch.",
+      "mobileManagerOnly": "Only a manager can change the mobile number.",
+      "altSameAsMobile": "The alternate number must be different from the main number."
     },
     "pickBranch": "Choose one branch first",
-    "pickBranchText": "A walk-in happens in one shop. Pick the branch at the top of the screen, then add the customer."
+    "pickBranchText": "A walk-in happens in one shop. Pick the branch at the top of the screen, then add the customer.",
+    "profile": {
+      "title": "Customer",
+      "call": "Call {name}",
+      "whatsapp": "WhatsApp {name}",
+      "edit": "Edit details",
+      "status": {
+        "new": "New customer",
+        "visited": "Visited",
+        "followUpPending": "Follow-up pending",
+        "followUpOverdue": "Follow-up overdue",
+        "saleCompleted": "Sale completed",
+        "notInterested": "Not interested"
+      },
+      "openEnquiry": "Open enquiry",
+      "since": "Since {date}",
+      "occasion": "Occasion: {value}",
+      "noEnquiry": "No open enquiry",
+      "noEnquiryText": "Record a visit to start one.",
+      "addVisit": "Add visit",
+      "followUp": "Follow-up",
+      "saleDone": "Sale done",
+      "history": "History",
+      "noHistory": "No history yet.",
+      "showMore": "Show older entries",
+      "olderInAudit": "Older entries are kept in the audit log."
+    },
+    "edit": {
+      "title": "Edit details",
+      "save": "Save changes",
+      "cancel": "Cancel",
+      "saved": "Details saved"
+    }
   },
   "timeline": {
-    "customerAdded": "Customer added"
+    "customerAdded": "Customer added",
+    "detailsEdited": "Details edited",
+    "reassigned": "Reassigned",
+    "visit": "Visit",
+    "followUpSet": "Follow-up set",
+    "followUpResult": "Follow-up call",
+    "saleCompleted": "Sale completed",
+    "saleCancelled": "Sale cancelled",
+    "notInterested": "Not interested"
   },
   "visits": {
     "new": "Record visit",
     "back": "Back",
     "comingSoon": "The visit screen arrives next.",
     "comingSoonFor": "Recording a visit for {name} arrives with the visit screen."
+  },
+  "followUps": {
+    "new": "Set follow-up",
+    "back": "Back",
+    "comingSoon": "The follow-up screen arrives next.",
+    "comingSoonFor": "Setting a follow-up for {name} arrives with the follow-up screen."
+  },
+  "sales": {
+    "new": "Sale done",
+    "back": "Back",
+    "comingSoon": "The sale screen arrives next.",
+    "comingSoonFor": "Recording a sale for {name} arrives with the sale screen."
   }
 }

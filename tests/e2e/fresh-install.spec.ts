@@ -305,6 +305,19 @@ test.describe("a store from an empty database", () => {
     // And from now on that number finds them instead of offering to add them again.
     await page.goto(`/customers?mobile=${customerMobile}`);
     await expect(page.getByText(en.customers.existing)).toBeVisible();
+
+    // Their profile (M06): new, no enquiry yet, and the first line of their history.
+    await page.getByRole("link", { name: en.customers.openHistory }).click();
+    await expect(page.getByText(en.customers.profile.status.new)).toBeVisible();
+    await expect(page.getByText(en.timeline.customerAdded)).toBeVisible();
+
+    // Their own customer, so they may fill in the details — but not change the number.
+    await page.getByRole("link", { name: en.customers.profile.edit }).click();
+    await expect(page.getByLabel(en.customers.fields.mobile)).toHaveCount(0);
+    await page.getByLabel(en.customers.fields.area).fill("Satellite");
+    await page.getByRole("button", { name: en.customers.edit.save }).click();
+    await expect(page.getByText(en.timeline.detailsEdited)).toBeVisible();
+    await expect(page.getByText(/Satellite/)).toBeVisible();
   });
 
   test("12. the other branch's staff find the same customer, and see their own app", async ({
@@ -320,6 +333,11 @@ test.describe("a store from an empty database", () => {
     // otherwise the same person is added twice (BR-01).
     await expect(page.getByText(en.customers.existing)).toBeVisible();
     await expect(page.getByText("Asha Patel")).toBeVisible();
+
+    // They may read the whole history, but it is not their customer to change (M06.07).
+    await page.getByRole("link", { name: en.customers.openHistory }).click();
+    await expect(page.getByText(en.timeline.detailsEdited)).toBeVisible();
+    await expect(page.getByRole("link", { name: en.customers.profile.edit })).toHaveCount(0);
 
     // "Recently handled by you" is per person, so theirs is still empty.
     await page.goto("/customers");
@@ -340,13 +358,14 @@ test.describe("a store from an empty database", () => {
     const actions = await db.auditLog.groupBy({ by: ["action"], _count: true });
     const byAction = Object.fromEntries(actions.map((row) => [row.action, row._count]));
 
-    // Nothing in M01–M05 changes data without leaving a trace.
+    // Nothing in M01–M06 changes data without leaving a trace.
     for (const action of [
       "branch:create",
       "department:create",
       "user:create",
       "category:create",
       "customer:create",
+      "customer:update",
     ]) {
       expect(byAction[action], action).toBeGreaterThanOrEqual(1);
     }

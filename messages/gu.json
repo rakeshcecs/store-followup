@@ -377,7 +377,6 @@
     "cancel": "રદ કરો",
     "saved": "ગ્રાહક સાચવ્યો",
     "findCta": "નવો વોક-ઇન / ગ્રાહક શોધો",
-    "historyComingSoon": "મુલાકાતો, ફોલો-અપ અને વેચાણ અહીં દેખાશે.",
     "fields": {
       "mobile": "ગ્રાહકનો મોબાઇલ નંબર",
       "name": "ગ્રાહકનું નામ",
@@ -403,18 +402,72 @@
       "addressTooLong": "આ સરનામું ખૂબ લાંબું છે.",
       "occasionTooLong": "આ પ્રસંગ ખૂબ લાંબો છે.",
       "occasionDateInvalid": "યોગ્ય તારીખ પસંદ કરો.",
-      "assigneeUnknown": "આ વ્યક્તિ આ શાખામાં કામ કરતી નથી."
+      "assigneeUnknown": "આ વ્યક્તિ આ શાખામાં કામ કરતી નથી.",
+      "mobileManagerOnly": "મોબાઇલ નંબર ફક્ત મેનેજર બદલી શકે છે.",
+      "altSameAsMobile": "વૈકલ્પિક નંબર મુખ્ય નંબરથી અલગ હોવો જોઈએ."
     },
     "pickBranch": "પહેલાં એક શાખા પસંદ કરો",
-    "pickBranchText": "વોક-ઇન એક જ દુકાનમાં થાય છે. ઉપરથી શાખા પસંદ કરો, પછી ગ્રાહક ઉમેરો."
+    "pickBranchText": "વોક-ઇન એક જ દુકાનમાં થાય છે. ઉપરથી શાખા પસંદ કરો, પછી ગ્રાહક ઉમેરો.",
+    "profile": {
+      "title": "ગ્રાહક",
+      "call": "{name} ને કૉલ કરો",
+      "whatsapp": "{name} ને WhatsApp કરો",
+      "edit": "વિગતો બદલો",
+      "status": {
+        "new": "નવો ગ્રાહક",
+        "visited": "મુલાકાત થઈ",
+        "followUpPending": "ફોલો-અપ બાકી",
+        "followUpOverdue": "ફોલો-અપ મોડું",
+        "saleCompleted": "વેચાણ પૂરું",
+        "notInterested": "રસ નથી"
+      },
+      "openEnquiry": "ખુલ્લી પૂછપરછ",
+      "since": "{date} થી",
+      "occasion": "પ્રસંગ: {value}",
+      "noEnquiry": "કોઈ ખુલ્લી પૂછપરછ નથી",
+      "noEnquiryText": "શરૂ કરવા માટે એક મુલાકાત નોંધો.",
+      "addVisit": "મુલાકાત ઉમેરો",
+      "followUp": "ફોલો-અપ",
+      "saleDone": "વેચાણ થયું",
+      "history": "ઇતિહાસ",
+      "noHistory": "હજી કોઈ ઇતિહાસ નથી.",
+      "showMore": "જૂની એન્ટ્રી બતાવો",
+      "olderInAudit": "જૂની એન્ટ્રી ઑડિટ લૉગમાં રાખવામાં આવે છે."
+    },
+    "edit": {
+      "title": "વિગતો બદલો",
+      "save": "ફેરફાર સાચવો",
+      "cancel": "રદ કરો",
+      "saved": "વિગતો સાચવી"
+    }
   },
   "timeline": {
-    "customerAdded": "ગ્રાહક ઉમેરાયો"
+    "customerAdded": "ગ્રાહક ઉમેરાયો",
+    "detailsEdited": "વિગતો બદલાઈ",
+    "reassigned": "બીજાને સોંપાયો",
+    "visit": "મુલાકાત",
+    "followUpSet": "ફોલો-અપ નક્કી થયું",
+    "followUpResult": "ફોલો-અપ કૉલ",
+    "saleCompleted": "વેચાણ પૂરું",
+    "saleCancelled": "વેચાણ રદ",
+    "notInterested": "રસ નથી"
   },
   "visits": {
     "new": "મુલાકાત નોંધો",
     "back": "પાછળ",
     "comingSoon": "મુલાકાતની સ્ક્રીન હવે પછી બનશે.",
     "comingSoonFor": "{name} ની મુલાકાત નોંધવાની સ્ક્રીન હવે પછી બનશે."
+  },
+  "followUps": {
+    "new": "ફોલો-અપ નક્કી કરો",
+    "back": "પાછળ",
+    "comingSoon": "ફોલો-અપની સ્ક્રીન હવે પછી બનશે.",
+    "comingSoonFor": "{name} નું ફોલો-અપ નક્કી કરવાની સ્ક્રીન હવે પછી બનશે."
+  },
+  "sales": {
+    "new": "વેચાણ થયું",
+    "back": "પાછળ",
+    "comingSoon": "વેચાણની સ્ક્રીન હવે પછી બનશે.",
+    "comingSoonFor": "{name} નું વેચાણ નોંધવાની સ્ક્રીન હવે પછી બનશે."
   }
 }

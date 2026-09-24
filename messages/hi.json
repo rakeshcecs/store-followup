@@ -377,7 +377,6 @@
     "cancel": "रद्द करें",
     "saved": "ग्राहक सहेजा गया",
     "findCta": "नया वॉक-इन / ग्राहक खोजें",
-    "historyComingSoon": "विज़िट, फ़ॉलो-अप और बिक्री यहाँ दिखेंगे।",
     "fields": {
       "mobile": "ग्राहक का मोबाइल नंबर",
       "name": "ग्राहक का नाम",
@@ -403,18 +402,72 @@
       "addressTooLong": "यह पता बहुत लंबा है।",
       "occasionTooLong": "यह अवसर बहुत लंबा है।",
       "occasionDateInvalid": "सही तारीख चुनें।",
-      "assigneeUnknown": "यह व्यक्ति इस ब्रांच में काम नहीं करता।"
+      "assigneeUnknown": "यह व्यक्ति इस ब्रांच में काम नहीं करता।",
+      "mobileManagerOnly": "मोबाइल नंबर केवल मैनेजर बदल सकते हैं।",
+      "altSameAsMobile": "वैकल्पिक नंबर मुख्य नंबर से अलग होना चाहिए।"
     },
     "pickBranch": "पहले एक ब्रांच चुनें",
-    "pickBranchText": "वॉक-इन एक ही दुकान में होता है। ऊपर से ब्रांच चुनें, फिर ग्राहक जोड़ें।"
+    "pickBranchText": "वॉक-इन एक ही दुकान में होता है। ऊपर से ब्रांच चुनें, फिर ग्राहक जोड़ें।",
+    "profile": {
+      "title": "ग्राहक",
+      "call": "{name} को कॉल करें",
+      "whatsapp": "{name} को WhatsApp करें",
+      "edit": "जानकारी बदलें",
+      "status": {
+        "new": "नया ग्राहक",
+        "visited": "विज़िट हुई",
+        "followUpPending": "फ़ॉलो-अप बाकी",
+        "followUpOverdue": "फ़ॉलो-अप में देरी",
+        "saleCompleted": "बिक्री पूरी",
+        "notInterested": "रुचि नहीं"
+      },
+      "openEnquiry": "खुली पूछताछ",
+      "since": "{date} से",
+      "occasion": "अवसर: {value}",
+      "noEnquiry": "कोई खुली पूछताछ नहीं",
+      "noEnquiryText": "शुरू करने के लिए एक विज़िट दर्ज करें।",
+      "addVisit": "विज़िट जोड़ें",
+      "followUp": "फ़ॉलो-अप",
+      "saleDone": "बिक्री हुई",
+      "history": "इतिहास",
+      "noHistory": "अभी कोई इतिहास नहीं।",
+      "showMore": "पुरानी एंट्री दिखाएँ",
+      "olderInAudit": "पुरानी एंट्री ऑडिट लॉग में रखी जाती हैं।"
+    },
+    "edit": {
+      "title": "जानकारी बदलें",
+      "save": "बदलाव सहेजें",
+      "cancel": "रद्द करें",
+      "saved": "जानकारी सहेजी गई"
+    }
   },
   "timeline": {
-    "customerAdded": "ग्राहक जोड़ा गया"
+    "customerAdded": "ग्राहक जोड़ा गया",
+    "detailsEdited": "जानकारी बदली गई",
+    "reassigned": "दूसरे को सौंपा गया",
+    "visit": "विज़िट",
+    "followUpSet": "फ़ॉलो-अप तय हुआ",
+    "followUpResult": "फ़ॉलो-अप कॉल",
+    "saleCompleted": "बिक्री पूरी",
+    "saleCancelled": "बिक्री रद्द",
+    "notInterested": "रुचि नहीं"
   },
   "visits": {
     "new": "विज़िट दर्ज करें",
     "back": "वापस",
     "comingSoon": "विज़िट वाली स्क्रीन आगे बनेगी।",
     "comingSoonFor": "{name} की विज़िट दर्ज करने की स्क्रीन आगे बनेगी।"
+  },
+  "followUps": {
+    "new": "फ़ॉलो-अप तय करें",
+    "back": "वापस",
+    "comingSoon": "फ़ॉलो-अप वाली स्क्रीन आगे बनेगी।",
+    "comingSoonFor": "{name} का फ़ॉलो-अप तय करने की स्क्रीन आगे बनेगी।"
+  },
+  "sales": {
+    "new": "बिक्री हुई",
+    "back": "वापस",
+    "comingSoon": "बिक्री वाली स्क्रीन आगे बनेगी।",
+    "comingSoonFor": "{name} की बिक्री दर्ज करने की स्क्रीन आगे बनेगी।"
   }
 }

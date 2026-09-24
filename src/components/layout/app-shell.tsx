@@ -23,6 +23,7 @@ type AppShellProps = {
   title: string;
   backHref?: string;
   backLabel?: string;
+  actions?: ReactNode; // screen buttons in the top bar, before the switchers
   children: ReactNode;
 };
 
@@ -32,7 +33,14 @@ type AppShellProps = {
 // Four nav items at most: a phone's bottom bar has room for four plus Log out. Branches
 // and departments therefore live behind Settings, which is also where M04's master lists
 // will go. Later modules add /customers (M05) and /follow-ups (M06) for the salesperson.
-export async function AppShell({ role, title, backHref, backLabel, children }: AppShellProps) {
+export async function AppShell({
+  role,
+  title,
+  backHref,
+  backLabel,
+  actions,
+  children,
+}: AppShellProps) {
   const t = await getTranslations();
   const salesperson = role === "SALESPERSON";
 
@@ -65,6 +73,7 @@ export async function AppShell({ role, title, backHref, backLabel, children }: A
       backLabel={backLabel}
       actions={
         <>
+          {actions}
           {!salesperson && <BranchSwitcher />}
           <LanguageSwitcher />
         </>

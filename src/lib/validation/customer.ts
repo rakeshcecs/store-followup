@@ -34,19 +34,53 @@ const altMobileField = z.preprocess(
   z.union([mobileField, z.undefined()]).optional(),
 );
 
-export const createCustomerInput = z.object({
-  name: requiredText(1, 100, "customers.errors.nameRequired", "customers.errors.nameTooLong"),
-  mobile: mobileField,
-  // "" from an untouched chip group or select means "not chosen", not an invalid id.
-  departmentId: z.preprocess(emptyToUndefined, id.optional()),
-  assignedToId: id,
-  altMobile: altMobileField,
-  area: optionalText(100, "customers.errors.areaTooLong"),
-  city: optionalText(100, "customers.errors.cityTooLong"),
-  address: optionalText(255, "customers.errors.addressTooLong"),
-  occasion: optionalText(100, "customers.errors.occasionTooLong"),
-  occasionDate: isoDateField,
-  consentGiven: checkboxField,
-});
+// BR-01: one number, one customer. A second copy of the main number in the alternate box
+// adds nothing and makes the customer look like two numbers; the action also refuses an
+// alternate that is someone else's number.
+const altDiffersFromMobile = (value: { mobile?: string; altMobile?: string }) =>
+  !value.altMobile || value.altMobile !== value.mobile;
+const ALT_SAME = { message: "customers.errors.altSameAsMobile", path: ["altMobile"] };
+
+export const createCustomerInput = z
+  .object({
+    name: requiredText(1, 100, "customers.errors.nameRequired", "customers.errors.nameTooLong"),
+    mobile: mobileField,
+    // "" from an untouched chip group or select means "not chosen", not an invalid id.
+    departmentId: z.preprocess(emptyToUndefined, id.optional()),
+    assignedToId: id,
+    altMobile: altMobileField,
+    area: optionalText(100, "customers.errors.areaTooLong"),
+    city: optionalText(100, "customers.errors.cityTooLong"),
+    address: optionalText(255, "customers.errors.addressTooLong"),
+    occasion: optionalText(100, "customers.errors.occasionTooLong"),
+    occasionDate: isoDateField,
+    consentGiven: checkboxField,
+  })
+  .refine(altDiffersFromMobile, ALT_SAME);
 
 export type CreateCustomerInput = z.infer<typeof createCustomerInput>;
+
+// M06 edit details. The form always posts every box it draws, so an empty optional box
+// means "clear it", and the action stores null for it.
+//
+// Mobile is optional because a salesperson's form has no box for it — only a manager or
+// an admin may change the number, and the action checks that again rather than trusting
+// the form.
+export const updateCustomerInput = z
+  .object({
+    id,
+    name: requiredText(1, 100, "customers.errors.nameRequired", "customers.errors.nameTooLong"),
+    mobile: z.preprocess(emptyToUndefined, z.union([mobileField, z.undefined()]).optional()),
+    departmentId: z.preprocess(emptyToUndefined, id.optional()),
+    altMobile: altMobileField,
+    area: optionalText(100, "customers.errors.areaTooLong"),
+    city: optionalText(100, "customers.errors.cityTooLong"),
+    address: optionalText(255, "customers.errors.addressTooLong"),
+    occasion: optionalText(100, "customers.errors.occasionTooLong"),
+    occasionDate: isoDateField,
+  })
+  // Only when the form sent a number; a salesperson's form has none, and the action
+  // compares with the stored number instead.
+  .refine(altDiffersFromMobile, ALT_SAME);
+
+export type UpdateCustomerInput = z.infer<typeof updateCustomerInput>;

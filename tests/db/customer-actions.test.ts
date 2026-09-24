@@ -112,6 +112,29 @@ describe("createCustomer", () => {
     });
   });
 
+  it("refuses an alternate number that already belongs to someone (BR-01)", async () => {
+    const first = await createCustomer(input(nextMobile()));
+    if (!first.ok) throw new Error("setup failed");
+    const taken = (await db.customer.findUniqueOrThrow({ where: { id: first.data.id } })).mobile;
+
+    const mobile = nextMobile();
+    await expect(createCustomer(input(mobile, { altMobile: taken }))).resolves.toMatchObject({
+      ok: false,
+      code: "CONFLICT",
+      field: "altMobile",
+      values: { name: "Asha Patel" },
+    });
+    expect(await db.customer.count({ where: { mobile } })).toBe(0);
+  });
+
+  it("refuses an alternate number equal to the main number", async () => {
+    const mobile = nextMobile();
+    await expect(createCustomer(input(mobile, { altMobile: mobile }))).resolves.toMatchObject({
+      ok: false,
+      code: "VALIDATION",
+    });
+  });
+
   it("writes nothing at all when the save fails", async () => {
     const mobile = nextMobile();
     // An assignedToId nobody owns: the foreign key rejects the insert.
