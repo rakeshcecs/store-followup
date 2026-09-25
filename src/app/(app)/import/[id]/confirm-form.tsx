@@ -9,27 +9,23 @@ import { toast } from "@/components/ui/toast";
 import { useErrorMessage } from "@/hooks/use-error-message";
 import { cancelImport, startImport } from "@/lib/actions/import";
 
-// M24.03: skip or update the customers who already exist, the WhatsApp confirmation, and
-// "Import [n] customers".
+// M24.03: skip or update the customers who already exist, and "Import [n] customers".
 export function ConfirmForm({
   jobId,
   ready,
   existing,
   mistakes,
-  whatsappRows,
 }: {
   jobId: string;
   ready: number;
   existing: number;
   mistakes: number;
-  whatsappRows: number;
 }) {
   const t = useTranslations("import");
   const tError = useErrorMessage();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [updateExisting, setUpdateExisting] = useState(false);
-  const [whatsappConfirmed, setWhatsappConfirmed] = useState(false);
   const [discarding, setDiscarding] = useState(false);
   const count = ready + (updateExisting ? existing : 0);
   const choices = [
@@ -39,7 +35,7 @@ export function ConfirmForm({
 
   function start() {
     startTransition(async () => {
-      const result = await startImport({ jobId, updateExisting, whatsappConfirmed });
+      const result = await startImport({ jobId, updateExisting });
       if (!result.ok) {
         toast.error(tError(result.message, result.values));
         return;
@@ -82,23 +78,6 @@ export function ConfirmForm({
             </label>
           ))}
         </fieldset>
-      )}
-      {whatsappRows > 0 && (
-        <label className="flex items-start gap-3 text-[15px]">
-          <input
-            type="checkbox"
-            className="mt-0.5 size-5 shrink-0 accent-primary"
-            checked={whatsappConfirmed}
-            disabled={pending}
-            onChange={(event) => setWhatsappConfirmed(event.target.checked)}
-          />
-          <span>
-            <span className="block font-bold">{t("whatsappConfirm")}</span>
-            <span className="block text-sm text-muted-foreground">
-              {t("whatsappHint", { count: whatsappRows })}
-            </span>
-          </span>
-        </label>
       )}
       {mistakes > 0 && (
         <p className="text-sm text-muted-foreground">{t("mistakesSkipped", { count: mistakes })}</p>

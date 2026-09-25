@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { db } from "@/lib/db";
 import { branchWhere, branchWhereShared, type BranchScope } from "@/lib/permissions";
-import { makeTwoBranchFixture, makeTemplate, makeUser } from "../helpers/branch-access";
+import { makeTwoBranchFixture } from "../helpers/branch-access";
 
 type Fixture = Awaited<ReturnType<typeof makeTwoBranchFixture>>;
 let f: Fixture;
@@ -20,7 +20,6 @@ function readers(scope: BranchScope) {
     followUp: () => db.followUp.findMany({ where, select: { id: true } }),
     sale: () => db.sale.findMany({ where, select: { id: true } }),
     importJob: () => db.importJob.findMany({ where, select: { id: true } }),
-    whatsAppMessage: () => db.whatsAppMessage.findMany({ where, select: { id: true } }),
   };
 }
 
@@ -54,30 +53,24 @@ describe("branchWhere on an admin's all-branches scope", () => {
 
 describe("branchWhereShared", () => {
   it("returns the branch's rows plus the ones that belong to every branch", async () => {
-    const template = await makeTemplate();
-    const creator = await makeUser({ role: "ADMIN", homeBranchId: f.branchA.id });
-
-    const everywhere = await db.campaign.create({
-      data: {
-        branchId: null, // null = all branches
-        name: "All branches campaign",
-        templateId: template.id,
-        filters: {},
-        scheduledAt: new Date("2026-10-05"),
-        createdById: creator.id,
-      },
-    });
+    const day = new Date("2026-10-05");
+    const [mine, everywhere, theirs] = await Promise.all([
+      db.festival.create({ data: { name: "Branch A day", date: day, branchId: f.branchA.id } }),
+      db.festival.create({ data: { name: "Everyone's day", date: day, branchId: null } }),
+      db.festival.create({ data: { name: "Branch B day", date: day, branchId: f.branchB.id } }),
+    ]);
 
     const ids = (
-      await db.campaign.findMany({
+      await db.festival.findMany({
         where: branchWhereShared({ all: false, branchIds: [f.branchA.id] }),
         select: { id: true },
       })
     ).map((row) => row.id);
 
-    expect(ids).toContain(f.recordsA.campaign.id);
+    expect(ids).toContain(mine.id);
     expect(ids).toContain(everywhere.id);
-    expect(ids).not.toContain(f.recordsB.campaign.id);
+    expect(ids).not.toContain(theirs.id);
+    await db.festival.deleteMany({ where: { id: { in: [mine.id, everywhere.id, theirs.id] } } });
   });
 });
 

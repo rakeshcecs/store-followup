@@ -20,14 +20,12 @@ export const SETTING = {
   billAmountRequired: "sales:billAmountRequired",
   // M14: when the reminders and summaries go out (Settings → Reminders).
   reminderTimes: "reminders:times",
-  // M23: how many days before the occasion the follow-up is created, and BR-21's cap on
-  // campaign messages per customer per week (Settings → Festivals and occasions).
+  // M23: how many days before the occasion the follow-up is created (Settings →
+  // Festivals and occasions).
   occasionLeadDays: "occasions:leadDays",
-  campaignWeeklyLimit: "campaigns:weeklyLimit",
 } as const;
 
 export const DEFAULT_OCCASION_LEAD_DAYS = 30;
-export const DEFAULT_CAMPAIGN_WEEKLY_LIMIT = 2;
 
 async function numberSetting(key: string, fallback: number, min: number, max: number) {
   const row = await db.setting.findUnique({ where: { key }, select: { value: true } });
@@ -39,10 +37,6 @@ async function numberSetting(key: string, fallback: number, min: number, max: nu
 
 export function occasionLeadDays(): Promise<number> {
   return numberSetting(SETTING.occasionLeadDays, DEFAULT_OCCASION_LEAD_DAYS, 1, 90);
-}
-
-export function campaignWeeklyLimit(): Promise<number> {
-  return numberSetting(SETTING.campaignWeeklyLimit, DEFAULT_CAMPAIGN_WEEKLY_LIMIT, 1, 7);
 }
 
 export async function billAmountRequired(): Promise<boolean> {

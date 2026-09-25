@@ -12,11 +12,8 @@ export type JobPayloads = {
   "db-backup": { date: string };
   // M24: run a confirmed customer import.
   "customer-import": { importJobId: string };
-  // M22: send one queued WhatsApp message.
-  "whatsapp-send": { messageId: string };
-  // M23: set today's occasion follow-ups; queue one campaign's messages when its time comes.
+  // M23: set today's occasion follow-ups.
   "occasion-follow-ups": { date: string };
-  "campaign-send": { campaignId: string };
 };
 
 export type JobType = keyof JobPayloads;

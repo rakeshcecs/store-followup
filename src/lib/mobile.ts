@@ -1,6 +1,6 @@
 // Indian mobile numbers are stored as exactly 10 digits starting 6-9 (CLAUDE.md), so
 // every number entering the app goes through here first: login, customers (M05), the
-// importer (M09) and WhatsApp (M21) all receive them typed in different shapes.
+// importer (M24) all receive them typed in different shapes.
 
 // Accepts "+91 98765 43210", "098765-43210", "9876543210" and returns "9876543210".
 // Anything else (a short number, a 5-series number, most landlines) returns null.

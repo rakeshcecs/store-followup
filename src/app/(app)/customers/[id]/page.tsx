@@ -1,6 +1,5 @@
 import { MessageCircle, Phone } from "lucide-react";
 import { getLocale, getTranslations } from "next-intl/server";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CustomerHeader } from "@/app/(app)/customers/[id]/customer-header";
 import { EnquiryCard } from "@/app/(app)/customers/[id]/enquiry-card";
@@ -44,7 +43,6 @@ export default async function CustomerProfilePage({
   const { events } = await searchParams;
   const t = await getTranslations("customers");
   const tResult = await getTranslations("followUpResult");
-  const tWhatsApp = await getTranslations("whatsapp");
   const locale = (await getLocale()) as Locale;
 
   const customer = await customerProfile(id);
@@ -71,38 +69,30 @@ export default async function CustomerProfilePage({
         deleteHref={user.role === "ADMIN" ? `/customers/${customer.id}/delete-data` : undefined}
       />
       {customer.mobile && (
-        <div className="flex flex-col gap-2">
-          {/* M06.02: the call and the chat open on the phone; nothing is ever sent by
-              itself. In the page, not the top bar: with the language switcher, the bell
-              and the avatar there as well, a phone had no room left for the title. */}
-          <div className="grid grid-cols-2 gap-2">
-            <Button asChild variant="secondary">
-              <a
-                href={telHref(customer.mobile)}
-                aria-label={t("profile.call", { name: customer.name })}
-              >
-                <Phone aria-hidden />
-                {tResult("call")}
-              </a>
-            </Button>
-            <Button asChild variant="secondary">
-              <a
-                href={whatsappHref(customer.mobile)}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={t("profile.whatsapp", { name: customer.name })}
-              >
-                <MessageCircle aria-hidden />
-                {tResult("whatsapp")}
-              </a>
-            </Button>
-          </div>
-          {/* M22: the store's own WhatsApp (templates, consent, replies). */}
+        /* M06.02: the call and the chat open on the phone, and the salesperson types the
+           message; nothing is ever sent by the app (no WhatsApp API, 25 Sep 2026). In the
+           page, not the top bar: with the language switcher, the bell and the avatar there
+           as well, a phone had no room left for the title. */
+        <div className="grid grid-cols-2 gap-2">
           <Button asChild variant="secondary">
-            <Link href={`/customers/${customer.id}/whatsapp`}>
+            <a
+              href={telHref(customer.mobile)}
+              aria-label={t("profile.call", { name: customer.name })}
+            >
+              <Phone aria-hidden />
+              {tResult("call")}
+            </a>
+          </Button>
+          <Button asChild variant="secondary">
+            <a
+              href={whatsappHref(customer.mobile)}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={t("profile.whatsapp", { name: customer.name })}
+            >
               <MessageCircle aria-hidden />
-              {tWhatsApp("send")}
-            </Link>
+              {tResult("whatsapp")}
+            </a>
           </Button>
         </div>
       )}

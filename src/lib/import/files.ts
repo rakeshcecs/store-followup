@@ -8,7 +8,6 @@ import { IMPORT_COLUMNS, IMPORT_MAX_ROWS, type Outcome } from "@/lib/import/type
 import { formatNumber } from "@/lib/format";
 import { loadMessages } from "@/lib/messages";
 
-const DROPDOWN_ROWS = 2_000;
 const HEADER_FILL = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE8EAF6" } } as const;
 
 // Every value in these columns is text, so Excel neither drops a leading zero nor turns
@@ -32,22 +31,11 @@ export async function templateXlsx(locale: Locale, storeName: string): Promise<B
     col.width = Math.max(16, t(`columns.${column}`).length + 4);
     if (TEXT_COLUMNS.has(column)) col.numFmt = "@";
   });
-  // Yes / No as a drop-down, in the reader's language and in English. A typing aid only —
-  // the check accepts the words typed or pasted anywhere — so the first rows are enough.
-  const consent = IMPORT_COLUMNS.indexOf("whatsapp") + 1;
-  const choices = [...new Set([t("template.yes"), t("template.no"), "Yes", "No"])].join(",");
-  for (let row = 2; row <= DROPDOWN_ROWS + 1; row += 1) {
-    sheet.getCell(row, consent).dataValidation = {
-      type: "list",
-      allowBlank: true,
-      formulae: [`"${choices}"`],
-    };
-  }
 
   const help = book.addWorksheet(t("template.helpSheet"));
   help.getColumn(1).width = 110;
   help.addRow([t("template.helpTitle")]).font = { bold: true, size: 13 };
-  for (const key of ["h1", "h2", "h3", "h4", "h5", "h6", "h7"] as const)
+  for (const key of ["h1", "h2", "h3", "h4", "h5", "h6"] as const)
     help.addRow([t(`template.help.${key}`, { max: formatNumber(IMPORT_MAX_ROWS, locale) })]);
 
   return Buffer.from(await book.xlsx.writeBuffer());
@@ -99,6 +87,9 @@ export async function resultXlsx(
     ]);
     row.getCell(3).numFmt = "@";
   }
+  // Clean rows are only counted, so a clean import would leave an empty table that
+  // looks like something went wrong.
+  if (outcomes.length === 0) sheet.addRow([t("result.nothingToList")]).font = { italic: true };
   [8, 28, 14, 14, 70].forEach((width, i) => (sheet.getColumn(i + 1).width = width));
   return Buffer.from(await book.xlsx.writeBuffer());
 }

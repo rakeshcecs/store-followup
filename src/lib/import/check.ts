@@ -18,9 +18,6 @@ export type CheckContext = {
 // SOW 5.3 lengths, the same as the customer form (src/lib/validation/customer.ts).
 const MAX = { name: 100, area: 60, city: 60, occasion: 100 } as const;
 
-const YES = new Set(["yes", "y", "true", "1", "हाँ", "हां", "હા"]);
-const NO = new Set(["no", "n", "false", "0", "नहीं", "नही", "ના"]);
-
 const text = (cell: Cell | undefined): string | null =>
   cell === null || cell === undefined
     ? null
@@ -93,9 +90,6 @@ export function checkRows(
     const date = importDate(get(row, "occasionDate"));
     if (date === "invalid") err("dateInvalid");
 
-    const consent = (text(get(row, "whatsapp")) ?? "").toLowerCase();
-    if (consent && !YES.has(consent) && !NO.has(consent)) err("whatsappInvalid");
-
     const departmentName = text(get(row, "department"));
     const departmentId = departmentName
       ? (ctx.departments.get(departmentName.toLowerCase()) ?? null)
@@ -141,7 +135,6 @@ export function checkRows(
       occasion,
       occasionDate: date === "invalid" ? null : date,
       assignedToId: seller ?? ctx.uploaderId,
-      whatsapp: YES.has(consent),
       existingId,
       errors,
       notes,

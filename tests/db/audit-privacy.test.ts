@@ -239,7 +239,6 @@ describe("privacy delete (M16.03)", () => {
   const D = "2036-04-15";
   let customerId = "";
   let theMobile = "";
-  let unknownId = "";
   let importId = "";
   const ctx = (): RunContext => ({
     scope: { all: false, branchIds: [store.branchA.id] },
@@ -279,7 +278,6 @@ describe("privacy delete (M16.03)", () => {
         consentGiven: true,
         consentAt: new Date(),
         consentById: store.salesA.id,
-        whatsappConsent: true,
       },
     });
     customerId = customer.id;
@@ -355,27 +353,7 @@ describe("privacy delete (M16.03)", () => {
       entityId: sale.id,
       newValue: { billNumber: sale.billNumber, remarks: "Paid by her card", billAmount: "40000" },
     });
-    // M22 and M24 copies of who she is.
-    await db.whatsAppMessage.create({
-      data: {
-        customerId,
-        branchId: store.branchA.id,
-        direction: "IN",
-        body: "Priya here, is my lehenga ready?",
-        variables: { name: "Priya Privacy" },
-      },
-    });
-    unknownId = (
-      await db.whatsAppUnknownMessage.create({
-        data: {
-          fromMobile: theMobile,
-          profileName: "Priya P",
-          body: "Hi, Priya from Adajan",
-          metaMessageId: `wamid.${randomUUID()}`,
-          receivedAt: new Date(),
-        },
-      })
-    ).id;
+    // M24's copy of who she is.
     importId = (
       await db.importJob.create({
         data: {
@@ -442,7 +420,6 @@ describe("privacy delete (M16.03)", () => {
       address: null,
       occasion: null,
       occasionDate: null,
-      whatsappConsent: false,
       active: false,
     });
     expect(row.anonymizedAt).toBeInstanceOf(Date);
@@ -479,17 +456,14 @@ describe("privacy delete (M16.03)", () => {
     expect(theirs.cells.mobile).toBeNull();
     expect(theirs.href).toBeUndefined(); // no profile to open any more
 
-    // Nor in WhatsApp (M22) or an old import file (M24); other people untouched.
+    // Nor in an old import file (M24); other people untouched.
     const copies = JSON.stringify([
-      await db.whatsAppMessage.findMany({ where: { customerId } }),
-      await db.whatsAppUnknownMessage.findUniqueOrThrow({ where: { id: unknownId } }),
       await db.importJob.findUniqueOrThrow({ where: { id: importId } }),
     ]);
     for (const secret of [theMobile, "Priya", "Adajan", "lehenga"])
       expect(copies).not.toContain(secret);
     expect(copies).toContain("Someone Else");
     await db.importJob.delete({ where: { id: importId } });
-    await db.whatsAppUnknownMessage.delete({ where: { id: unknownId } });
   });
 
   it("happens once", async () => {

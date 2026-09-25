@@ -4,7 +4,6 @@ import type { Locale } from "@/i18n/config";
 import { TIMELINE_MAX, TIMELINE_PAGE, type TimelineRow } from "@/lib/customers";
 import { formatDate, formatDateTime, formatDayDate } from "@/lib/format";
 import type { BranchScope } from "@/lib/permissions";
-import { MessageStatusTicks } from "@/components/whatsapp/message-status";
 import {
   readReassignDetail,
   systemByline,
@@ -54,7 +53,6 @@ export async function HistoryList({
   // Sun, 27 Sep" (M09) take the day from the follow-up the row points at; rows written
   // before M08 point at none and keep the plain title.
   const tFollowUps = await getTranslations("followUps");
-  const tWhatsApp = await getTranslations("whatsapp");
   const byline = (event: TimelineRow) => event.staffName ?? title(systemByline(event.type));
   const heading = (event: TimelineRow) => {
     // M15.03: "Reassigned from Amit to Priya"; the byline below names who did it.
@@ -114,12 +112,6 @@ export async function HistoryList({
                   <p className="text-sm leading-relaxed whitespace-pre-line text-ink-2">
                     {event.detail}
                   </p>
-                )}
-                {event.whatsappStatus && (
-                  <MessageStatusTicks
-                    status={event.whatsappStatus}
-                    label={tWhatsApp(`status.${event.whatsappStatus}`)}
-                  />
                 )}
                 <p className="mt-0.5 text-[13px] text-muted-foreground">
                   {event.branchName

@@ -12,14 +12,14 @@ import { calendarDay } from "@/lib/follow-ups";
 import { isoDate } from "@/lib/format";
 import { loadMessages } from "@/lib/messages";
 import { safeAction } from "@/lib/safe-action";
-import { campaignWeeklyLimit, occasionLeadDays, SETTING, setSetting } from "@/lib/settings";
+import { occasionLeadDays, SETTING, setSetting } from "@/lib/settings";
 import {
   festivalIdInput,
   festivalInput,
   occasionSettingsInput,
   prefillFestivalsInput,
   updateFestivalInput,
-} from "@/lib/validation/campaign";
+} from "@/lib/validation/festival";
 
 // Settings → Festivals and occasions (M23). Admin only: one calendar for the store.
 
@@ -112,7 +112,7 @@ export const updateFestival = safeAction({
   },
 });
 
-// Switched off, not deleted (CLAUDE.md): an old campaign may still refer to the day.
+// Switched off, not deleted (CLAUDE.md): the audit log still refers to the day.
 export const removeFestival = safeAction({
   name: "removeFestival",
   schema: festivalIdInput,
@@ -201,31 +201,22 @@ export const prefillCommonFestivals = safeAction({
   },
 });
 
-// The occasion lead days and BR-21's weekly limit, read by the worker on every run.
+// The occasion lead days, read by the worker on every run.
 export const updateOccasionSettings = safeAction({
   name: "updateOccasionSettings",
   schema: occasionSettingsInput,
   auth: ADMIN,
   handler: async (input, { user }) => {
-    const before = {
-      occasionLeadDays: await occasionLeadDays(),
-      campaignWeeklyLimit: await campaignWeeklyLimit(),
-    };
-    if (
-      before.occasionLeadDays === input.occasionLeadDays &&
-      before.campaignWeeklyLimit === input.campaignWeeklyLimit
-    ) {
-      return { saved: true };
-    }
+    const before = { occasionLeadDays: await occasionLeadDays() };
+    if (before.occasionLeadDays === input.occasionLeadDays) return { saved: true };
     const userDevice = await device();
     await db.$transaction(async (tx) => {
       await setSetting(tx, SETTING.occasionLeadDays, input.occasionLeadDays, user.id);
-      await setSetting(tx, SETTING.campaignWeeklyLimit, input.campaignWeeklyLimit, user.id);
       await writeAudit(tx, {
         userId: user.id,
         action: AUDIT.settingUpdate,
         entityType: "Setting",
-        entityId: `${SETTING.occasionLeadDays},${SETTING.campaignWeeklyLimit}`,
+        entityId: SETTING.occasionLeadDays,
         oldValue: before,
         newValue: input,
         device: userDevice,

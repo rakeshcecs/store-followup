@@ -8,13 +8,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/session-cookie";
 
 // Reachable without a session. Everything else needs one.
-const PUBLIC_PATHS = [
-  "/login",
-  "/offline",
-  "/api/health",
-  "/manifest.webmanifest",
-  "/api/whatsapp/webhook", // Meta calls it; it checks its own signature (M22)
-];
+const PUBLIC_PATHS = ["/login", "/offline", "/api/health", "/manifest.webmanifest"];
 
 function isPublic(pathname: string): boolean {
   return (

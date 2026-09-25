@@ -21,7 +21,7 @@ import {
   updateFestival,
 } from "@/lib/actions/festival";
 import type { ActionResult, MessageValues } from "@/lib/errors";
-import { festivalInput, updateFestivalInput } from "@/lib/validation/campaign";
+import { festivalInput, updateFestivalInput } from "@/lib/validation/festival";
 
 type Option = { value: string; label: string };
 type Festival = {
@@ -35,7 +35,7 @@ type Festival = {
 };
 type Problem = { key: string; values?: MessageValues; field?: string } | null;
 
-const ALL = "all"; // the "every branch" choice, as src/lib/validation/campaign.ts spells it
+const ALL = "all"; // the "every branch" choice, as src/lib/validation/festival.ts spells it
 
 // One action → toast, or the problem to show; the schema runs first so the exact message
 // shows (the action only says which field). Same shape as the WhatsApp settings screen.

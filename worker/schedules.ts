@@ -5,7 +5,6 @@ import { dueOccasionJob } from "@/lib/occasions";
 import { pushPending } from "@/lib/push";
 import { dueReminders } from "@/lib/reminders";
 import { reminderTimes } from "@/lib/settings";
-import { queueAutomaticWhatsApp } from "@/lib/whatsapp/automatic";
 
 const timezone = "Asia/Kolkata";
 const CATCH_UP_MINUTES = 15;
@@ -33,12 +32,6 @@ export async function tick(now: Date): Promise<number> {
   const occasions = dueOccasionJob(now);
   if (occasions) {
     await enqueue(occasions.type, occasions.payload, { singletonKey: occasions.singletonKey });
-  }
-  // M22: automatic WhatsApp messages that are due (each queues its own send job).
-  try {
-    await queueAutomaticWhatsApp(now);
-  } catch (error) {
-    logger.error("schedule.whatsapp_failed", error);
   }
   // Inline, not a job: a job row every minute would be 1,440 rows a day of nothing.
   await pushPending();

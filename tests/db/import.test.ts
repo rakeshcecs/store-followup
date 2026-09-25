@@ -27,7 +27,7 @@ let store: Awaited<ReturnType<typeof makeStore>>;
 let department: { id: string; name: string };
 
 const HEAD =
-  "Name*,Mobile*,Alternate mobile,Area,City,Department,Occasion,Occasion date (DD-MM-YYYY),Assigned salesperson mobile,WhatsApp consent (Yes/No)";
+  "Name*,Mobile*,Alternate mobile,Area,City,Department,Occasion,Occasion date (DD-MM-YYYY),Assigned salesperson mobile";
 const csv = (...lines: string[]) =>
   new TextEncoder().encode([HEAD, ...lines].join("\n")).buffer as ArrayBuffer;
 
@@ -46,10 +46,7 @@ async function upload(
   return db.importJob.findUniqueOrThrow({ where: { id: result.jobId } });
 }
 
-async function confirm(
-  jobId: string,
-  options: { updateExisting?: boolean; whatsappConfirmed?: boolean } = {},
-) {
+async function confirm(jobId: string, options: { updateExisting?: boolean } = {}) {
   await signInAs(store.managerA.mobile);
   const result = await startImport({ jobId, ...options });
   expect(result).toMatchObject({ ok: true });
@@ -74,12 +71,12 @@ describe("preview (M24.02)", () => {
     const [a, b, c] = [nextMobile(), nextMobile(), nextMobile()];
     const job = await upload(
       csv(
-        `Asha,${a},,Adajan,Surat,${department.name},Wedding,05-12-2026,${store.salesA.mobile},Yes`,
-        `Bhavesh,12345,,,,,,,,`,
-        `Chetan,${existingB.mobile},,,,,,,,`,
-        `Deepa,${b},,,,,,,${store.salesB.mobile},`, // salesperson of the other branch: unknown here
-        `Asha again,${a},,,,,,,,`,
-        `Ek,${c},,,,,,31-02-2026,,`,
+        `Asha,${a},,Adajan,Surat,${department.name},Wedding,05-12-2026,${store.salesA.mobile}`,
+        `Bhavesh,12345,,,,,,,`,
+        `Chetan,${existingB.mobile},,,,,,,`,
+        `Deepa,${b},,,,,,,${store.salesB.mobile}`, // salesperson of the other branch: unknown here
+        `Asha again,${a},,,,,,,`,
+        `Ek,${c},,,,,,31-02-2026,`,
       ),
     );
     expect(job).toMatchObject({
@@ -103,7 +100,6 @@ describe("preview (M24.02)", () => {
     expect(rows[0]).toMatchObject({
       assignedToId: store.salesA.id,
       departmentId: department.id,
-      whatsapp: true,
     });
     expect(rows[3]).toMatchObject({ assignedToId: store.managerA.id });
     expect(rows[3]!.notes[0]!.key).toBe("import.notes.salespersonUnknown");
@@ -132,12 +128,12 @@ describe("the run (worker)", () => {
     const [a, b] = [nextMobile(), nextMobile()];
     const job = await upload(
       csv(
-        `Asha Run,${a},,Adajan,Surat,${department.name},Wedding,05-12-2026,${store.salesA.mobile},Yes`,
-        `Bhavesh Run,${b},,,,,,,9899999999,No`,
-        `Bad Row,12,,,,,,,,`,
+        `Asha Run,${a},,Adajan,Surat,${department.name},Wedding,05-12-2026,${store.salesA.mobile}`,
+        `Bhavesh Run,${b},,,,,,,9899999999`,
+        `Bad Row,12,,,,,,,`,
       ),
     );
-    const done = await confirm(job.id, { whatsappConfirmed: true });
+    const done = await confirm(job.id);
     expect(done).toMatchObject({
       status: "DONE",
       imported: 2,
@@ -159,13 +155,11 @@ describe("the run (worker)", () => {
       homeBranchId: store.branchA.id,
       source: "IMPORT",
       consentGiven: false,
-      whatsappConsent: true,
       createdById: store.managerA.id,
     });
     expect(asha.occasionDate?.toISOString().slice(0, 10)).toBe("2026-12-05");
-    expect(asha.whatsappConsentAt).toBeInstanceOf(Date);
     const bhavesh = await db.customer.findUniqueOrThrow({ where: { mobile: b } });
-    expect(bhavesh).toMatchObject({ assignedToId: store.managerA.id, whatsappConsent: false });
+    expect(bhavesh).toMatchObject({ assignedToId: store.managerA.id });
 
     // M24.04: "Imported on [date] by [name]".
     const event = await db.timelineEvent.findFirstOrThrow({ where: { customerId: asha.id } });
@@ -193,21 +187,9 @@ describe("the run (worker)", () => {
     expect(audits[1]!.newValue).toMatchObject({ imported: 2, mistakes: 1 });
   });
 
-  it("WhatsApp Yes without the uploader's tick is saved as No, with a note", async () => {
-    const a = nextMobile();
-    const job = await upload(csv(`Unticked,${a},,,,,,,,Yes`));
-    const done = await confirm(job.id, { whatsappConfirmed: false });
-    expect((await db.customer.findUniqueOrThrow({ where: { mobile: a } })).whatsappConsent).toBe(
-      false,
-    );
-    expect((done.outcomes as unknown as Outcome[])[0]!.reasons[0]!.key).toBe(
-      "import.notes.whatsappNotConfirmed",
-    );
-  });
-
   it("re-importing the same file creates no duplicates (Done when)", async () => {
     const lines = [nextMobile(), nextMobile(), nextMobile()].map(
-      (m, i) => `Again ${i},${m},,,,,,,,`,
+      (m, i) => `Again ${i},${m},,,,,,,`,
     );
     const first = await confirm((await upload(csv(...lines))).id);
     expect(first.imported).toBe(3);
@@ -237,10 +219,10 @@ describe("the run (worker)", () => {
     const alt = nextMobile();
     const job = await upload(
       csv(
-        `New Name,${mobile},${alt},New Area,Surat,${department.name},Engagement,01-02-2027,${store.salesA.mobile},Yes`,
+        `New Name,${mobile},${alt},New Area,Surat,${department.name},Engagement,01-02-2027,${store.salesA.mobile}`,
       ),
     );
-    const done = await confirm(job.id, { updateExisting: true, whatsappConfirmed: true });
+    const done = await confirm(job.id, { updateExisting: true });
     expect(done).toMatchObject({ imported: 0, updated: 1, skipped: 0 });
     const after = await db.customer.findUniqueOrThrow({ where: { id: customer.id } });
     expect(after).toMatchObject({
@@ -252,14 +234,13 @@ describe("the run (worker)", () => {
       city: "Surat",
       departmentId: department.id,
       occasion: "Engagement",
-      whatsappConsent: true,
       updatedById: store.managerA.id,
     });
     const event = await db.timelineEvent.findFirstOrThrow({ where: { customerId: customer.id } });
     expect(event.type).toBe(TIMELINE.importUpdated.type);
 
     // Again: nothing left to fill, so it is skipped with that reason.
-    const again = await confirm((await upload(csv(`New Name,${mobile},,,Surat,,,,,`))).id, {
+    const again = await confirm((await upload(csv(`New Name,${mobile},,,Surat,,,,`))).id, {
       updateExisting: true,
     });
     expect(again).toMatchObject({ updated: 0, skipped: 1 });
@@ -272,7 +253,7 @@ describe("the run (worker)", () => {
     const existing = await makeCustomer(store.branchA.id, store.salesA.id);
     const fresh = nextMobile();
     const done = await confirm(
-      (await upload(csv(`X,${existing.mobile},,Area,,,,,,`, `Y,${fresh},,,,,,,,`))).id,
+      (await upload(csv(`X,${existing.mobile},,Area,,,,,`, `Y,${fresh},,,,,,,`))).id,
     );
     expect(done).toMatchObject({ imported: 1, skipped: 1 });
     expect((await db.customer.findUniqueOrThrow({ where: { id: existing.id } })).area).toBeNull();
@@ -280,7 +261,7 @@ describe("the run (worker)", () => {
 
   it("a number saved between the preview and the run is skipped, never doubled", async () => {
     const mobile = nextMobile();
-    const job = await upload(csv(`Race,${mobile},,,,,,,,`));
+    const job = await upload(csv(`Race,${mobile},,,,,,,`));
     await makeCustomer(store.branchB.id, store.salesB.id, mobile); // someone saves it meanwhile
     const done = await confirm(job.id);
     expect(done).toMatchObject({ imported: 0, skipped: 1 });
@@ -289,7 +270,7 @@ describe("the run (worker)", () => {
 
   it("resumes after a crash at the next chunk, and a second run does nothing", async () => {
     const mobiles = Array.from({ length: IMPORT_CHUNK + 20 }, () => nextMobile());
-    const job = await upload(csv(...mobiles.map((m, i) => `Chunk ${i},${m},,,,,,,,`)));
+    const job = await upload(csv(...mobiles.map((m, i) => `Chunk ${i},${m},,,,,,,`)));
     await signInAs(store.managerA.mobile);
     await startImport({ jobId: job.id });
     // Pretend the first chunk finished and the worker died.
@@ -324,7 +305,7 @@ describe("the run (worker)", () => {
   });
 
   it("the worker marks the import failed on its last try", async () => {
-    const job = await upload(csv(`Fail,${nextMobile()},,,,,,,,`));
+    const job = await upload(csv(`Fail,${nextMobile()},,,,,,,`));
     await signInAs(store.managerA.mobile);
     await startImport({ jobId: job.id });
     const spy = vi.spyOn(db, "$transaction").mockRejectedValue(new Error("disk full"));
@@ -340,7 +321,7 @@ describe("the run (worker)", () => {
 
 describe("confirm and discard", () => {
   it("queues one worker job, and a second press is refused", async () => {
-    const job = await upload(csv(`Queue,${nextMobile()},,,,,,,,`));
+    const job = await upload(csv(`Queue,${nextMobile()},,,,,,,`));
     await signInAs(store.managerA.mobile);
     expect(await startImport({ jobId: job.id })).toMatchObject({ ok: true });
     expect(await db.job.count({ where: { singletonKey: `customer-import:${job.id}` } })).toBe(1);
@@ -352,7 +333,7 @@ describe("confirm and discard", () => {
 
   it("discarding keeps nothing of the file and is audited", async () => {
     const mobile = nextMobile();
-    const job = await upload(csv(`Discard,${mobile},,,,,,,,`));
+    const job = await upload(csv(`Discard,${mobile},,,,,,,`));
     await signInAs(store.managerA.mobile);
     expect(await cancelImport({ jobId: job.id })).toMatchObject({ ok: true });
     const after = await db.importJob.findUniqueOrThrow({ where: { id: job.id } });
@@ -364,7 +345,7 @@ describe("confirm and discard", () => {
   });
 
   it("salespeople cannot, and a manager only for their own branches", async () => {
-    const job = await upload(csv(`Perm,${nextMobile()},,,,,,,,`));
+    const job = await upload(csv(`Perm,${nextMobile()},,,,,,,`));
     await signInAs(store.salesA.mobile);
     expect(await startImport({ jobId: job.id })).toMatchObject({ ok: false, code: "FORBIDDEN" });
     await signInAs(store.managerB.mobile);

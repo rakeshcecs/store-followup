@@ -74,7 +74,7 @@ describe("20,000 rows", () => {
       expect(job).toMatchObject({ totalRows: ROWS, readyRows: ROWS, errorRows: 0 });
 
       await signInAs(store.managerA.mobile);
-      expect(await startImport({ jobId: job.id, whatsappConfirmed: true })).toMatchObject({
+      expect(await startImport({ jobId: job.id })).toMatchObject({
         ok: true,
       });
       const runStart = performance.now();

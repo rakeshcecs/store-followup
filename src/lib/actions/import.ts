@@ -44,7 +44,6 @@ export const startImport = safeAction({
         data: {
           status: "PROCESSING",
           updateExisting: input.updateExisting,
-          whatsappConfirmed: input.whatsappConfirmed,
           processed: 0,
           outcomes: errorOutcomes(
             (job.rows ?? []) as unknown as ImportRow[],
@@ -65,7 +64,6 @@ export const startImport = safeAction({
           existing: job.existingRows,
           mistakes: job.errorRows,
           updateExisting: input.updateExisting,
-          whatsappConfirmed: input.whatsappConfirmed,
         },
         device,
       });

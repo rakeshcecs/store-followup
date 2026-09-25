@@ -5,14 +5,14 @@
 // before creating a second row for the same person (BR-01). Visits, follow-ups and
 // sales are the branch-scoped part, and they arrive in M07 onwards.
 //
-// branch-scope-exempt: the history shows a customer's WhatsApp messages from every branch,
+// branch-scope-exempt: the history shows a customer's events from every branch,
 // like the rest of it (BR-16); they are read by the customer's id and the timeline row's id.
 import type { SessionUser } from "@/lib/auth";
 import { customerStatus, type CustomerStatus } from "@/lib/customer-status";
 import { db } from "@/lib/db";
 import { followUpDays } from "@/lib/follow-ups";
 import { TIMELINE } from "@/lib/timeline";
-import type { MessageStatus, TimeSlot } from "@/generated/prisma/client";
+import type { TimeSlot } from "@/generated/prisma/client";
 import { normalizeMobile } from "@/lib/mobile";
 
 // What the "Existing customer" card shows (M05.04).
@@ -243,13 +243,11 @@ export type TimelineRow = {
   entityId: string | null; // the record the row is about, e.g. the Sale
   branchId: string | null; // where it happened (M17), null for rows of no branch
   branchName: string | null;
-  staffName: string | null; // null: nobody on the staff (M22 WhatsApp replies, automatic messages)
+  staffName: string | null; // null: nobody on the staff (an occasion follow-up set by the app)
   createdAt: Date;
   // For "Follow-up set" and "Follow-up call" rows: the day and slot of the follow-up the
   // row points at, shown in the reader's language.
   followUp: { dueDate: Date; timeSlot: TimeSlot } | null;
-  // For a WhatsApp message sent (M22): where it stands, for the ticks.
-  whatsappStatus: MessageStatus | null;
 };
 
 // The newest `take` events, and whether there are older ones. Every event of the
@@ -288,28 +286,12 @@ export async function customerTimeline(
     ),
   );
 
-  // M22 ticks. Customers are shared (BR-16), so their messages are shown whichever branch
-  // sent them — the same as the rest of the history.
-  const messageIds = events.flatMap((event) =>
-    event.type === TIMELINE.whatsappOut.type && event.entityId ? [event.entityId] : [],
-  );
-  const statuses = new Map(
-    (messageIds.length
-      ? await db.whatsAppMessage.findMany({
-          where: { id: { in: messageIds }, customerId },
-          select: { id: true, status: true },
-        })
-      : []
-    ).map((row) => [row.id, row.status]),
-  );
-
   return {
     events: events.map(({ staff, branch, ...event }) => ({
       ...event,
       staffName: staff?.fullName ?? null,
       branchName: branch?.name ?? null,
       followUp: (event.entityId && days.get(event.entityId)) || null,
-      whatsappStatus: (event.entityId && statuses.get(event.entityId)) || null,
     })),
     hasMore: rows.length > take,
   };

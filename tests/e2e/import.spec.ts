@@ -105,22 +105,10 @@ test.describe("customer import", () => {
           "Wedding",
           "05-12-2026",
           seller.mobile,
-          "Yes",
         ],
-        ["E2E Imported Two", b, null, null, null, null, null, null, "9899999999", null],
-        ["E2E Broken", "12345", null, null, null, null, null, null, null, null],
-        [
-          "E2E Existing Again",
-          existing.mobile,
-          null,
-          "New Area",
-          null,
-          null,
-          null,
-          null,
-          null,
-          null,
-        ],
+        ["E2E Imported Two", b, null, null, null, null, null, null, "9899999999"],
+        ["E2E Broken", "12345", null, null, null, null, null, null, null],
+        ["E2E Existing Again", existing.mobile, null, "New Area", null, null, null, null, null],
       ]),
     });
     await page.getByRole("button", { name: en.import.check }).click();
@@ -139,11 +127,10 @@ test.describe("customer import", () => {
     await expect(page.getByTestId("preview-row")).toHaveCount(1);
     await expect(page.getByTestId("preview-row")).toContainText("Mobile must be 10 digits");
 
-    // Update the existing one's empty fields; confirm WhatsApp.
+    // Update the existing one's empty fields.
     await expect(page.getByRole("button", { name: "Import 2 customers" })).toBeVisible();
     await page.getByLabel(en.import.existingUpdate).check();
     await expect(page.getByRole("button", { name: "Import 3 customers" })).toBeVisible();
-    await page.getByLabel(en.import.whatsappConfirm).check();
     await page.getByRole("button", { name: "Import 3 customers" }).click();
     await expect(page.getByText(en.import.running).first()).toBeVisible();
 
@@ -179,7 +166,6 @@ test.describe("customer import", () => {
       source: "IMPORT",
       homeBranchId: branchId,
       assignedToId: seller.id,
-      whatsappConsent: true,
     });
     expect((await db.customer.findUniqueOrThrow({ where: { id: existing.id } })).area).toBe(
       "New Area",

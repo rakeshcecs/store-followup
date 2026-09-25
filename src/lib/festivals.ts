@@ -6,9 +6,7 @@
 // its audit entry; this file only reads and offers the pre-fill list.
 import type { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
-import { addDays } from "@/lib/follow-up-dates";
 import { calendarDay } from "@/lib/follow-ups";
-import { branchWhereShared, type BranchScope } from "@/lib/permissions";
 
 // Fixed-date festivals repeat every year; the moving ones are listed for the years we
 // know. `key` is the message key under festivals.names.
@@ -88,25 +86,6 @@ const toRow = (row: Row): FestivalRow => ({
 export async function listFestivals(today: string): Promise<FestivalRow[]> {
   const rows = await db.festival.findMany({
     where: { active: true, date: { gte: calendarDay(`${today.slice(0, 4)}-01-01`) } },
-    orderBy: [{ date: "asc" }, { name: "asc" }],
-    select,
-  });
-  return rows.map(toRow);
-}
-
-// For the campaign builder and the campaigns list: what is coming up in these branches.
-export async function upcomingFestivals(
-  scope: BranchScope,
-  today: string,
-  days = 120,
-): Promise<FestivalRow[]> {
-  const rows = await db.festival.findMany({
-    where: {
-      AND: [
-        branchWhereShared(scope),
-        { active: true, date: { gte: calendarDay(today), lte: calendarDay(addDays(today, days)) } },
-      ],
-    },
     orderBy: [{ date: "asc" }, { name: "asc" }],
     select,
   });

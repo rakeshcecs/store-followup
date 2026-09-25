@@ -7,17 +7,17 @@ import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { listFestivals, prefillFestivals } from "@/lib/festivals";
 import { formatDate, isoDate } from "@/lib/format";
-import { campaignWeeklyLimit, occasionLeadDays } from "@/lib/settings";
+import { occasionLeadDays } from "@/lib/settings";
 
 // Settings → Festivals and occasions (M23). Admin only: the festival calendar (pre-filled,
-// confirmed by the admin), the occasion follow-up lead days and the weekly campaign cap.
+// confirmed by the admin) and the occasion follow-up lead days.
 export default async function FestivalSettingsPage() {
   const user = await requireUser({ roles: ["ADMIN"] });
   const t = await getTranslations("festivals");
   const tSettings = await getTranslations("settings");
   const locale = (await getLocale()) as Locale;
   const today = isoDate(new Date());
-  const [festivals, branches, leadDays, weeklyLimit] = await Promise.all([
+  const [festivals, branches, leadDays] = await Promise.all([
     listFestivals(today),
     db.branch.findMany({
       where: { status: "ACTIVE" },
@@ -25,7 +25,6 @@ export default async function FestivalSettingsPage() {
       select: { id: true, name: true },
     }),
     occasionLeadDays(),
-    campaignWeeklyLimit(),
   ]);
   const year = Number(today.slice(0, 4));
 
@@ -40,9 +39,7 @@ export default async function FestivalSettingsPage() {
         <h2 id="occasions" className="font-heading-style text-lg">
           {t("occasions")}
         </h2>
-        <OccasionSettingsForm
-          value={{ occasionLeadDays: leadDays, campaignWeeklyLimit: weeklyLimit }}
-        />
+        <OccasionSettingsForm value={{ occasionLeadDays: leadDays }} />
       </section>
 
       <section className="flex flex-col gap-3" aria-labelledby="calendar">

@@ -2,10 +2,9 @@
 // overview's own figures (src/lib/dashboard.ts), so a report and the dashboard can never
 // disagree about the same period. The row lists (R1, R3–R5, R7) use the same definitions.
 //
-// R10 (WhatsApp and campaigns) arrived with M23; R11 (AI usage) comes with M20, which is
+// R10 (WhatsApp and campaigns) went with the API (25 Sep 2026); R11 (AI usage) comes with M20, which is
 // what writes its data — until then there is nothing true to count.
-import type { Prisma, WhatsAppKind } from "@/generated/prisma/client";
-import { campaignResultsMany } from "@/lib/campaigns/results";
+import type { Prisma } from "@/generated/prisma/client";
 import { customerTimeline } from "@/lib/customers";
 import { loadOverview, percent } from "@/lib/dashboard";
 import { dateWhere, instantWhere } from "@/lib/dashboard-period";
@@ -16,14 +15,13 @@ import { formatDate, formatDayDate, isoDate } from "@/lib/format";
 import { localizedName } from "@/lib/localized-name";
 import { reportTranslators } from "@/lib/messages";
 import { normalizeMobile } from "@/lib/mobile";
-import { branchWhere, branchWhereShared } from "@/lib/permissions";
+import { branchWhere } from "@/lib/permissions";
 import type {
   Column,
   ColumnKind,
   ReportCode,
   ReportDef,
   ReportResult,
-  ReportTable,
   Row,
   RunContext,
 } from "@/lib/reports/core";
@@ -766,156 +764,6 @@ const r9: ReportDef = {
   },
 };
 
-// R10 WhatsApp and campaigns (M23): outgoing messages of the period by what sent them,
-// with their ticks, then every campaign scheduled in the period with its results — the
-// same numbers as the campaign's own page (src/lib/campaigns/results.ts).
-const MESSAGE_KINDS = [
-  "TEMPLATE",
-  "TEXT",
-  "THANK_YOU",
-  "VISIT_REMINDER",
-  "OCCASION",
-  "CAMPAIGN",
-] as const satisfies readonly WhatsAppKind[];
-
-const r10: ReportDef = {
-  code: "r10",
-  roles: ["MANAGER", "ADMIN"],
-  dateRange: true,
-  filters: [],
-  defaultSort: { key: "scheduledAt", dir: "desc" },
-  run: async (ctx) => {
-    const { t, tAll } = await reportTranslators(ctx.locale);
-    const instants = instantWhere(ctx.range);
-    const [outgoing, incoming, campaigns] = await Promise.all([
-      db.whatsAppMessage.groupBy({
-        by: ["kind", "status"],
-        where: { ...branchWhere(ctx.scope), direction: "OUT", createdAt: instants },
-        _count: { _all: true },
-      }),
-      db.whatsAppMessage.count({
-        where: { ...branchWhere(ctx.scope), direction: "IN", createdAt: instants },
-      }),
-      db.campaign.findMany({
-        where: {
-          AND: [branchWhereShared(ctx.scope), { scheduledAt: instants }],
-        },
-        select: {
-          id: true,
-          name: true,
-          status: true,
-          scheduledAt: true,
-          branch: { select: { name: true } },
-        },
-      }),
-    ]);
-    const kindRows: Row[] = MESSAGE_KINDS.map((kind) => {
-      const of = (status: "QUEUED" | "SENT" | "DELIVERED" | "READ" | "FAILED") =>
-        outgoing.find((row) => row.kind === kind && row.status === status)?._count._all ?? 0;
-      const sent = of("SENT") + of("DELIVERED") + of("READ");
-      return {
-        cells: {
-          kind: t(`r10.kind.${kind}`),
-          messages: sent + of("QUEUED") + of("FAILED"),
-          sent,
-          delivered: of("DELIVERED") + of("READ"),
-          read: of("READ"),
-          failed: of("FAILED"),
-        },
-      };
-    });
-    const sum = (key: string) => kindRows.reduce((total, row) => total + Number(row.cells[key]), 0);
-    const results = await campaignResultsMany(campaigns.map((campaign) => campaign.id));
-    const campaignRows: Row[] = campaigns.map((campaign) => {
-      const r = results.get(campaign.id)!.totals;
-      return {
-        href: `/campaigns/${campaign.id}`,
-        cells: {
-          scheduledAt: campaign.scheduledAt.toISOString(),
-          campaign: campaign.name,
-          branch: campaign.branch?.name ?? t("allBranches"),
-          status: tAll(`campaigns.status.${campaign.status}`),
-          recipients: r.recipients,
-          sent: r.sent,
-          delivered: r.delivered,
-          read: r.read,
-          replied: r.replied,
-          visited: r.visited,
-          bought: r.bought,
-        },
-      };
-    });
-    const total = (key: string) =>
-      campaignRows.reduce((sum, row) => sum + Number(row.cells[key]), 0);
-    const tables: ReportTable[] = [
-      {
-        key: "kinds",
-        title: t("r10.messages"),
-        columns: columns(t, [
-          ["kind", "text"],
-          ["messages", "number"],
-          ["sent", "number"],
-          ["delivered", "number"],
-          ["read", "number"],
-          ["failed", "number"],
-        ]),
-        rows: [
-          ...kindRows,
-          {
-            cells: {
-              kind: t("r10.incoming"),
-              messages: incoming,
-              sent: null,
-              delivered: null,
-              read: null,
-              failed: null,
-            },
-          },
-        ],
-        totals: {
-          kind: t("total"),
-          messages: sum("messages") + incoming,
-          sent: sum("sent"),
-          delivered: sum("delivered"),
-          read: sum("read"),
-          failed: sum("failed"),
-        },
-      },
-      {
-        key: "campaigns",
-        title: t("r10.campaigns"),
-        main: true,
-        columns: columns(t, [
-          ["scheduledAt", "datetime"],
-          ["campaign", "text"],
-          ["branch", "text"],
-          ["status", "text"],
-          ["recipients", "number"],
-          ["sent", "number"],
-          ["delivered", "number"],
-          ["read", "number"],
-          ["replied", "number"],
-          ["visited", "number"],
-          ["bought", "number"],
-        ]),
-        rows: campaignRows,
-        totals: {
-          scheduledAt: t("total"),
-          campaign: t("totals.campaigns", { count: campaignRows.length }),
-          recipients: total("recipients"),
-          sent: total("sent"),
-          delivered: total("delivered"),
-          read: total("read"),
-          replied: total("replied"),
-          visited: total("visited"),
-          bought: total("bought"),
-        },
-      },
-    ];
-    return { tables };
-  },
-};
-
 export const REPORTS: Record<ReportCode, ReportDef> = {
   r1,
   r2,
@@ -926,7 +774,6 @@ export const REPORTS: Record<ReportCode, ReportDef> = {
   r7,
   r8,
   r9,
-  r10,
 };
 
 export type { ReportResult };

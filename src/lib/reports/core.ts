@@ -13,7 +13,7 @@ import { daysBetween } from "@/lib/follow-up-dates";
 import { collator } from "@/lib/format";
 import type { BranchScope } from "@/lib/permissions";
 
-export const REPORT_CODES = ["r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "r9", "r10"] as const;
+export const REPORT_CODES = ["r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "r9"] as const;
 export type ReportCode = (typeof REPORT_CODES)[number];
 
 export const PAGE_SIZE = 50;

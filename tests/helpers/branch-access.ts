@@ -58,27 +58,14 @@ export function makeEnquiry(customerId: string, assignedToId: string) {
   return db.enquiry.create({ data: { customerId, assignedToId, title: "Wedding" } });
 }
 
-export function makeTemplate() {
-  return db.whatsAppTemplate.create({
-    data: {
-      name: `tpl_${unique()}`,
-      category: "UTILITY",
-      language: "en",
-      body: "Hello {{1}}",
-      variables: ["name"],
-    },
-  });
-}
-
 // One row in every branch-scoped model, all belonging to one branch.
 export async function makeBranchRecords(options: {
   branchId: string;
   userId: string;
   customerId: string;
   enquiryId: string;
-  templateId: string;
 }) {
-  const { branchId, userId, customerId, enquiryId, templateId } = options;
+  const { branchId, userId, customerId, enquiryId } = options;
 
   const visit = await db.visit.create({
     data: {
@@ -123,22 +110,7 @@ export async function makeBranchRecords(options: {
     data: { branchId, fileName: "customers.xlsx", uploadedById: userId },
   });
 
-  const whatsAppMessage = await db.whatsAppMessage.create({
-    data: { branchId, customerId, templateId, direction: "OUT", body: "Hello" },
-  });
-
-  const campaign = await db.campaign.create({
-    data: {
-      branchId,
-      name: `Campaign ${unique()}`,
-      templateId,
-      filters: {},
-      scheduledAt: new Date("2026-10-05"),
-      createdById: userId,
-    },
-  });
-
-  return { visit, followUp, sale, importJob, whatsAppMessage, campaign };
+  return { visit, followUp, sale, importJob };
 }
 
 // Two branches, the staff that go with them, and one full set of records in each.
@@ -154,8 +126,6 @@ export async function makeTwoBranchFixture() {
   });
   const salesB = await makeUser({ role: "SALESPERSON", homeBranchId: branchB.id });
 
-  const template = await makeTemplate();
-
   // A customer per branch: BR-02 allows only one open enquiry and one pending
   // follow-up per customer, so a shared customer could not hold both sets.
   const customerA = await makeCustomer(branchA.id, managerA.id);
@@ -168,14 +138,12 @@ export async function makeTwoBranchFixture() {
     userId: managerA.id,
     customerId: customerA.id,
     enquiryId: enquiryA.id,
-    templateId: template.id,
   });
   const recordsB = await makeBranchRecords({
     branchId: branchB.id,
     userId: salesB.id,
     customerId: customerB.id,
     enquiryId: enquiryB.id,
-    templateId: template.id,
   });
 
   return { branchA, branchB, admin, managerA, managerAB, salesB, recordsA, recordsB };

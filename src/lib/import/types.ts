@@ -13,7 +13,6 @@ export const IMPORT_COLUMNS = [
   "occasion",
   "occasionDate",
   "salespersonMobile",
-  "whatsapp",
 ] as const;
 export type ImportColumn = (typeof IMPORT_COLUMNS)[number];
 export const REQUIRED_COLUMNS: ImportColumn[] = ["name", "mobile"];
@@ -38,7 +37,6 @@ export type ImportRow = {
   occasion: string | null;
   occasionDate: string | null; // "YYYY-MM-DD"
   assignedToId: string;
-  whatsapp: boolean;
   existingId: string | null; // the customer this number already belongs to
   errors: Message[];
   notes: Message[]; // imported anyway, but worth saying (unknown salesperson…)

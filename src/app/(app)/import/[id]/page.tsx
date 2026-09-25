@@ -70,7 +70,6 @@ export default async function ImportJobPage({
       error: job.errorRows,
       exists: job.existingRows,
     };
-    const whatsappRows = rows.filter((row) => row.state !== "error" && row.whatsapp).length;
     const pageHref = (to: number) => `/import/${job.id}?tab=${tab}&page=${to}`;
     return (
       <AppShell
@@ -160,7 +159,6 @@ export default async function ImportJobPage({
           ready={job.readyRows}
           existing={job.existingRows}
           mistakes={job.errorRows}
-          whatsappRows={whatsappRows}
         />
       </AppShell>
     );

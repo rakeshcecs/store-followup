@@ -6,7 +6,7 @@
 // reaches every branch, whether or not they have a UserBranch row for it.
 //
 // Reading a record of a branch-scoped model (Visit, FollowUp, Sale, ImportJob,
-// WhatsAppMessage), always through the scope, and NOT_FOUND so nothing leaks:
+// ImportJob), always through the scope, and NOT_FOUND so nothing leaks:
 //
 //   const visit = await db.visit.findFirst({ where: { id, ...branchWhere(scope) } });
 //   if (!visit) throw new AppError("NOT_FOUND");
@@ -70,7 +70,7 @@ export function accessScope(user: SessionUser): BranchScope {
   return { all: false, branchIds: allowedBranchIds(user) };
 }
 
-// For models where branchId is REQUIRED: Visit, FollowUp, Sale, ImportJob, WhatsAppMessage.
+// For models where branchId is REQUIRED: Visit, FollowUp, Sale, ImportJob.
 // An admin on "All branches" adds no filter (building the id list would cost a query).
 export function branchWhere(scope: BranchScope): { branchId?: { in: string[] } } {
   if (scope.all) return {};
@@ -78,7 +78,7 @@ export function branchWhere(scope: BranchScope): { branchId?: { in: string[] } }
 }
 
 // For models where branchId is NULLABLE and null means "all branches":
-// RequirementCategory, Campaign, Festival, AuditLog. Returns an OR, so a caller that
+// RequirementCategory, Festival, AuditLog. Returns an OR, so a caller that
 // already uses OR must nest it: where: { AND: [branchWhereShared(scope), { ...rest }] }
 export function branchWhereShared(scope: BranchScope): {
   OR?: [{ branchId: { in: string[] } }, { branchId: null }];

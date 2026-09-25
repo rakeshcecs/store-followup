@@ -57,10 +57,6 @@ export const AUDIT_ENTITIES = [
   "Setting",
   "Report",
   "ImportJob",
-  "WhatsAppMessage",
-  "WhatsAppTemplate",
-  // M23
-  "Campaign",
   "Festival",
 ] as const;
 

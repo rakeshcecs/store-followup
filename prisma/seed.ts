@@ -53,10 +53,7 @@ const LOST_REASONS: [string, string, string, string][] = [
 // The bill amount switch is not seeded: no row means "required" (src/lib/settings.ts, M10).
 const SETTINGS: Record<string, Prisma.InputJsonValue> = {
   reminderTimes: ["09:30", "10:30", "14:00", "17:30"],
-  autoWhatsApp: { followUpReminder: false, thankYouAfterSale: false, occasionGreeting: false },
   aiEnabled: false,
-  campaignWeeklyLimit: 2,
-  occasionLeadDays: 7,
 };
 
 function requireEnv(name: string): string {

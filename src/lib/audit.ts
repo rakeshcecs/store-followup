@@ -48,15 +48,8 @@ export const AUDIT = {
   importCreate: "import:create",
   importCancel: "import:cancel",
   importDone: "import:done",
-  // M22
-  whatsappSend: "whatsapp:send",
-  whatsappConsent: "customer:whatsappConsent",
-  whatsappStop: "customer:whatsappStop",
   // M23
   enquiryCreate: "enquiry:create", // an occasion follow-up for a customer with no enquiry
-  campaignCreate: "campaign:create",
-  campaignCancel: "campaign:cancel",
-  campaignDone: "campaign:done",
   festivalCreate: "festival:create",
   festivalUpdate: "festival:update",
   festivalRemove: "festival:remove",

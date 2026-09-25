@@ -1,11 +1,4 @@
-import {
-  BarChart3,
-  ChevronRight,
-  FileUp,
-  History,
-  Megaphone,
-  MessageSquareDashed,
-} from "lucide-react";
+import { BarChart3, ChevronRight, FileUp, History } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 
@@ -16,25 +9,9 @@ export async function ReportLinks({ codes, audit = false }: { codes: string[]; a
   const t = await getTranslations("reports");
   const tAudit = await getTranslations("audit");
   const tImport = await getTranslations("import");
-  const tWhatsApp = await getTranslations("whatsapp.unknown");
-  const tCampaigns = await getTranslations("campaigns");
   const tools = [
-    // M23: WhatsApp campaigns, for managers (own branch) and admins.
-    {
-      href: "/campaigns",
-      icon: Megaphone,
-      title: tCampaigns("title"),
-      about: tCampaigns("about"),
-    },
     { href: "/audit", icon: History, title: tAudit("title"), about: tAudit("about") },
     { href: "/import", icon: FileUp, title: tImport("title"), about: tImport("about") },
-    // M22: WhatsApp messages from numbers that are no customer's.
-    {
-      href: "/whatsapp/unknown",
-      icon: MessageSquareDashed,
-      title: tWhatsApp("title"),
-      about: tWhatsApp("text"),
-    },
   ];
   return (
     <ul className="flex flex-col gap-2.5">

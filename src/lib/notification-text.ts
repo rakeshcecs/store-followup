@@ -26,13 +26,10 @@ async function lookups(rows: NotificationRow[]) {
   const customerIds = new Set<string>();
   const followUpIds = new Set<string>();
   const branchIds = new Set<string>();
-  const campaignIds = new Set<string>();
   for (const row of rows) {
     const p = parts(row);
-    if (row.type === "campaign-done" && p[1]) campaignIds.add(p[1]);
     if (row.type === "user-locked" && p[1]) userIds.add(p[1]);
-    if ((row.type === "followup-missed" || row.type.startsWith("whatsapp-")) && p[1])
-      customerIds.add(p[1]);
+    if (row.type === "followup-missed" && p[1]) customerIds.add(p[1]);
     if (row.type === NOTIFICATION.slot)
       (p[4] ?? "")
         .split(",")
@@ -40,7 +37,7 @@ async function lookups(rows: NotificationRow[]) {
         .forEach((id) => followUpIds.add(id));
     if (row.type === NOTIFICATION.manager && p[2] && p[2] !== "all") branchIds.add(p[2]);
   }
-  const [users, customers, followUps, branches, campaigns] = await Promise.all([
+  const [users, customers, followUps, branches] = await Promise.all([
     userIds.size
       ? db.user.findMany({
           where: { id: { in: [...userIds] } },
@@ -66,20 +63,12 @@ async function lookups(rows: NotificationRow[]) {
           select: { id: true, name: true },
         })
       : [],
-    campaignIds.size
-      ? // branch-scope-exempt: the ids come from the reader's own notification rows.
-        db.campaign.findMany({
-          where: { id: { in: [...campaignIds] } },
-          select: { id: true, name: true },
-        })
-      : [],
   ]);
   return {
     user: new Map(users.map((u) => [u.id, u.fullName])),
     customer: new Map(customers.map((c) => [c.id, c.name])),
     followUp: new Map(followUps.map((f) => [f.id, f.customer.name])),
     branch: new Map(branches.map((b) => [b.id, b.name])),
-    campaign: new Map(campaigns.map((c) => [c.id, c.name])),
   };
 }
 
@@ -151,22 +140,6 @@ export async function renderNotifications(
         out.set(row.id, {
           title: t("missed.title"),
           body: t("missed.body", { name: names.customer.get(p[1] ?? "") ?? someone }),
-          link,
-        });
-        break;
-      // M22: "whatsapp-in:<customerId>", "whatsapp-stop:<customerId>".
-      case "whatsapp-in":
-      case "whatsapp-stop": {
-        const key = row.type === "whatsapp-in" ? "whatsappIn" : "whatsappStop";
-        const name = names.customer.get(p[1] ?? "") ?? someone;
-        out.set(row.id, { title: t(`${key}.title`, { name }), body: t(`${key}.body`), link });
-        break;
-      }
-      // M23: "campaign-done:<campaignId>:<queued>:<skipped>".
-      case "campaign-done":
-        out.set(row.id, {
-          title: t("campaignDone.title", { name: names.campaign.get(p[1] ?? "") ?? "" }),
-          body: t("campaignDone.body", { queued: toNumber(p[2]), skipped: toNumber(p[3]) }),
           link,
         });
         break;

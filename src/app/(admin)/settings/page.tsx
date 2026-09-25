@@ -1,6 +1,5 @@
 import {
   AlarmClock,
-  MessageCircle,
   Building2,
   ChevronRight,
   ListChecks,
@@ -38,12 +37,6 @@ export default async function SettingsPage() {
       label: t("reminders"),
       text: t("remindersText"),
       icon: AlarmClock,
-    },
-    {
-      href: "/settings/whatsapp",
-      label: t("whatsapp"),
-      text: t("whatsappText"),
-      icon: MessageCircle,
     },
     {
       href: "/settings/festivals",

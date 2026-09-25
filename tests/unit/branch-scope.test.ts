@@ -8,14 +8,7 @@ import { describe, expect, it } from "vitest";
 //
 // BR-16 (customers are shared across branches) needs no check here: Customer has no
 // branchId column, so branchWhere() on a customer query is already a type error.
-const SCOPED_MODELS = [
-  "visit",
-  "followUp",
-  "sale",
-  "campaign",
-  "importJob",
-  "whatsAppMessage",
-] as const;
+const SCOPED_MODELS = ["visit", "followUp", "sale", "importJob"] as const;
 
 const HELPERS = ["branchWhere", "branchWhereShared", "writeBranchId"];
 const EXEMPT = "branch-scope-exempt:"; // // branch-scope-exempt: <reason>

@@ -32,7 +32,6 @@ async function runChunk(
     branchId: string;
     uploadedById: string;
     updateExisting: boolean;
-    whatsappConfirmed: boolean;
   },
   chunk: ImportRow[],
   now: Date,
@@ -55,7 +54,6 @@ async function runChunk(
       departmentId: true,
       occasion: true,
       occasionDate: true,
-      whatsappConsent: true,
     },
   });
   const byNumber = new Map<string, (typeof owners)[number]>();
@@ -64,13 +62,7 @@ async function runChunk(
     if (owner.altMobile && !byNumber.has(owner.altMobile)) byNumber.set(owner.altMobile, owner);
   }
 
-  const consentFor = (row: ImportRow) => row.whatsapp && job.whatsappConfirmed;
-  const notesFor = (row: ImportRow) => [
-    ...row.notes,
-    ...(row.whatsapp && !job.whatsappConfirmed
-      ? [{ key: "import.notes.whatsappNotConfirmed" }]
-      : []),
-  ];
+  const notesFor = (row: ImportRow) => row.notes;
 
   // New customers.
   const fresh: { row: ImportRow; id: string }[] = [];
@@ -96,9 +88,6 @@ async function runChunk(
         ...(!owner.occasion && row.occasion ? { occasion: row.occasion } : {}),
         ...(!owner.occasionDate && row.occasionDate
           ? { occasionDate: calendar(row.occasionDate) }
-          : {}),
-        ...(!owner.whatsappConsent && consentFor(row)
-          ? { whatsappConsent: true, whatsappConsentAt: now }
           : {}),
       };
       if (Object.keys(patch).length === 0) {
@@ -151,11 +140,9 @@ async function runChunk(
         assignedToId: row.assignedToId,
         homeBranchId: job.branchId,
         source: "IMPORT",
-        // The file cannot show the customer agreed to be saved; WhatsApp consent is its own
-        // column, set only with the uploader's confirmation (module prompt).
+        // The file cannot show the customer agreed to be saved (M05.08); a salesperson
+        // records it on the profile when they next meet.
         consentGiven: false,
-        whatsappConsent: consentFor(row),
-        whatsappConsentAt: consentFor(row) ? now : null,
         createdById: job.uploadedById,
         updatedById: job.uploadedById,
       })),

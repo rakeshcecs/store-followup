@@ -1,4 +1,5 @@
 import ExcelJS from "exceljs";
+import { createTranslator } from "next-intl";
 import { describe, expect, it } from "vitest";
 import en from "../../messages/en.json";
 import gu from "../../messages/gu.json";
@@ -164,7 +165,6 @@ describe("row rules", () => {
       occasion: "Wedding",
       occasionDate: "05-12-2026",
       salespersonMobile: "9800000001",
-      whatsapp: "Yes",
     });
     expect(r).toMatchObject({
       state: "ready",
@@ -174,7 +174,6 @@ describe("row rules", () => {
       departmentId: "dept-sarees",
       occasionDate: "2026-12-05",
       assignedToId: "seller-1",
-      whatsapp: true,
       errors: [],
       notes: [],
     });
@@ -189,7 +188,6 @@ describe("row rules", () => {
       city: "y".repeat(61),
       occasion: "z".repeat(101),
       occasionDate: "31-02-2026",
-      whatsapp: "maybe",
     });
     expect(r.state).toBe("error");
     expect(keys(r.errors)).toEqual([
@@ -200,7 +198,6 @@ describe("row rules", () => {
       "cityTooLong",
       "occasionTooLong",
       "dateInvalid",
-      "whatsappInvalid",
     ]);
     expect(keys(one({ name: "A", mobile: "" }).errors)).toEqual(["mobileRequired"]);
     expect(keys(one({ name: "x".repeat(101), mobile: "9825012345" }).errors)).toEqual([
@@ -264,16 +261,6 @@ describe("row rules", () => {
     );
     expect(rows.map((r) => r.state)).toEqual(["ready", "error", "error", "ready"]);
     expect(rows[1]!.errors[0]).toMatchObject({ values: { line: rows[0]!.line } });
-  });
-
-  it("WhatsApp consent: yes and no in English, Hindi and Gujarati; blank is no", () => {
-    for (const yes of ["Yes", "Y", "yes", "हाँ", "હા"])
-      expect(one({ name: "A", mobile: "9825012345", whatsapp: yes }).whatsapp, yes).toBe(true);
-    for (const no of ["No", "n", "नहीं", "ના", ""]) {
-      const r = one({ name: "A", mobile: "9825012345", whatsapp: no });
-      expect(r.whatsapp, no).toBe(false);
-      expect(r.errors).toEqual([]);
-    }
   });
 
   it("collects the numbers to look up", () => {
@@ -359,5 +346,22 @@ describe("files", () => {
       "Not imported",
       "Mobile must be 10 digits starting with 6, 7, 8 or 9",
     ]);
+  });
+
+  it("a clean import says so under the table instead of leaving it empty", async () => {
+    const buf = await resultXlsx("en", { storeName: "Store", fileName: "l.xlsx", lines: [] }, []);
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(buf as unknown as ArrayBuffer);
+    const rows = wb.worksheets[0]!.getSheetValues()
+      .filter(Boolean)
+      .map((r) => (r as unknown[]).slice(1));
+    expect(rows.at(-1)).toEqual([en.import.result.nothingToList]);
+  });
+
+  it("the counts line says 1 row, not 1 rows", () => {
+    const t = createTranslator({ locale: "en", messages: en, namespace: "import.result" });
+    const counts = { imported: 1, updated: 0, skipped: 0 };
+    expect(t("counts", { total: 1, ...counts })).toMatch(/^1 row:/);
+    expect(t("counts", { total: 5, ...counts })).toMatch(/^5 rows:/);
   });
 });

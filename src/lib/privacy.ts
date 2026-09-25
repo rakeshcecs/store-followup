@@ -76,8 +76,6 @@ export async function anonymizeCustomer(
       city: null,
       occasion: null,
       occasionDate: null,
-      whatsappConsent: false,
-      whatsappConsentAt: null,
       preferredLanguage: null,
       active: false,
       anonymizedAt: now,
@@ -91,15 +89,6 @@ export async function anonymizeCustomer(
   await tx.sale.updateMany({ where, data: { remarks: null } });
   await tx.followUp.updateMany({ where, data: { resultNote: null, reason: null } });
   await tx.timelineEvent.updateMany({ where, data: { detail: null } });
-  // M22: a sent template is filled with their name and details, and their own replies are
-  // whatever they wrote. The rows stay (counts, ticks); the words go.
-  await tx.whatsAppMessage.updateMany({ where, data: { body: "", variables: Prisma.DbNull } });
-  if (numbers.length > 0) {
-    await tx.whatsAppUnknownMessage.updateMany({
-      where: { fromMobile: { in: numbers } },
-      data: { fromMobile: "", profileName: null, body: "" },
-    });
-  }
   await scrubImportFiles(tx, numbers);
   // Nobody may call them again about this: their open follow-up goes.
   const cancelled = await tx.followUp.updateMany({
