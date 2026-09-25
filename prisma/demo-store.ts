@@ -1,7 +1,8 @@
 // The demo store's shape, kept out of prisma/seed.ts so it can be tested: importing the
 // seed runs it.
 //
-// Two branches, a manager and a salesperson in each, plus the admin the seed always
+// Two branches (A and B), a manager and a salesperson in each, named after their home
+// branch (Manager A, Salesman B, …) so a screen shows at a glance whose data it is, plus the admin the seed always
 // creates. This is the same shape every module's tests use (tests/helpers/store.ts) —
 // a one-branch store hides branch scoping, the switcher and "All branches".
 import { isBlockedPin } from "@/lib/validation/auth";
@@ -46,7 +47,7 @@ export function demoStaff(
 ): DemoPerson[] {
   return [
     {
-      fullName: "Demo Manager (both branches)",
+      fullName: "Manager A",
       mobile: demoMobile("SEED_MANAGER_MOBILE", "9000000001", env),
       role: "MANAGER",
       homeBranchId: mainBranchId,
@@ -55,21 +56,21 @@ export function demoStaff(
       extraBranchIds: [branch2Id],
     },
     {
-      fullName: "Demo Manager (branch 2)",
+      fullName: "Manager B",
       mobile: demoMobile("SEED_MANAGER2_MOBILE", "9000000002", env),
       role: "MANAGER",
       homeBranchId: branch2Id,
       extraBranchIds: [],
     },
     {
-      fullName: "Demo Salesperson (main)",
+      fullName: "Salesman A",
       mobile: demoMobile("SEED_SALES_MOBILE", "9000000003", env),
       role: "SALESPERSON",
       homeBranchId: mainBranchId,
       extraBranchIds: [],
     },
     {
-      fullName: "Demo Salesperson (branch 2)",
+      fullName: "Salesman B",
       mobile: demoMobile("SEED_SALES2_MOBILE", "9000000004", env),
       role: "SALESPERSON",
       homeBranchId: branch2Id,

@@ -1,11 +1,14 @@
 import { hostname } from "node:os";
 import { db } from "@/lib/db";
-import { claimJobs, completeJob, failJob, releaseStaleJobs } from "@/lib/jobs/queue";
+import { claimJobs, completeJob, failJob, releaseStaleJobs, touchJob } from "@/lib/jobs/queue";
 import { logger } from "@/lib/logger";
 import { handlers, type JobHandler } from "./jobs";
 import { startSchedules } from "./schedules";
 
 export const workerId = `${hostname()}:${process.pid}`;
+
+// Well inside releaseStaleJobs()' 10 minutes.
+const HEARTBEAT_MS = 60_000;
 
 // One pass: free stuck jobs, take due jobs, run each. Returns how many jobs ran.
 export async function runOnce(
@@ -14,16 +17,33 @@ export async function runOnce(
 ): Promise<number> {
   await releaseStaleJobs();
   const jobs = await claimJobs(id);
-  for (const job of jobs) {
-    const handler = registry[job.type];
-    try {
-      if (!handler) throw new Error(`No handler for job type "${job.type}"`);
-      await handler(job);
-      await completeJob(job.id);
-    } catch (error) {
-      const updated = await failJob(job.id, error, { retry: Boolean(handler) });
-      logger.error("job.failed", error, { jobId: job.id, type: job.type, status: updated.status });
+  // Every claimed job not finished yet, the ones still waiting their turn included.
+  const unfinished = new Set(jobs.map((job) => job.id));
+  const beat = setInterval(() => {
+    for (const jobId of unfinished) {
+      touchJob(jobId, id).catch((error) => logger.error("job.heartbeat_failed", error));
     }
+  }, HEARTBEAT_MS);
+  try {
+    for (const job of jobs) {
+      const handler = registry[job.type];
+      try {
+        if (!handler) throw new Error(`No handler for job type "${job.type}"`);
+        await handler(job);
+        await completeJob(job.id, id);
+      } catch (error) {
+        const updated = await failJob(job.id, error, { retry: Boolean(handler), workerId: id });
+        logger.error("job.failed", error, {
+          jobId: job.id,
+          type: job.type,
+          status: updated.status,
+        });
+      } finally {
+        unfinished.delete(job.id);
+      }
+    }
+  } finally {
+    clearInterval(beat);
   }
   return jobs.length;
 }

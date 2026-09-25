@@ -31,7 +31,7 @@ export function ManagerShell({
         className,
       )}
     >
-      <aside className="hidden w-60 shrink-0 lg:block">
+      <aside className="hidden w-60 shrink-0 lg:block print:hidden">
         <SideNav label={navLabel} title={appTitle} items={navItems} action={navAction} />
       </aside>
       <div className="flex min-w-0 grow flex-col">

@@ -123,6 +123,17 @@ enum MessageStatus {
   FAILED
 }
 
+// What a WhatsApp message is (M22): who or what sent it decides the rules it follows.
+enum WhatsAppKind {
+  TEMPLATE // picked by a person from the profile or a follow-up card
+  TEXT // free text inside the 24-hour window (BR-20)
+  THANK_YOU // automatic, 1 hour after a sale
+  VISIT_REMINDER // automatic, the evening before a "customer will visit" follow-up
+  OCCASION // automatic, on the occasion date
+  CAMPAIGN // M23
+  INCOMING
+}
+
 enum CampaignStatus {
   DRAFT
   SCHEDULED
@@ -138,11 +149,14 @@ enum JobStatus {
   FAILED
 }
 
+// M24: PENDING = uploaded, waiting in preview for the user to confirm; PROCESSING = queued
+// or running in the worker; CANCELLED = the preview was thrown away.
 enum ImportStatus {
   PENDING
   PROCESSING
   DONE
   FAILED
+  CANCELLED
 }
 
 // ---------- Organisation and staff ----------
@@ -322,9 +336,15 @@ model Customer {
   consentById       String?
   whatsappConsent   Boolean        @default(false)
   whatsappConsentAt DateTime?      @db.DateTime(3)
+  // The customer's last WhatsApp message (M22): free text is allowed for 24 hours after it.
+  whatsappLastInAt  DateTime?      @db.DateTime(3)
   preferredLanguage Language?
   homeBranchId      String
   source            CustomerSource @default(WALK_IN)
+  // Made on the phone (M19): a customer saved offline may be sent again before the
+  // server's answer arrives, and this makes the second copy the same customer.
+  clientId          String?        @unique @db.Char(36)
+  enteredOffline    Boolean        @default(false)
   firstVisitAt      DateTime?      @db.DateTime(3)
   active            Boolean        @default(true)
   anonymizedAt      DateTime?      @db.DateTime(3)
@@ -452,6 +472,7 @@ model FollowUp {
   resultNote        String?         @db.Text
   notReachableCount Int             @default(0)
   createdFrom       FollowUpSource
+  enteredOffline    Boolean         @default(false)
   completedAt       DateTime?       @db.DateTime(3)
   completedById     String?
   // BR-02: generated column (see migration SQL) = customerId while PENDING, else NULL. Never write it.
@@ -487,6 +508,7 @@ model Sale {
   linkedFollowUpId String?
   fromFollowUp     Boolean   @default(false)
   remarks          String?   @db.Text
+  enteredOffline   Boolean   @default(false)
   cancelled        Boolean   @default(false)
   cancelReason     String?   @db.VarChar(255)
   cancelledById    String?
@@ -514,7 +536,8 @@ model TimelineEvent {
   type       String   @db.VarChar(40)
   title      String   @db.VarChar(200)
   detail     String?  @db.Text
-  staffId    String
+  // Null for what nobody on the staff did (M22): a WhatsApp reply, an automatic message.
+  staffId    String?
   // The record the row is about (a Sale for sale rows), so the profile can link to it.
   // No foreign key: rows from different modules point at different tables.
   entityId   String?  @db.VarChar(40)
@@ -524,7 +547,7 @@ model TimelineEvent {
   createdAt  DateTime @default(now()) @db.DateTime(3)
 
   customer Customer @relation(fields: [customerId], references: [id])
-  staff    User     @relation(fields: [staffId], references: [id])
+  staff    User?    @relation(fields: [staffId], references: [id])
   branch   Branch?  @relation(fields: [branchId], references: [id])
 
   @@index([customerId, createdAt])
@@ -534,13 +557,13 @@ model TimelineEvent {
 // ---------- Notifications and audit ----------
 
 model Notification {
-  id      String    @id @default(cuid())
-  userId  String
-  type    String    @db.VarChar(40)
-  message String    @db.VarChar(500)
-  link    String?   @db.VarChar(255)
-  sentAt  DateTime  @default(now()) @db.DateTime(3)
-  readAt  DateTime? @db.DateTime(3)
+  id       String    @id @default(cuid())
+  userId   String
+  type     String    @db.VarChar(40)
+  message  String    @db.VarChar(500)
+  link     String?   @db.VarChar(255)
+  sentAt   DateTime  @default(now()) @db.DateTime(3)
+  readAt   DateTime? @db.DateTime(3)
   // When the worker took it for phone push (M14): set before sending, so two workers
   // or a retried job never push the same row twice. Null = not pushed yet.
   pushedAt DateTime? @db.DateTime(3)
@@ -579,6 +602,10 @@ model AuditLog {
   createdAt  DateTime @default(now()) @db.DateTime(3)
 
   @@index([entityType, entityId])
+  // M16 screen: search by mobile / bill finds rows by id alone; an admin's All branches
+  // view pages by date alone.
+  @@index([entityId])
+  @@index([createdAt])
   @@index([userId, createdAt])
   @@index([branchId, createdAt])
   @@map("audit_logs")
@@ -587,16 +614,24 @@ model AuditLog {
 // ---------- WhatsApp and campaigns (M22, M23) ----------
 
 model WhatsAppTemplate {
-  id         String         @id @default(cuid())
-  name       String         @db.VarChar(100)
-  category   String         @db.VarChar(50)
-  language   Language
-  body       String         @db.Text
-  variables  Json
-  metaStatus TemplateStatus @default(PENDING)
-  active     Boolean        @default(true)
-  createdAt  DateTime       @default(now()) @db.DateTime(3)
-  updatedAt  DateTime       @updatedAt @db.DateTime(3)
+  id             String         @id @default(cuid())
+  name           String         @db.VarChar(100)
+  category       String         @db.VarChar(50)
+  language       Language
+  body           String         @db.Text
+  variables      Json // the body's placeholders in order, e.g. ["1", "2"]
+  metaStatus     TemplateStatus @default(PENDING)
+  // M22: as Meta has it. The language code as Meta spells it ("en_US"), Meta's own
+  // status word (PAUSED, DISABLED… count as not approved), and which app field fills
+  // each placeholder ({ "1": "customerFirstName" }).
+  metaId         String?        @db.VarChar(64)
+  metaLanguage   String         @default("en") @db.VarChar(15)
+  metaStatusText String?        @db.VarChar(30)
+  mapping        Json?
+  syncedAt       DateTime?      @db.DateTime(3)
+  active         Boolean        @default(true)
+  createdAt      DateTime       @default(now()) @db.DateTime(3)
+  updatedAt      DateTime       @updatedAt @db.DateTime(3)
 
   messages  WhatsAppMessage[]
   campaigns Campaign[]
@@ -617,6 +652,15 @@ model WhatsAppMessage {
   error         String?          @db.Text
   sentById      String?
   campaignId    String?
+  kind          WhatsAppKind     @default(TEMPLATE)
+  // One automatic message per reason, e.g. "thanks:<saleId>": a worker restart or a
+  // second worker never sends it twice.
+  dedupeKey     String?          @unique @db.VarChar(120)
+  variables     Json? // the values that filled the template's placeholders
+  errorCode     String?          @db.VarChar(20)
+  sentAt        DateTime?        @db.DateTime(3)
+  deliveredAt   DateTime?        @db.DateTime(3)
+  readAt        DateTime?        @db.DateTime(3)
   createdAt     DateTime         @default(now()) @db.DateTime(3)
   updatedAt     DateTime         @updatedAt @db.DateTime(3)
 
@@ -631,18 +675,27 @@ model WhatsAppMessage {
   @@map("whatsapp_messages")
 }
 
+// M23. `filters` is the audience (src/lib/validation/campaign.ts), `variables` what fills
+// each template placeholder (a fixed text, or a customer field), `counts` what the worker
+// found when it ran: matched, skipped for no consent / the weekly limit / a missing
+// detail, and queued.
 model Campaign {
-  id          String         @id @default(cuid())
-  branchId    String? // null = all branches
-  name        String         @db.VarChar(150)
-  templateId  String
-  filters     Json
-  scheduledAt DateTime       @db.DateTime(3)
-  status      CampaignStatus @default(DRAFT)
-  counts      Json?
-  createdById String
-  createdAt   DateTime       @default(now()) @db.DateTime(3)
-  updatedAt   DateTime       @updatedAt @db.DateTime(3)
+  id            String         @id @default(cuid())
+  branchId      String? // null = all branches
+  name          String         @db.VarChar(150)
+  templateId    String
+  filters       Json
+  variables     Json?
+  scheduledAt   DateTime       @db.DateTime(3)
+  status        CampaignStatus @default(DRAFT)
+  counts        Json?
+  startedAt     DateTime?      @db.DateTime(3)
+  finishedAt    DateTime?      @db.DateTime(3)
+  cancelledAt   DateTime?      @db.DateTime(3)
+  cancelledById String?
+  createdById   String
+  createdAt     DateTime       @default(now()) @db.DateTime(3)
+  updatedAt     DateTime       @updatedAt @db.DateTime(3)
 
   branch   Branch?           @relation(fields: [branchId], references: [id])
   template WhatsAppTemplate  @relation(fields: [templateId], references: [id])
@@ -652,12 +705,33 @@ model Campaign {
   @@map("campaigns")
 }
 
+// M22: a WhatsApp message from a number that is no customer's ("Unknown contacts").
+model WhatsAppUnknownMessage {
+  id            String    @id @default(cuid())
+  fromMobile    String    @db.VarChar(20)
+  profileName   String?   @db.VarChar(100)
+  body          String    @db.Text
+  metaMessageId String    @unique @db.VarChar(128)
+  receivedAt    DateTime  @db.DateTime(3)
+  handledAt     DateTime? @db.DateTime(3)
+  handledById   String?
+
+  @@index([handledAt, receivedAt])
+  @@map("whatsapp_unknown_messages")
+}
+
+// M23: the festival calendar. Pre-filled festivals start unconfirmed until the admin
+// checks the date; removed ones are switched off, never deleted.
 model Festival {
-  id        String   @id @default(cuid())
-  name      String   @db.VarChar(100)
-  date      DateTime @db.Date
-  branchId  String? // null = all branches
-  createdAt DateTime @default(now()) @db.DateTime(3)
+  id          String   @id @default(cuid())
+  name        String   @db.VarChar(100)
+  date        DateTime @db.Date
+  branchId    String? // null = all branches
+  confirmed   Boolean  @default(false)
+  active      Boolean  @default(true)
+  createdById String?
+  createdAt   DateTime @default(now()) @db.DateTime(3)
+  updatedAt   DateTime @default(now()) @updatedAt @db.DateTime(3)
 
   branch Branch? @relation(fields: [branchId], references: [id])
 
@@ -698,17 +772,29 @@ model AiQuestionLog {
 // ---------- Import (M24) ----------
 
 model ImportJob {
-  id            String       @id @default(cuid())
-  branchId      String
-  fileName      String       @db.VarChar(255)
-  uploadedById  String
-  totalRows     Int          @default(0)
-  imported      Int          @default(0)
-  skipped       Int          @default(0)
-  resultFileUrl String?      @db.VarChar(500)
-  status        ImportStatus @default(PENDING)
-  createdAt     DateTime     @default(now()) @db.DateTime(3)
-  updatedAt     DateTime     @updatedAt @db.DateTime(3)
+  id                String       @id @default(cuid())
+  branchId          String
+  fileName          String       @db.VarChar(255)
+  uploadedById      String
+  totalRows         Int          @default(0)
+  imported          Int          @default(0)
+  skipped           Int          @default(0)
+  resultFileUrl     String?      @db.VarChar(500)
+  status            ImportStatus @default(PENDING)
+  // M24: what the preview found, what the user chose, and how far the worker has got.
+  readyRows         Int          @default(0)
+  errorRows         Int          @default(0)
+  existingRows      Int          @default(0)
+  updated           Int          @default(0)
+  processed         Int          @default(0) // rows handled so far, for the progress bar
+  updateExisting    Boolean      @default(false) // "Update empty fields only" instead of "Skip"
+  whatsappConfirmed Boolean      @default(false) // the uploader ticked the WhatsApp consent box
+  rows              Json? // the checked rows from the file (src/lib/import/types.ts)
+  outcomes          Json? // rows not imported, or imported with a note, for the result file
+  error             String?      @db.Text
+  finishedAt        DateTime?    @db.DateTime(3)
+  createdAt         DateTime     @default(now()) @db.DateTime(3)
+  updatedAt         DateTime     @updatedAt @db.DateTime(3)
 
   branch Branch @relation(fields: [branchId], references: [id])
 

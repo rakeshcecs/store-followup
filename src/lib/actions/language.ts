@@ -1,5 +1,7 @@
 "use server";
 
+// audit-exempt: a person's own display language is a preference, not a business record.
+
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { localeCookie, localeCookieMaxAge } from "@/i18n/config";

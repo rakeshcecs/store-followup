@@ -14,7 +14,7 @@ import { TextInput } from "@/components/ui/text-input";
 import { toast } from "@/components/ui/toast";
 import { useActionForm } from "@/hooks/use-action-form";
 import { useErrorMessage } from "@/hooks/use-error-message";
-import { createCustomer } from "@/lib/actions/customer";
+import { saveCustomer } from "@/lib/offline/actions";
 import { createCustomerInput } from "@/lib/validation/customer";
 
 const FIND_PATH = "/customers";
@@ -52,16 +52,20 @@ export function CustomerForm({
   defaultCity,
 }: CustomerFormProps) {
   const t = useTranslations("customers");
+  const tSync = useTranslations("sync");
   const tError = useErrorMessage();
   const router = useRouter();
   const [departmentId, setDepartmentId] = useState("");
   const [showMore, setShowMore] = useState(false);
+  // Made once per form, so the same customer sent twice (a retry, the offline outbox) is
+  // one customer (M19).
+  const [clientId] = useState(() => crypto.randomUUID());
 
   const { onSubmit, pending, errors, formError, errorValues } = useActionForm(
-    createCustomer,
+    saveCustomer,
     createCustomerInput,
-    (data: { id: string }) => {
-      toast(t("saved"));
+    (data: { id: string; queued?: true }) => {
+      toast(data.queued ? tSync("savedOnPhone") : t("saved"));
       // Straight into Record visit (M05.10). M07 fills that screen in.
       router.push(`/visits/new?customerId=${data.id}`);
     },
@@ -83,6 +87,7 @@ export function CustomerForm({
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4.5" noValidate>
+      <input type="hidden" name="clientId" value={clientId} />
       <TextInput
         name="name"
         label={t("fields.name")}

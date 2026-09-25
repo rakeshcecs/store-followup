@@ -12,7 +12,7 @@ export type MessageProblem = {
 
 // Values that are meant to read the same in every language.
 export const SAME_AS_ENGLISH_OK = [
-  "app.storeName", // "[STORE NAME]" until the client gives us the real one
+  "app.storeName", // "Deepak Silk": a brand name, not translated
   "branches.placeholders.name",
   "branches.placeholders.phone",
 ] as const;

@@ -24,6 +24,7 @@ export async function FollowUpCard({ followUp, today, showDate, showAssignee }: 
   const t = await getTranslations("followUps");
   const tResult = await getTranslations("followUpResult");
   const tCustomers = await getTranslations("customers");
+  const tWhatsApp = await getTranslations("whatsapp");
   const locale = (await getLocale()) as Locale;
   const { customer } = followUp;
   const pending = followUp.status === "PENDING";
@@ -75,7 +76,7 @@ export async function FollowUpCard({ followUp, today, showDate, showAssignee }: 
       )}
 
       {pending && (
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {customer.mobile && (
             <>
               <Button asChild variant="secondary" size="sm">
@@ -91,6 +92,11 @@ export async function FollowUpCard({ followUp, today, showDate, showAssignee }: 
                 </a>
               </Button>
             </>
+          )}
+          {customer.mobile && (
+            <Button asChild variant="secondary" size="sm">
+              <Link href={`/customers/${customer.id}/whatsapp`}>{tWhatsApp("send")}</Link>
+            </Button>
           )}
           <Button asChild size="sm">
             <Link href={`/follow-ups/${followUp.id}`}>{t("card.update")}</Link>

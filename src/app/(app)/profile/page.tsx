@@ -1,4 +1,4 @@
-import { KeyRound, LogOut } from "lucide-react";
+import { BarChart3, KeyRound, LogOut } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/app-shell";
@@ -14,6 +14,7 @@ export default async function ProfilePage() {
   const t = await getTranslations("profile");
   const tRole = await getTranslations("roles");
   const tAuth = await getTranslations("auth");
+  const tReports = await getTranslations("reports");
 
   const row = await db.user.findUniqueOrThrow({
     where: { id: user.id },
@@ -50,6 +51,16 @@ export default async function ProfilePage() {
       </Card>
 
       <div className="flex flex-col gap-2.5">
+        {/* M13.03: a salesperson's own figures (R2, R3); managers reach every report from
+            the Store overview. */}
+        {user.role === "SALESPERSON" && (
+          <Button asChild variant="secondary">
+            <Link href="/reports">
+              <BarChart3 aria-hidden />
+              {tReports("myTitle")}
+            </Link>
+          </Button>
+        )}
         <Button asChild variant="secondary">
           <Link href="/profile/pin">
             <KeyRound aria-hidden />
@@ -58,7 +69,7 @@ export default async function ProfilePage() {
         </Button>
 
         {/* Also in the nav bar, but the spec puts it on this screen too. */}
-        <form action={logoutAndReturnToLogin}>
+        <form action={logoutAndReturnToLogin} data-nav-action="">
           <Button type="submit" variant="secondary">
             <LogOut aria-hidden />
             {tAuth("logOut")}

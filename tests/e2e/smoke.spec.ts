@@ -103,9 +103,23 @@ test("health check reports the database is up", async ({ request }) => {
   expect(await res.json()).toMatchObject({ ok: true, db: "up" });
 });
 
-test("offline page shows the offline message", async ({ page }) => {
+// M19: a phone whose session cookie has expired must hear 401, not follow a redirect to
+// the login page (read as a 200), or it never wipes its offline copy.
+test("signed-out API calls get 401, not the login page", async ({ request }) => {
+  const cache = await request.get("/api/sync/cache", { maxRedirects: 0 });
+  expect(cache.status()).toBe(401);
+  const sync = await request.post("/api/sync", { data: { entries: [] }, maxRedirects: 0 });
+  expect(sync.status()).toBe(401);
+  // Pages still send a signed-out visitor to log in.
+  const page = await request.get("/today", { maxRedirects: 0 });
+  expect(page.status()).toBe(307);
+});
+
+// M19: with no offline copy on the phone (never signed in here), the offline app says
+// how to get one.
+test("offline page without an offline copy says how to get one", async ({ page }) => {
   await page.goto("/offline");
-  await expect(page.getByText(en.offline.title)).toBeVisible();
+  await expect(page.getByText(en.offlineApp.noData.title)).toBeVisible();
   await expect(page.getByRole("button", { name: en.offline.retry })).toBeVisible();
 });
 

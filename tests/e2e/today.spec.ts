@@ -137,7 +137,7 @@ test.describe("today and follow-ups", () => {
     await followUp(other, "Other Person Lata", today);
 
     await signIn(page, sales.mobile, "SALESPERSON");
-    await page.getByRole("link", { name: en.nav.followUps }).click();
+    await page.getByRole("link", { name: en.nav.followUps, exact: true }).click();
     await expect(page).toHaveURL(/\/follow-ups$/);
     const cards = page.getByTestId("follow-up-card");
     await expect(cards).toHaveCount(1);
@@ -174,7 +174,7 @@ test.describe("today and follow-ups", () => {
     users.push(manager.id);
     await page.context().clearCookies();
     await signIn(page, manager.mobile, "MANAGER");
-    await page.getByRole("link", { name: en.nav.followUps }).first().click();
+    await page.getByRole("link", { name: en.nav.followUps, exact: true }).first().click();
     await expect(cards).toHaveCount(2);
     await page.getByLabel(en.followUps.list.filters.assignedTo).selectOption(other.id);
     await expect(page).toHaveURL(new RegExp(`assignedTo=${other.id}`));

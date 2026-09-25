@@ -2,6 +2,7 @@
 // Every function takes "today" or "now" from the caller, so tests run on a fixed clock
 // and a follow-up can be walked from Coming up to Today to Overdue without waiting.
 import { z } from "zod";
+import { isRealDay } from "@/lib/validation/common";
 import type { Prisma } from "@/generated/prisma/client";
 import type { SessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -61,7 +62,7 @@ export type ListTab = (typeof LIST_TABS)[number];
 export const LIST_PAGE = 50;
 export const LIST_MAX = 200;
 
-const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const day = z.string().refine(isRealDay);
 
 // Bad or hand-typed values fall back to the default instead of breaking the screen.
 const filtersSchema = z.object({

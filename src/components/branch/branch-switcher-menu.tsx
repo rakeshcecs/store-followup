@@ -42,7 +42,7 @@ export function BranchSwitcherMenu({ branches, current, canSeeAll }: BranchSwitc
       <DropdownMenu.Trigger
         aria-label={t("switch")}
         disabled={pending}
-        className="flex min-h-11 max-w-45 items-center gap-1 rounded-md px-2.5 text-[15px] font-bold text-ink-2 hover:bg-black/5 disabled:opacity-60"
+        className="flex min-h-11 max-w-full items-center gap-1 rounded-md px-2.5 text-[15px] font-bold text-ink-2 hover:bg-black/5 disabled:opacity-60 sm:max-w-45"
       >
         <span className="truncate">{nameOf(current)}</span>
         <ChevronDown aria-hidden className="size-4 shrink-0" />

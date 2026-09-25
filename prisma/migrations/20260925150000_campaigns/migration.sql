@@ -1,0 +1,12 @@
+-- AlterTable
+ALTER TABLE `campaigns` ADD COLUMN `cancelledAt` DATETIME(3) NULL,
+    ADD COLUMN `cancelledById` VARCHAR(191) NULL,
+    ADD COLUMN `finishedAt` DATETIME(3) NULL,
+    ADD COLUMN `startedAt` DATETIME(3) NULL,
+    ADD COLUMN `variables` JSON NULL;
+
+-- AlterTable
+ALTER TABLE `festivals` ADD COLUMN `active` BOOLEAN NOT NULL DEFAULT true,
+    ADD COLUMN `confirmed` BOOLEAN NOT NULL DEFAULT false,
+    ADD COLUMN `createdById` VARCHAR(191) NULL,
+    ADD COLUMN `updatedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3);

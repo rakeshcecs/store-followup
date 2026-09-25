@@ -10,6 +10,7 @@ import { useActionForm } from "@/hooks/use-action-form";
 import { useErrorMessage } from "@/hooks/use-error-message";
 import { login } from "@/lib/actions/auth";
 import { loginInput } from "@/lib/validation/auth";
+import { wipeOfflineData } from "@/lib/offline/store";
 import { clearAllVisitDrafts } from "@/lib/visit-draft";
 
 export function LoginForm() {
@@ -21,7 +22,11 @@ export function LoginForm() {
 
   // Whoever used this phone before has logged out or been switched off: nothing they
   // left half-done may stay on it (SOW M19, security NFR).
-  useEffect(() => clearAllVisitDrafts(), []);
+  // The offline copy and outbox go too (M19): they belonged to that session.
+  useEffect(() => {
+    clearAllVisitDrafts();
+    void wipeOfflineData();
+  }, []);
 
   const { onSubmit, pending, errors, formError } = useActionForm(
     login,

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isRealDay } from "./common";
 import { id, optionalText } from "@/lib/validation/common";
 // The follow-up fields: M07's rules, one copy.
 import { followUpInput } from "@/lib/validation/visit";
@@ -15,7 +16,7 @@ export const resultNote = optionalText(250, "followUpResult.errors.noteTooLong")
 
 const nextDate = z
   .string("followUps.errors.pickDate")
-  .regex(/^\d{4}-\d{2}-\d{2}$/, "followUps.errors.pickDate");
+  .refine(isRealDay, "followUps.errors.pickDate");
 
 // M09. The result decides what else must come with it, so the API cannot take "will
 // visit" without the day or "not interested" without a reason. "Customer already

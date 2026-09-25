@@ -11,6 +11,7 @@ export const AUDIT = {
   branchDeactivate: "branch:deactivate",
   userLocked: "user:locked",
   userPinReset: "user:pinReset",
+  userPinChange: "user:pinChange",
   userCreate: "user:create",
   userUpdate: "user:update",
   userActivate: "user:activate",
@@ -31,15 +32,34 @@ export const AUDIT = {
   reasonDelete: "reason:delete",
   customerCreate: "customer:create",
   customerUpdate: "customer:update",
+  customerReassign: "customer:reassign",
+  customerAnonymize: "customer:anonymize",
   visitCreate: "visit:create",
   saleCreate: "sale:create",
   followUpCreate: "followUp:create",
   followUpReschedule: "followUp:reschedule",
   followUpResult: "followUp:result",
+  followUpCancel: "followUp:cancel",
   enquiryClose: "enquiry:close",
   saleUpdate: "sale:update",
   saleCancel: "sale:cancel",
   settingUpdate: "setting:update",
+  reportExport: "report:export",
+  importCreate: "import:create",
+  importCancel: "import:cancel",
+  importDone: "import:done",
+  // M22
+  whatsappSend: "whatsapp:send",
+  whatsappConsent: "customer:whatsappConsent",
+  whatsappStop: "customer:whatsappStop",
+  // M23
+  enquiryCreate: "enquiry:create", // an occasion follow-up for a customer with no enquiry
+  campaignCreate: "campaign:create",
+  campaignCancel: "campaign:cancel",
+  campaignDone: "campaign:done",
+  festivalCreate: "festival:create",
+  festivalUpdate: "festival:update",
+  festivalRemove: "festival:remove",
 } as const;
 
 export type AuditInput = {

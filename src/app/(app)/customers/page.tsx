@@ -14,6 +14,7 @@ import { requireUser } from "@/lib/auth";
 import { findByMobile, recentlyHandledBy, type CustomerCard } from "@/lib/customers";
 import { formatDate, formatMobile } from "@/lib/format";
 import { normalizeMobile } from "@/lib/mobile";
+import { firstParam, type SearchValue } from "@/lib/search-params";
 
 // Find customer (M05). Everyone uses this screen — the SOW's screen list says
 // "Used by: All" — so there is no role check beyond being signed in.
@@ -25,7 +26,7 @@ import { normalizeMobile } from "@/lib/mobile";
 
 const SEARCH_PATH = "/customers";
 
-type Search = { mobile?: string };
+type Search = { mobile?: SearchValue };
 
 export default async function FindCustomerPage({
   searchParams,
@@ -33,7 +34,7 @@ export default async function FindCustomerPage({
   searchParams: Promise<Search>;
 }) {
   const user = await requireUser();
-  const { mobile: typed } = await searchParams;
+  const typed = firstParam((await searchParams).mobile);
   const t = await getTranslations("customers");
   const locale = (await getLocale()) as Locale;
 

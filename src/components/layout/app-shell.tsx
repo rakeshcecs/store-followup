@@ -14,6 +14,8 @@ import type { ReactNode } from "react";
 import { BranchSwitcher } from "@/components/branch/branch-switcher";
 import { LanguageSwitcher } from "@/components/language/language-switcher";
 import { ManagerShell } from "@/components/layout/manager-shell";
+import { SyncAgent } from "@/components/offline/sync-agent";
+import { SyncStatus } from "@/components/offline/sync-status";
 import { PushPrompt } from "@/components/pwa/push-prompt";
 import { SalesShell } from "@/components/layout/sales-shell";
 import { Avatar } from "@/components/ui/avatar";
@@ -22,6 +24,8 @@ import { TopBar } from "@/components/ui/top-bar";
 import type { Role } from "@/generated/prisma/client";
 import { logoutAndReturnToLogin } from "@/lib/actions/auth";
 import { getUser } from "@/lib/auth";
+import { getCurrentBranch } from "@/lib/current-branch";
+import { ALL_BRANCHES } from "@/lib/permissions";
 import { unreadCount } from "@/lib/notifications";
 import { staffName } from "@/lib/staff-name";
 
@@ -56,6 +60,7 @@ export async function AppShell({
   const user = await getUser();
   const name = user ? await staffName(user.id) : "";
   const unread = user ? await unreadCount(user.id) : 0;
+  const branch = user ? await getCurrentBranch(user) : null;
 
   const followUps = { href: "/follow-ups", label: t("nav.followUps"), icon: <BellRing /> };
   const items: NavItem[] = salesperson
@@ -81,51 +86,65 @@ export async function AppShell({
   };
 
   const topBar = (
-    <TopBar
-      title={title}
-      subtitle={subtitle}
-      backHref={backHref}
-      backLabel={backLabel}
-      actions={
-        <>
-          {actions}
-          {!salesperson && <BranchSwitcher />}
-          <LanguageSwitcher />
-          {user && (
-            // M14.06: the bell and its unread count, on every screen.
-            <Link
-              href="/notifications"
-              aria-label={t("notifications.bell", { count: unread })}
-              className="relative flex size-11 shrink-0 items-center justify-center rounded-md hover:bg-black/5"
-            >
-              <Bell aria-hidden className="size-6" />
-              {unread > 0 && (
-                <span
-                  data-testid="bell-count"
-                  className="absolute top-1 right-1 min-w-5 rounded-full bg-danger px-1 text-center text-xs leading-5 font-extrabold text-white"
-                >
-                  {unread > 99 ? "99+" : unread}
-                </span>
-              )}
-            </Link>
-          )}
-          {name && (
-            <Link href="/profile" aria-label={t("nav.profile")} className="ml-1 rounded-full">
-              <Avatar name={name} />
-            </Link>
-          )}
-        </>
-      }
-    />
+    <>
+      <TopBar
+        title={title}
+        subtitle={subtitle}
+        backHref={backHref}
+        backLabel={backLabel}
+        actions={
+          <>
+            {actions}
+            {!salesperson && (
+              // On a phone the switcher gets its own line under the title: next to the
+              // language, the bell and the avatar it left the title a letter or two.
+              // empty:hidden — nothing at all for someone with a single branch.
+              <div className="order-last basis-full empty:hidden sm:order-none sm:basis-auto">
+                <BranchSwitcher />
+              </div>
+            )}
+            <LanguageSwitcher />
+            {user && (
+              // M14.06: the bell and its unread count, on every screen.
+              <Link
+                href="/notifications"
+                aria-label={t("notifications.bell", { count: unread })}
+                className="relative flex size-11 shrink-0 items-center justify-center rounded-md hover:bg-black/5"
+              >
+                <Bell aria-hidden className="size-6" />
+                {unread > 0 && (
+                  <span
+                    data-testid="bell-count"
+                    className="absolute top-1 right-1 min-w-5 rounded-full bg-danger px-1 text-center text-xs leading-5 font-extrabold text-white"
+                  >
+                    {unread > 99 ? "99+" : unread}
+                  </span>
+                )}
+              </Link>
+            )}
+            {name && (
+              <Link href="/profile" aria-label={t("nav.profile")} className="ml-1 rounded-full">
+                <Avatar name={name} />
+              </Link>
+            )}
+          </>
+        }
+      />
+      {/* M19: offline, entries waiting, all synced, needs attention. */}
+      {user && <SyncStatus />}
+    </>
   );
 
   // M14.01: asked after login, on whichever screen they land.
   const prompt = user ? (
-    <PushPrompt
-      publicKey={process.env.VAPID_PUBLIC_KEY ?? ""}
-      // The service worker is registered in production builds only (pwa-provider.tsx).
-      worker={process.env.NODE_ENV === "production"}
-    />
+    <>
+      <SyncAgent branchId={branch === ALL_BRANCHES ? null : branch} language={user.language} />
+      <PushPrompt
+        publicKey={process.env.VAPID_PUBLIC_KEY ?? ""}
+        // The service worker is registered in production builds only (pwa-provider.tsx).
+        worker={process.env.NODE_ENV === "production"}
+      />
+    </>
   ) : null;
 
   if (salesperson) {

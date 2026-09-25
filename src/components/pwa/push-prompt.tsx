@@ -115,7 +115,11 @@ export function PushPrompt({ publicKey, worker }: { publicKey: string; worker: b
 
   if (view === "ios") {
     return (
-      <Card className="flex flex-col gap-3 p-4" role="region" aria-label={t("iosTitle")}>
+      <Card
+        className="flex flex-col gap-3 p-4 print:hidden"
+        role="region"
+        aria-label={t("iosTitle")}
+      >
         <div className="flex items-start gap-3">
           <Share aria-hidden className="mt-0.5 size-6 shrink-0 text-primary" />
           <p className="text-[15px] text-ink-2">{t("ios")}</p>
@@ -128,7 +132,7 @@ export function PushPrompt({ publicKey, worker }: { publicKey: string; worker: b
   }
 
   return (
-    <Card className="flex flex-col gap-3 p-4" role="region" aria-label={t("title")}>
+    <Card className="flex flex-col gap-3 p-4 print:hidden" role="region" aria-label={t("title")}>
       <div className="flex items-start gap-3">
         <BellRing aria-hidden className="mt-0.5 size-6 shrink-0 text-primary" />
         <p className="text-[15px] text-ink-2">{t("text")}</p>

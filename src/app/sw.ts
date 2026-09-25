@@ -2,6 +2,7 @@
 import { CacheFirst, ExpirationPlugin, NetworkOnly, Serwist } from "serwist";
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
 import { isNavigation, isShellAsset } from "@/lib/pwa/cache-rules";
+import { SYNC_TAG, syncOutbox } from "@/lib/offline/sync";
 
 declare global {
   interface WorkerGlobalScope extends SerwistGlobalConfig {
@@ -71,5 +72,18 @@ self.addEventListener("notificationclick", (event) => {
       }
       await self.clients.openWindow(url);
     })(),
+  );
+});
+
+// M19: Background Sync. A form saved offline asks for this tag; the browser fires it once
+// the phone is online again, even if the app was closed in between. Failing while still
+// offline makes the browser try again later.
+self.addEventListener("sync", (event) => {
+  const sync = event as ExtendableEvent & { tag?: string };
+  if (sync.tag !== SYNC_TAG) return;
+  sync.waitUntil(
+    syncOutbox().then((summary) => {
+      if (summary.state === "offline") throw new Error("still offline");
+    }),
   );
 });

@@ -106,6 +106,9 @@ export const login = safeAction({
     }
 
     if (user.status !== "ACTIVE") {
+      // Told only to someone who knows the PIN: before it, the message answered "did this
+      // number work here?" for anyone typing numbers in.
+      if (!(await argon2.verify(user.pinHash, pin))) throw badCredentials();
       throw new AppError("RULE", { message: "auth.errors.inactive" });
     }
 
@@ -116,22 +119,35 @@ export const login = safeAction({
       throw new AppError("RULE", { message: "auth.errors.locked" });
     }
 
-    if (!(await argon2.verify(user.pinHash, pin))) {
-      const failedPinCount = user.failedPinCount + 1;
+    // The attempt is counted before the slow verify, atomically. Counting it afterwards
+    // from the row read above let fifty logins sent at once all read 0 and all write 1:
+    // fifty guesses and no lock. Now the sixth one in flight is refused unverified.
+    const { failedPinCount } = await db.user.update({
+      where: { id: user.id },
+      data: { failedPinCount: { increment: 1 } },
+      select: { failedPinCount: true },
+    });
+    const pinOk = failedPinCount <= MAX_FAILED_ATTEMPTS && (await argon2.verify(user.pinHash, pin));
+
+    if (!pinOk) {
       const locking = failedPinCount >= MAX_FAILED_ATTEMPTS;
 
       await db.$transaction(async (tx) => {
-        await tx.user.update({
-          where: { id: user.id },
-          data: locking
-            ? {
-                failedPinCount: 0,
-                lockedUntil: new Date(Date.now() + LOCK_MINUTES * 60 * 1000),
-              }
-            : { failedPinCount },
+        if (!locking) return;
+        // Only the request that sets the lock tells the managers; the others in flight
+        // find it already set.
+        const { count } = await tx.user.updateMany({
+          where: {
+            id: user.id,
+            OR: [{ lockedUntil: null }, { lockedUntil: { lte: new Date() } }],
+          },
+          data: {
+            failedPinCount: 0,
+            lockedUntil: new Date(Date.now() + LOCK_MINUTES * 60 * 1000),
+          },
         });
 
-        if (locking) {
+        if (count === 1) {
           await notifyManagersOfLock(tx, user);
           await writeAudit(tx, {
             userId: user.id,
@@ -232,6 +248,15 @@ export const setPin = safeAction({
       });
       // Any other device holding a session was signed in with the old PIN.
       await destroyAllSessions(tx, user.id, token ? hashToken(token) : undefined);
+      await writeAudit(tx, {
+        userId: user.id,
+        branchId: user.homeBranchId,
+        action: AUDIT.userPinChange,
+        entityType: "User",
+        entityId: user.id,
+        // Never the PIN or its hash.
+        device: await device(),
+      });
     });
 
     revalidatePath("/", "layout");

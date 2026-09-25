@@ -171,6 +171,11 @@ async function loadInScope(kind: ListKind, id: string, user: SessionUser) {
   return item;
 }
 
+// A branch-only category is audited under its branch, so that branch's view of the log
+// shows it; a store-wide item and every reason have none.
+const itemBranch = (item: object): string | null =>
+  "branchId" in item ? ((item as { branchId: string | null }).branchId ?? null) : null;
+
 export const createItem = safeAction({
   name: "createItem",
   schema: createItemInput,
@@ -248,6 +253,7 @@ export const setItemActive = safeAction({
       await txTable(tx, kind).update({ where: { id }, data: { active } });
       await writeAudit(tx, {
         userId: user.id,
+        branchId: itemBranch(before),
         action: active ? LISTS[kind].audit.activate : LISTS[kind].audit.deactivate,
         entityType: LISTS[kind].entityType,
         entityId: id,
@@ -307,6 +313,7 @@ export const deleteItem = safeAction({
       await txTable(tx, kind).delete({ where: { id } });
       await writeAudit(tx, {
         userId: user.id,
+        branchId: itemBranch(item),
         action: LISTS[kind].audit.delete,
         entityType: LISTS[kind].entityType,
         entityId: id,

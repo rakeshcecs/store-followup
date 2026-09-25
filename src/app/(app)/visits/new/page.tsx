@@ -14,6 +14,7 @@ import { db } from "@/lib/db";
 import { formatDayDate } from "@/lib/format";
 import { activeCategories, activeLostReasons } from "@/lib/master-lists";
 import { ALL_BRANCHES } from "@/lib/permissions";
+import { firstParam, type SearchValue } from "@/lib/search-params";
 
 // Record visit (M07). Every role records visits (SOW 3.1), so there is no role check
 // beyond being signed in. Reached from M05 right after a new customer is saved, and from
@@ -21,10 +22,10 @@ import { ALL_BRANCHES } from "@/lib/permissions";
 export default async function NewVisitPage({
   searchParams,
 }: {
-  searchParams: Promise<{ customerId?: string }>;
+  searchParams: Promise<{ customerId?: SearchValue }>;
 }) {
   const user = await requireUser();
-  const { customerId } = await searchParams;
+  const customerId = firstParam((await searchParams).customerId);
   if (!customerId) notFound();
   const t = await getTranslations("visits");
   const locale = (await getLocale()) as Locale;

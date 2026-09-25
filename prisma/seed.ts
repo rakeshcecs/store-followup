@@ -6,11 +6,26 @@ import type { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 import { demoPin, demoStaff } from "./demo-store";
 
-const BRANCH_NAME = "[STORE NAME] – Main";
+const BRANCH_NAME = "Deepak Silk – Branch A";
+
+// Where the branches are. Surat addresses and store phones in the formats the branch
+// form accepts, so editing a branch in Settings saves without retyping anything.
+const BRANCH_DETAILS = {
+  address: "12, Ring Road, near Textile Market",
+  city: "Surat",
+  phone: "0261 234 5678",
+  openingHours: "10 AM to 9 PM",
+};
 
 // Extra branch and staff for trying multi-branch locally (SEED_DEMO=true).
 // Never set SEED_DEMO in production.
-const DEMO_BRANCH_NAME = "[STORE NAME] – Branch 2";
+const DEMO_BRANCH_NAME = "Deepak Silk – Branch B";
+const DEMO_BRANCH_DETAILS = {
+  address: "Shop 5, Ghod Dod Road, near Chowpatty",
+  city: "Surat",
+  phone: "0261 876 5432",
+  openingHours: "10:30 AM to 9:30 PM",
+};
 
 const DEPARTMENTS = ["Men's Wear", "Women's Wear", "Kids", "Other"];
 
@@ -55,10 +70,10 @@ function requireEnv(name: string): string {
 // somebody changes theirs.
 function printDemoLogins(adminMobile: string, adminPin: string): void {
   console.table([
-    { who: "Admin", branch: "Main", mobile: adminMobile, pin: `${adminPin} (must change)` },
-    ...demoStaff("Main", "Branch 2").map((person) => ({
+    { who: "Admin", branch: "All", mobile: adminMobile, pin: `${adminPin} (must change)` },
+    ...demoStaff("Branch A", "Branch B").map((person) => ({
       who: person.fullName,
-      branch: person.homeBranchId + (person.extraBranchIds.length ? " + Branch 2" : ""),
+      branch: person.homeBranchId + (person.extraBranchIds.length ? " + Branch B" : ""),
       mobile: person.mobile,
       pin: demoPin(),
     })),
@@ -79,7 +94,7 @@ async function main() {
     const branch = await tx.branch.upsert({
       where: { name: BRANCH_NAME },
       update: {},
-      create: { name: BRANCH_NAME, address: "[ADDRESS]", city: "[CITY]", phone: "[PHONE]" },
+      create: { name: BRANCH_NAME, ...BRANCH_DETAILS },
     });
 
     // PIN is only set on first create, so re-seeding never resets a changed PIN.
@@ -119,7 +134,7 @@ async function main() {
     const branch2 = await tx.branch.upsert({
       where: { name: DEMO_BRANCH_NAME },
       update: {},
-      create: { name: DEMO_BRANCH_NAME, address: "[ADDRESS]", city: "[CITY]", phone: "[PHONE]" },
+      create: { name: DEMO_BRANCH_NAME, ...DEMO_BRANCH_DETAILS },
     });
 
     // Demo staff have their own PIN and skip the forced change: this store exists to be

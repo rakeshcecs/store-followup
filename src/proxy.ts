@@ -8,7 +8,13 @@ import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/session-cookie";
 
 // Reachable without a session. Everything else needs one.
-const PUBLIC_PATHS = ["/login", "/offline", "/api/health", "/manifest.webmanifest"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/offline",
+  "/api/health",
+  "/manifest.webmanifest",
+  "/api/whatsapp/webhook", // Meta calls it; it checks its own signature (M22)
+];
 
 function isPublic(pathname: string): boolean {
   return (
@@ -24,6 +30,12 @@ export function proxy(request: NextRequest) {
 
   if (!token) {
     if (isPublic(pathname)) return NextResponse.next();
+    // A fetch follows a redirect and reads the login page as a 200, so the phone would
+    // never learn it is signed out and never wipe its offline copy (M19). Answer as the
+    // route itself would.
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "errors.unauthenticated" }, { status: 401 });
+    }
     const login = new URL("/login", request.url);
     // Where they were heading, so login can send them back there.
     if (pathname !== "/") login.searchParams.set("next", `${pathname}${search}`);

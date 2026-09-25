@@ -1,3 +1,4 @@
+import { ChevronRight } from "lucide-react";
 import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -77,15 +78,16 @@ export default async function TodayPage() {
       {data.comingUp.length > 0 && (
         <Section title={t("comingUp")}>
           {data.comingUp.map((followUp) => (
-            <Card key={followUp.id} className="flex items-center gap-3 px-3.5 py-3">
+            // The whole row opens the customer, like "Recently handled by you" on Find
+            // customer: a thumb on a phone should not have to hit the name itself.
+            <Link
+              key={followUp.id}
+              href={`/customers/${followUp.customer.id}`}
+              className="flex items-center gap-3 rounded-xl border border-border bg-card px-3.5 py-3 text-left text-foreground no-underline hover:bg-black/2"
+            >
               <Avatar name={followUp.customer.name} />
               <div className="min-w-0 grow">
-                <Link
-                  href={`/customers/${followUp.customer.id}`}
-                  className="font-extrabold text-foreground underline-offset-2 hover:underline"
-                >
-                  {followUp.customer.name}
-                </Link>
+                <span className="block font-extrabold">{followUp.customer.name}</span>
                 {/* "Sat, 26 Sep · evening · Phone call" */}
                 <p className="text-sm text-muted-foreground">
                   {formatDayDate(followUp.dueDate, locale)} ·{" "}
@@ -93,7 +95,8 @@ export default async function TodayPage() {
                   {tFollowUps(`method.${followUp.method}`)}
                 </p>
               </div>
-            </Card>
+              <ChevronRight aria-hidden className="size-5 shrink-0 text-muted-foreground" />
+            </Link>
           ))}
         </Section>
       )}

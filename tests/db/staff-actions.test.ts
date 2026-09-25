@@ -133,6 +133,52 @@ describe("updateStaff", () => {
     ).toBe(1);
   });
 
+  it("refuses an admin changing their own role (the way round the last-admin guard)", async () => {
+    const self = await db.user.findUniqueOrThrow({ where: { mobile: adminMobile } });
+
+    const result = await updateStaff({
+      id: self.id,
+      fullName: self.fullName,
+      mobile: self.mobile,
+      role: "MANAGER",
+      homeBranchId: branchId,
+      departmentId: "",
+      joinedOn: "",
+    });
+
+    expect(result).toMatchObject({ ok: false, message: "staff.errors.cannotChangeOwnRole" });
+    expect((await db.user.findUniqueOrThrow({ where: { id: self.id } })).role).toBe("ADMIN");
+  });
+
+  it("refuses moving someone to a switched-off branch, but keeps one they are already in", async () => {
+    const closed = await makeBranch();
+    await db.branch.update({ where: { id: closed.id }, data: { status: "INACTIVE" } });
+    const created = await createStaff(await staffInput());
+    if (!created.ok) throw new Error("setup failed");
+    const base = {
+      id: created.data.id,
+      fullName: "Moved Person",
+      mobile: nextMobile(),
+      role: "SALESPERSON",
+      departmentId: "",
+      joinedOn: "",
+    };
+
+    await expect(createStaff(await staffInput({ homeBranchId: closed.id }))).resolves.toMatchObject(
+      { ok: false, message: "staff.errors.branchInactive" },
+    );
+    await expect(updateStaff({ ...base, homeBranchId: closed.id })).resolves.toMatchObject({
+      ok: false,
+      message: "staff.errors.branchInactive",
+    });
+
+    // Their own branch switched off later: the rest of the form still saves.
+    await db.branch.update({ where: { id: branchId }, data: { status: "INACTIVE" } });
+    await expect(updateStaff({ ...base, homeBranchId: branchId })).resolves.toMatchObject({
+      ok: true,
+    });
+  });
+
   it("cannot reach a person outside the branch being looked at", async () => {
     const otherBranch = await makeBranch();
     const stranger = await makeUser({ role: "SALESPERSON", homeBranchId: otherBranch.id });

@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import Link from "next/link";
 import { useTransition } from "react";
 import { setStaffStatus } from "@/app/(app)/staff/actions";
 import { Button } from "@/components/ui/button";
@@ -47,17 +48,27 @@ export function StaffStatusButton({
     });
   }
 
-  if (blocked) {
+  if (blocked && isSelf) {
     return (
       <div className="flex flex-col gap-1.5">
         <Button variant="secondary" size="sm" disabled>
           {t("deactivate")}
         </Button>
+        <p className="text-sm text-muted-foreground">{tBlocked("cannotDeactivateSelf")}</p>
+      </div>
+    );
+  }
+
+  // BR-15 / M15.02: their work goes to someone else first, on the reassign screen, which
+  // then makes them inactive in the same step.
+  if (blocked) {
+    return (
+      <div className="flex flex-col gap-1.5">
+        <Button asChild variant="secondary" size="sm">
+          <Link href={`/staff/reassign?from=${id}&exit=1`}>{t("reassignAndDeactivate")}</Link>
+        </Button>
         <p className="text-sm text-muted-foreground">
-          {isSelf
-            ? tBlocked("cannotDeactivateSelf")
-            : // M15 turns this into a link to the reassign screen.
-              tBlocked("reassignFirst", { customers: openCustomers, followUps: openFollowUps })}
+          {tBlocked("reassignFirst", { customers: openCustomers, followUps: openFollowUps })}
         </p>
       </div>
     );

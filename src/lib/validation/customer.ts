@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isRealDay } from "./common";
 import { normalizeMobile } from "@/lib/mobile";
 import { emptyToUndefined, id, optionalText, requiredText } from "@/lib/validation/common";
 
@@ -21,10 +22,7 @@ const checkboxField = z.preprocess((value) => value === "on" || value === true, 
 // "2026-09-23" from <input type="date">, stored in a @db.Date column: no time, no zone.
 const isoDateField = z.preprocess(
   emptyToUndefined,
-  z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "customers.errors.occasionDateInvalid")
-    .optional(),
+  z.string().refine(isRealDay, "customers.errors.occasionDateInvalid").optional(),
 );
 
 // An alternate number is optional, but if one is given it has to be a real mobile:
@@ -43,6 +41,9 @@ const ALT_SAME = { message: "customers.errors.altSameAsMobile", path: ["altMobil
 
 export const createCustomerInput = z
   .object({
+    // Made on the phone, so an entry sent twice (a retry, the offline outbox) is one
+    // customer (M19).
+    clientId: z.preprocess(emptyToUndefined, z.uuid().optional()),
     name: requiredText(1, 100, "customers.errors.nameRequired", "customers.errors.nameTooLong"),
     mobile: mobileField,
     // "" from an untouched chip group or select means "not chosen", not an invalid id.

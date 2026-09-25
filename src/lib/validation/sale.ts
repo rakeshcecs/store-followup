@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isRealDay } from "./common";
 import { emptyToUndefined, id, optionalText, requiredText } from "@/lib/validation/common";
 
 // M10. The same rules whether the sale comes with a visit (M07's draft) or on its own.
@@ -15,9 +16,7 @@ export const billNumberField = z
 
 // "2026-09-24" from <input type="date">. Not in the future — checked against today in
 // the action, which knows "now" in IST.
-export const billDateField = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, "visits.errors.billDateInvalid");
+export const billDateField = z.string().refine(isRealDay, "visits.errors.billDateInvalid");
 
 // Whole rupees (SOW 5.7). Whether it may be left out is a store setting, checked in the
 // action (src/lib/settings.ts).
@@ -73,3 +72,4 @@ export const updateSaleInput = z.object({
 export const cancelSaleInput = z.object({ id, reason: reasonField });
 
 export type SaleInput = z.infer<typeof saleInput>;
+export type RecordSaleInput = z.infer<typeof recordSaleInput>;

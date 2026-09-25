@@ -1,8 +1,10 @@
 import {
   AlarmClock,
+  MessageCircle,
   Building2,
   ChevronRight,
   ListChecks,
+  PartyPopper,
   Receipt,
   Tags,
   Users,
@@ -36,6 +38,18 @@ export default async function SettingsPage() {
       label: t("reminders"),
       text: t("remindersText"),
       icon: AlarmClock,
+    },
+    {
+      href: "/settings/whatsapp",
+      label: t("whatsapp"),
+      text: t("whatsappText"),
+      icon: MessageCircle,
+    },
+    {
+      href: "/settings/festivals",
+      label: t("festivals"),
+      text: t("festivalsText"),
+      icon: PartyPopper,
     },
   ];
 

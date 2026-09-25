@@ -13,7 +13,7 @@ import { TextInput } from "@/components/ui/text-input";
 import { toast } from "@/components/ui/toast";
 import { useErrorMessage } from "@/hooks/use-error-message";
 import type { Locale } from "@/i18n/config";
-import { recordFollowUpResult } from "@/lib/actions/follow-up";
+import { saveFollowUpResult } from "@/lib/offline/actions";
 import {
   CALL_AGAIN_SHORTCUTS,
   dayForDisplay,
@@ -47,6 +47,7 @@ type ResultFormProps = {
 // (M09.07), so the note travels to the Sale screen with the person.
 export function ResultForm({ userId, followUp, reasons, today }: ResultFormProps) {
   const t = useTranslations("followUpResult");
+  const tSync = useTranslations("sync");
   const tError = useErrorMessage();
   const locale = useLocale() as Locale;
   const router = useRouter();
@@ -92,7 +93,7 @@ export function ResultForm({ userId, followUp, reasons, today }: ResultFormProps
 
     const base = { id: followUp.id, clientId, note: trimmed || undefined };
     startTransition(async () => {
-      const saved = await recordFollowUpResult(
+      const saved = await saveFollowUpResult(
         result === "WILL_VISIT" || result === "CALL_LATER"
           ? { ...base, result, nextDate }
           : result === "NOT_INTERESTED"
@@ -105,7 +106,7 @@ export function ResultForm({ userId, followUp, reasons, today }: ResultFormProps
         setErrors({ [field]: saved.message });
         return;
       }
-      toast(t("saved"));
+      toast(saved.data.queued ? tSync("savedOnPhone") : t("saved"));
       // "/" sends each role home: Today for a salesperson, Overview otherwise.
       router.push("/");
     });

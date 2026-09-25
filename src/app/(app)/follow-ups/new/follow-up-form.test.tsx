@@ -9,7 +9,10 @@ const setFollowUpAction = vi.hoisted(() => vi.fn());
 const recordVisitAction = vi.hoisted(() => vi.fn());
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
-vi.mock("@/lib/actions/follow-up", () => ({ setFollowUp: setFollowUpAction }));
+vi.mock("@/lib/actions/follow-up", () => ({
+  setFollowUp: setFollowUpAction,
+  recordFollowUpResult: vi.fn(),
+}));
 vi.mock("@/lib/actions/visit", () => ({ recordVisit: recordVisitAction }));
 
 const { FollowUpForm } = await import("@/app/(app)/follow-ups/new/follow-up-form");

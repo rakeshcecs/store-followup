@@ -27,15 +27,34 @@ export function calendarDay(value: string): Date {
 }
 
 // Cancels whatever is pending for the customer — a sale or "not interested" ends the
-// need the follow-up was for (BR-05, BR-06).
+// need the follow-up was for (BR-05, BR-06). Each one gets its audit row: a status
+// change with no entry left the follow-up looking pending forever on the audit screen.
 export async function cancelPendingFollowUps(
   tx: Prisma.TransactionClient,
   customerId: string,
+  by: { userId: string; device: string | null },
 ): Promise<number> {
-  const { count } = await tx.followUp.updateMany({
+  const pending = await tx.followUp.findMany({
     where: { customerId, status: "PENDING" },
+    select: { id: true, branchId: true },
+  });
+  if (pending.length === 0) return 0;
+  const { count } = await tx.followUp.updateMany({
+    where: { id: { in: pending.map((row) => row.id) }, status: "PENDING" },
     data: { status: "CANCELLED" },
   });
+  for (const row of pending) {
+    await writeAudit(tx, {
+      userId: by.userId,
+      branchId: row.branchId,
+      action: AUDIT.followUpCancel,
+      entityType: "FollowUp",
+      entityId: row.id,
+      oldValue: { status: "PENDING" },
+      newValue: { status: "CANCELLED" },
+      device: by.device,
+    });
+  }
   return count;
 }
 
@@ -63,8 +82,9 @@ export type NewFollowUp = {
   timeSlot: TimeSlot;
   method: FollowUpMethod;
   reason?: string;
-  createdFrom: "VISIT" | "FOLLOWUP_RESULT" | "PROFILE";
+  createdFrom: "VISIT" | "FOLLOWUP_RESULT" | "PROFILE" | "OCCASION";
   notReachableCount?: number; // M09.06: "Not reachable" in a row; anything else starts at 0
+  enteredOffline?: boolean; // M19: saved on the phone without internet, synced later
 };
 
 // M08.06: a new follow-up replaces the pending one, which is marked Rescheduled. The old
@@ -95,6 +115,7 @@ export async function writeFollowUp(tx: Prisma.TransactionClient, input: NewFoll
       reason: input.reason ?? null,
       createdFrom: input.createdFrom,
       notReachableCount: input.notReachableCount ?? 0,
+      enteredOffline: input.enteredOffline ?? false,
     },
     select: {
       id: true,
@@ -116,7 +137,7 @@ export async function writeFollowUp(tx: Prisma.TransactionClient, input: NewFoll
 export async function recordFollowUpSet(
   tx: Prisma.TransactionClient,
   input: {
-    userId: string;
+    userId: string | null; // null: the worker set it (M23 occasion follow-ups)
     branchId: string;
     customerId: string;
     device: string | null;
@@ -219,7 +240,7 @@ export async function closeNotInterested(
     where: { id: input.enquiryId },
     data: { status: "NOT_INTERESTED", lostReasonId: input.lostReasonId, closedAt: input.now },
   });
-  await cancelPendingFollowUps(tx, input.customerId);
+  await cancelPendingFollowUps(tx, input.customerId, input);
   await writeAudit(tx, {
     userId: input.userId,
     branchId: input.branchId,

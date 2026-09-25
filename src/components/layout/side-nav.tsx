@@ -41,7 +41,7 @@ export function SideNav({ label, title, items, action }: SideNavProps) {
         );
       })}
       {action && (
-        <form action={action.action} className="mt-auto">
+        <form action={action.action} className="mt-auto" data-nav-action="">
           <button type="submit" className={cn(itemClass, "w-full")}>
             <span aria-hidden>{action.icon}</span>
             {action.label}

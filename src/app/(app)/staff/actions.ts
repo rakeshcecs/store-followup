@@ -12,8 +12,8 @@ import { assertDepartmentUsable } from "@/lib/departments";
 import { AppError } from "@/lib/errors";
 import { assertBranchAccess } from "@/lib/permissions";
 import { safeAction } from "@/lib/safe-action";
-import { destroyAllSessions } from "@/lib/session";
 import { staffInScope } from "@/lib/staff-scope";
+import { assertMayDeactivate, writeStaffStatus } from "@/lib/staff-status";
 import { hasOpenWork, openWorkFor } from "@/lib/staff-work";
 import { generateTempPin } from "@/lib/temp-pin";
 import { createStaffInput, setStaffStatusInput, updateStaffInput } from "@/lib/validation/staff";
@@ -84,6 +84,25 @@ async function syncExtraBranches(
   }
 }
 
+// A switched-off branch has no screens anyone can work on (M17), so nobody new is placed
+// there. Someone already there keeps it, so their other details can still be saved.
+async function assertHomeBranchActive(branchId: string, current?: string): Promise<void> {
+  if (branchId === current) return;
+  const branch = await db.branch.findUnique({ where: { id: branchId }, select: { status: true } });
+  if (branch?.status !== "ACTIVE") {
+    throw new AppError("RULE", { message: "staff.errors.branchInactive", field: "homeBranchId" });
+  }
+}
+
+// Nobody changes their own role. An admin making themselves a manager was the one way
+// round the "last active admin" guard (the actor is always an active admin, so demoting
+// anyone else leaves at least them).
+function assertMayChangeRole(actor: SessionUser, staff: { id: string; role: Role }, role: Role) {
+  if (staff.role !== role && staff.id === actor.id) {
+    throw new AppError("RULE", { message: "staff.errors.cannotChangeOwnRole", field: "role" });
+  }
+}
+
 // Loaded for every write, so an admin on one branch cannot edit another branch's people
 // by posting an id. NOT_FOUND, not FORBIDDEN: existence is itself information.
 async function loadStaffInScope(id: string) {
@@ -112,6 +131,7 @@ export const createStaff = safeAction({
   auth: ADMIN_ONLY,
   handler: async (input, { user }) => {
     assertBranchAccess(user, input.homeBranchId);
+    await assertHomeBranchActive(input.homeBranchId);
     const extraBranchIds = extraBranchesFor(user, input);
     await assertMobileFree(input.mobile);
     await assertDepartmentUsable(input.departmentId);
@@ -174,6 +194,8 @@ export const updateStaff = safeAction({
   handler: async (input) => {
     const { actor, staff } = await loadStaffInScope(input.id);
     assertBranchAccess(actor, input.homeBranchId);
+    await assertHomeBranchActive(input.homeBranchId, staff.homeBranchId);
+    assertMayChangeRole(actor, staff, input.role);
     const extraBranchIds = extraBranchesFor(actor, input);
     await assertMobileFree(input.mobile, staff.id);
     await assertDepartmentUsable(input.departmentId, staff.departmentId);
@@ -234,24 +256,11 @@ export const setStaffStatus = safeAction({
     if (staff.status === status) return { id: staff.id, status };
 
     if (status === "INACTIVE") {
-      // Signing yourself out of the app for good is never what the click meant.
-      if (staff.id === actor.id) {
-        throw new AppError("RULE", { message: "staff.errors.cannotDeactivateSelf" });
-      }
-
-      if (staff.role === "ADMIN") {
-        const otherAdmins = await db.user.count({
-          where: { role: "ADMIN", status: "ACTIVE", id: { not: staff.id } },
-        });
-        // The same guard as the last active branch (M17): nobody left who can undo it.
-        if (otherAdmins === 0) {
-          throw new AppError("RULE", { message: "staff.errors.lastAdmin" });
-        }
-      }
+      await assertMayDeactivate(db, actor, staff);
 
       const open = await openWorkFor(db, staff.id);
-      // BR-15: their customers and pending follow-ups must go to someone else first.
-      // M15 turns this message into a link to the reassign screen.
+      // BR-15: their customers and pending follow-ups must go to someone else first — the
+      // screen links to the reassign screen, which can deactivate them at the end (M15).
       if (hasOpenWork(open)) {
         throw new AppError("RULE", {
           message: "staff.errors.reassignFirst",
@@ -260,27 +269,8 @@ export const setStaffStatus = safeAction({
       }
     }
 
-    await db.$transaction(async (tx) => {
-      await tx.user.update({
-        where: { id: staff.id },
-        data: { status, updatedById: actor.id },
-      });
-
-      // A session outlives a deactivation by up to 30 days otherwise. getSessionUser()
-      // already refuses an inactive user, so this is belt and braces — and it frees rows.
-      if (status === "INACTIVE") await destroyAllSessions(tx, staff.id);
-
-      await writeAudit(tx, {
-        userId: actor.id,
-        branchId: staff.homeBranchId,
-        action: status === "ACTIVE" ? AUDIT.userActivate : AUDIT.userDeactivate,
-        entityType: "User",
-        entityId: staff.id,
-        oldValue: { status: staff.status },
-        newValue: { status },
-        device: await device(),
-      });
-    });
+    const agent = await device();
+    await db.$transaction((tx) => writeStaffStatus(tx, { actor, staff, status, device: agent }));
 
     revalidatePath("/staff");
     return { id: staff.id, status };

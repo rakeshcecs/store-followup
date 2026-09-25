@@ -3,8 +3,12 @@
 // branch-scope-exempt: bill numbers are unique within the branch the sale is written to
 // (BR-07), and that branch comes from writeBranchId() in the caller; the linked
 // follow-up is the enquiry's own, whichever branch it was set in.
+//
+// The callers (recordVisit, recordSale) write the "sale:create" row in the same
+// transaction, with the sale they get back; the enquiry this closes is audited here.
 import { randomUUID } from "node:crypto";
 import type { Prisma } from "@/generated/prisma/client";
+import { AUDIT, writeAudit } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { AppError } from "@/lib/errors";
 import type { Locale } from "@/i18n/config";
@@ -78,6 +82,10 @@ export type NewSale = {
   billDate: string;
   billAmount?: number;
   remarks?: string;
+  enteredOffline?: boolean; // M19: saved on the phone without internet, synced later
+  userId: string; // who saved it, for the audit rows of what the sale closes
+  device: string | null;
+  now: Date; // the entry's own time (an offline sale synced later keeps its day)
 };
 
 // Saves the sale and closes what it ends (BR-06): the enquiry becomes Sale Completed and
@@ -104,15 +112,25 @@ export async function writeSale(tx: Prisma.TransactionClient, input: NewSale) {
       remarks: input.remarks ?? null,
       linkedFollowUpId: linked?.id ?? null,
       fromFollowUp: linked !== null,
+      enteredOffline: input.enteredOffline ?? false,
     },
     select: { id: true, billNumber: true, billDate: true, billAmount: true },
   });
 
   await tx.enquiry.update({
     where: { id: input.enquiryId },
-    data: { status: "SALE_COMPLETED", closedAt: new Date() },
+    data: { status: "SALE_COMPLETED", closedAt: input.now },
   });
-  await cancelPendingFollowUps(tx, input.customerId);
+  await writeAudit(tx, {
+    userId: input.userId,
+    branchId: input.branchId,
+    action: AUDIT.enquiryClose,
+    entityType: "Enquiry",
+    entityId: input.enquiryId,
+    newValue: { status: "SALE_COMPLETED", saleId: sale.id },
+    device: input.device,
+  });
+  await cancelPendingFollowUps(tx, input.customerId, input);
 
   return sale;
 }

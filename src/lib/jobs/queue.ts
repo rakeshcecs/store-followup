@@ -63,10 +63,25 @@ export async function claimJobs(workerId: string, limit = 5): Promise<Job[]> {
   });
 }
 
-export async function completeJob(id: string): Promise<void> {
-  await db.job.update({
-    where: { id },
+// With a workerId, only while that worker still holds the job: once a stale lock has
+// been released and another worker has taken it, the first one's late answer must not
+// overwrite the second one's state.
+const heldBy = (workerId?: string) =>
+  workerId ? { status: "RUNNING" as const, lockedBy: workerId } : {};
+
+export async function completeJob(id: string, workerId?: string): Promise<void> {
+  await db.job.updateMany({
+    where: { id, ...heldBy(workerId) },
     data: { status: "DONE", finishedAt: new Date(), lockedAt: null, lockedBy: null },
+  });
+}
+
+// A long job (a big import, a backup) says it is still alive, so releaseStaleJobs() does
+// not hand it to a second worker while the first is still on it.
+export async function touchJob(id: string, workerId: string): Promise<void> {
+  await db.job.updateMany({
+    where: { id, status: "RUNNING", lockedBy: workerId },
+    data: { lockedAt: new Date() },
   });
 }
 
@@ -75,9 +90,12 @@ export async function completeJob(id: string): Promise<void> {
 export async function failJob(
   id: string,
   error: unknown,
-  options: { retry?: boolean } = {},
+  options: { retry?: boolean; workerId?: string } = {},
 ): Promise<Job> {
   const job = await db.job.findUniqueOrThrow({ where: { id } });
+  if (options.workerId && (job.status !== "RUNNING" || job.lockedBy !== options.workerId)) {
+    return job; // someone else holds it now
+  }
   const message = (error instanceof Error ? error.message : String(error)).slice(0, 1000);
   const giveUp = options.retry === false || job.attempts >= job.maxAttempts;
   return db.job.update({

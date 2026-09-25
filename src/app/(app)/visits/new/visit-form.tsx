@@ -10,7 +10,7 @@ import { OptionList } from "@/components/ui/option-list";
 import { TextArea } from "@/components/ui/text-area";
 import { toast } from "@/components/ui/toast";
 import { useErrorMessage } from "@/hooks/use-error-message";
-import { recordVisit } from "@/lib/actions/visit";
+import { saveVisit } from "@/lib/offline/actions";
 import {
   clearVisitDraft,
   parseVisitDraft,
@@ -69,6 +69,7 @@ function VisitFields({
   draft,
 }: VisitFormProps & { draft: VisitDraft | null }) {
   const t = useTranslations("visits");
+  const tSync = useTranslations("sync");
   const tError = useErrorMessage();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -107,13 +108,13 @@ function VisitFields({
     }
 
     startTransition(async () => {
-      const result = await recordVisit({ ...visit, outcome, lostReasonId });
+      const result = await saveVisit({ ...visit, outcome, lostReasonId });
       if (!result.ok) {
         setErrors({ [result.field ?? "form"]: result.message });
         return;
       }
       clearVisitDraft(userId, customerId);
-      toast(t("saved"));
+      toast(result.data.queued ? tSync("savedOnPhone") : t("saved"));
       // "/" sends each role to its own home: Today for a salesperson, Overview otherwise.
       router.push("/");
     });

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isRealDay } from "./common";
 import { emptyToUndefined, id, optionalText } from "@/lib/validation/common";
 // The sale that comes with a "Yes, bought something" visit: M10's rules, one copy.
 import { saleInput } from "@/lib/validation/sale";
@@ -9,7 +10,7 @@ import { saleInput } from "@/lib/validation/sale";
 // reason (BR-05). The dates are checked against today in the action, which knows "now".
 
 // "2026-09-24" from <input type="date">: no time, no zone.
-const isoDay = (message: string) => z.string().regex(/^\d{4}-\d{2}-\d{2}$/, message);
+const isoDay = (message: string) => z.string().refine(isRealDay, message);
 
 const EXPECTED = ["THIS_WEEK", "THIS_MONTH", "NEXT_MONTH", "NOT_SURE"] as const;
 

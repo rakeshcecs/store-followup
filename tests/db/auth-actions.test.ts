@@ -100,6 +100,43 @@ describe("login", () => {
     });
   });
 
+  it("does not tell a stranger that a deactivated number exists", async () => {
+    const staff = await makeStaff({
+      role: "SALESPERSON",
+      homeBranchId: branchId,
+      status: "INACTIVE",
+    });
+
+    await expect(login({ mobile: staff.mobile, pin: "0007" })).resolves.toMatchObject({
+      ok: false,
+      message: "auth.errors.badCredentials",
+    });
+  });
+
+  it("locks once when many wrong PINs arrive at the same moment", async () => {
+    const manager = await makeStaff({ role: "MANAGER", homeBranchId: branchId });
+    const staff = await makeStaff({ role: "SALESPERSON", homeBranchId: branchId });
+
+    const results = await Promise.all(
+      Array.from({ length: 12 }, () => login({ mobile: staff.mobile, pin: "0007" })),
+    );
+
+    expect(results.every((result) => !result.ok)).toBe(true);
+    const saved = await db.user.findUniqueOrThrow({ where: { id: staff.id } });
+    expect(saved.lockedUntil!.getTime()).toBeGreaterThan(Date.now());
+    expect(
+      await db.notification.count({ where: { userId: manager.id, type: "user-locked" } }),
+    ).toBe(1);
+    expect(
+      await db.auditLog.count({ where: { entityId: staff.id, action: AUDIT.userLocked } }),
+    ).toBe(1);
+    // And the right PIN is refused afterwards: the burst bought no extra guesses.
+    await expect(login({ mobile: staff.mobile, pin: PIN })).resolves.toMatchObject({
+      ok: false,
+      message: "auth.errors.locked",
+    });
+  });
+
   it("counts wrong PINs and clears the count on a good one", async () => {
     const staff = await makeStaff({ role: "SALESPERSON", homeBranchId: branchId });
 
@@ -175,6 +212,11 @@ describe("setPin", () => {
     expect(await db.session.count({ where: { userId: staff.id, tokenHash: "other-device" } })).toBe(
       0,
     );
+    // M16: audited, and never with the PIN or its hash.
+    const audit = await db.auditLog.findFirstOrThrow({
+      where: { entityId: staff.id, action: AUDIT.userPinChange },
+    });
+    expect(audit).toMatchObject({ userId: staff.id, oldValue: null, newValue: null });
   });
 
   it("refuses a wrong current PIN", async () => {

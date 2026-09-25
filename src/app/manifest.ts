@@ -1,9 +1,9 @@
 import type { MetadataRoute } from "next";
 
-// Store name/logo are placeholders until the client decides (docs/decisions.md).
+// Store name decided 25 Sep 2026; the logo is still a placeholder (docs/decisions.md).
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "[STORE NAME] Follow-up",
+    name: "Deepak Silk Follow-up",
     short_name: "Follow-up",
     description: "Walk-in, follow-up and sales tracking",
     start_url: "/",

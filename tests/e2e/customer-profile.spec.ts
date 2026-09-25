@@ -71,6 +71,9 @@ test.describe("customer profile and history", () => {
     await expect(page.getByText(en.customers.profile.status.new)).toBeVisible();
     await expect(page.getByText(en.customers.profile.noEnquiry)).toBeVisible();
     await expect(page.getByText(en.timeline.customerAdded)).toBeVisible();
+    // The top bar's six buttons fit a phone: the page is not laid out wider than the
+    // screen (it was, 459 px on a 412 px Pixel 7, until the title learned to shrink).
+    expect(await page.evaluate(() => window.innerWidth <= screen.width)).toBe(true);
 
     // Call and WhatsApp open on the phone; nothing is sent by itself.
     await expect(

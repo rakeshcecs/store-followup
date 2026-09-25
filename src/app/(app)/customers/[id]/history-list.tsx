@@ -2,9 +2,16 @@ import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import type { Locale } from "@/i18n/config";
 import { TIMELINE_MAX, TIMELINE_PAGE, type TimelineRow } from "@/lib/customers";
-import { formatDateTime, formatDayDate } from "@/lib/format";
+import { formatDate, formatDateTime, formatDayDate } from "@/lib/format";
 import type { BranchScope } from "@/lib/permissions";
-import { TIMELINE, timelineTone, type TimelineTone } from "@/lib/timeline";
+import { MessageStatusTicks } from "@/components/whatsapp/message-status";
+import {
+  readReassignDetail,
+  systemByline,
+  TIMELINE,
+  timelineTone,
+  type TimelineTone,
+} from "@/lib/timeline";
 import { cn } from "@/lib/utils";
 
 const DOT: Record<TimelineTone, string> = {
@@ -13,6 +20,11 @@ const DOT: Record<TimelineTone, string> = {
   grey: "bg-dot",
   indigo: "bg-primary",
 };
+
+// The two names a reassignment row keeps in its detail (src/lib/reassign.ts).
+function reassignNames(event: TimelineRow): { from: string; to: string } | null {
+  return event.type === TIMELINE.reassigned.type ? readReassignDetail(event.detail) : null;
+}
 
 // M06.05: newest first — date, what happened, the remarks, and who did it.
 export async function HistoryList({
@@ -42,7 +54,18 @@ export async function HistoryList({
   // Sun, 27 Sep" (M09) take the day from the follow-up the row points at; rows written
   // before M08 point at none and keep the plain title.
   const tFollowUps = await getTranslations("followUps");
+  const tWhatsApp = await getTranslations("whatsapp");
+  const byline = (event: TimelineRow) => event.staffName ?? title(systemByline(event.type));
   const heading = (event: TimelineRow) => {
+    // M15.03: "Reassigned from Amit to Priya"; the byline below names who did it.
+    const names = reassignNames(event);
+    if (names) return tAll("timeline.reassignedFromTo", names);
+    // M24.04: "Imported on 24 Sep 2026 by Amit".
+    if (event.type === TIMELINE.imported.type)
+      return tAll("timeline.importedOnBy", {
+        date: formatDate(event.createdAt, locale),
+        name: event.staffName ?? "",
+      });
     const key = event.type === TIMELINE.followUpSet.type ? "timeline.followUpSetFor" : event.title;
     if (!event.followUp || !tAll.has(key as Parameters<typeof tAll>[0])) return title(event.title);
     return tAll(key as Parameters<typeof tAll>[0], {
@@ -87,15 +110,21 @@ export async function HistoryList({
                     heading(event)
                   )}
                 </p>
-                {event.detail && (
+                {event.detail && !reassignNames(event) && (
                   <p className="text-sm leading-relaxed whitespace-pre-line text-ink-2">
                     {event.detail}
                   </p>
                 )}
+                {event.whatsappStatus && (
+                  <MessageStatusTicks
+                    status={event.whatsappStatus}
+                    label={tWhatsApp(`status.${event.whatsappStatus}`)}
+                  />
+                )}
                 <p className="mt-0.5 text-[13px] text-muted-foreground">
                   {event.branchName
-                    ? t("byAt", { name: event.staffName, branch: event.branchName })
-                    : event.staffName}
+                    ? t("byAt", { name: byline(event), branch: event.branchName })
+                    : byline(event)}
                 </p>
               </div>
             </li>

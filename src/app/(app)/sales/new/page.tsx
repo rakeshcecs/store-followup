@@ -14,6 +14,7 @@ import { db } from "@/lib/db";
 import { formatDayDate, isoDate } from "@/lib/format";
 import { ALL_BRANCHES } from "@/lib/permissions";
 import { billAmountRequired } from "@/lib/settings";
+import { firstParam, type SearchValue } from "@/lib/search-params";
 
 // Sale completed (M10). Reached three ways: from Record visit's "Yes, bought something",
 // carrying the visit as a draft (?draft=…), from the profile's "Sale done", and from
@@ -22,10 +23,17 @@ import { billAmountRequired } from "@/lib/settings";
 export default async function NewSalePage({
   searchParams,
 }: {
-  searchParams: Promise<{ customerId?: string; draft?: string; followUpId?: string }>;
+  searchParams: Promise<{
+    customerId?: SearchValue;
+    draft?: SearchValue;
+    followUpId?: SearchValue;
+  }>;
 }) {
   const user = await requireUser();
-  const { customerId, draft, followUpId } = await searchParams;
+  const params = await searchParams;
+  const customerId = firstParam(params.customerId);
+  const draft = firstParam(params.draft);
+  const followUpId = firstParam(params.followUpId);
   if (!customerId) notFound();
   const t = await getTranslations("sales");
   const tVisits = await getTranslations("visits");

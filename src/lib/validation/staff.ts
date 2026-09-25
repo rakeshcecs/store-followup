@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isRealDay } from "./common";
 import { locales } from "@/i18n/config";
 import { roles } from "@/lib/roles";
 import { emptyToUndefined, id, requiredText } from "@/lib/validation/common";
@@ -23,10 +24,7 @@ const idListField = z.preprocess(
 // so no time and no zone — the day is the day, in IST as everywhere else.
 const isoDateField = z.preprocess(
   emptyToUndefined,
-  z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "staff.errors.joinedOnInvalid")
-    .optional(),
+  z.string().refine(isRealDay, "staff.errors.joinedOnInvalid").optional(),
 );
 
 export const staffInput = z.object({

@@ -413,4 +413,16 @@ describe("reminder settings (admin)", () => {
     expect(await tick(at("18:15"))).toBe(1);
     expect(await db.job.count({ where: { singletonKey: `reminders-slot:${D}:EVENING` } })).toBe(1);
   });
+
+  it("a skipped tick or a restart still sends the reminder, once, within 15 minutes", async () => {
+    const at = (hhmm: string) => new Date(`${D}T${hhmm}:00.000+05:30`);
+    await db.job.deleteMany({ where: { singletonKey: { contains: D } } });
+    await signInAs(store.admin.mobile);
+    await updateReminderSettings(DEFAULT_REMINDER_TIMES);
+
+    expect(await tick(at("10:50"))).toBe(0); // 10:30 is more than 15 minutes ago: not now
+    expect(await tick(at("09:37"))).toBe(1); // the 09:30 tick never ran
+    expect(await tick(at("09:38"))).toBe(1);
+    expect(await db.job.count({ where: { singletonKey: `reminders-morning:${D}` } })).toBe(1);
+  });
 });

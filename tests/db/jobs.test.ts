@@ -7,6 +7,7 @@ import {
   failJob,
   purgeFinishedJobs,
   releaseStaleJobs,
+  touchJob,
 } from "@/lib/jobs/queue";
 import { runOnce } from "../../worker/run";
 
@@ -77,6 +78,36 @@ describe("job queue", () => {
     });
     expect(await releaseStaleJobs(10)).toBe(1);
     expect((await db.job.findUniqueOrThrow({ where: { id: job.id } })).status).toBe("PENDING");
+  });
+
+  it("a worker whose job was handed on cannot finish or fail it any more", async () => {
+    const job = await enqueue("test", { note: "slow" });
+    await claimJobs("w1");
+    await db.job.update({
+      where: { id: job.id },
+      data: { lockedAt: new Date(Date.now() - 20 * 60_000) },
+    });
+    await releaseStaleJobs(10);
+    await claimJobs("w2");
+
+    await completeJob(job.id, "w1");
+    await failJob(job.id, new Error("late"), { workerId: "w1" });
+    const row = await db.job.findUniqueOrThrow({ where: { id: job.id } });
+    expect(row).toMatchObject({ status: "RUNNING", lockedBy: "w2", lastError: null });
+
+    await completeJob(job.id, "w2");
+    expect((await db.job.findUniqueOrThrow({ where: { id: job.id } })).status).toBe("DONE");
+  });
+
+  it("a job that says it is alive is not released as stale", async () => {
+    const job = await enqueue("test", { note: "long import" });
+    await claimJobs("w1");
+    await db.job.update({
+      where: { id: job.id },
+      data: { lockedAt: new Date(Date.now() - 20 * 60_000) },
+    });
+    await touchJob(job.id, "w1");
+    expect(await releaseStaleJobs(10)).toBe(0);
   });
 
   it("purges only old DONE jobs", async () => {

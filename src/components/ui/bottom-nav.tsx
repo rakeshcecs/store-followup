@@ -32,7 +32,7 @@ export function BottomNav({ label, items, action, className }: BottomNavProps) {
       data-slot="bottom-nav"
       aria-label={label}
       className={cn(
-        "flex shrink-0 border-t border-border bg-card px-2 pt-1.5 pb-[calc(env(safe-area-inset-bottom)+12px)]",
+        "flex shrink-0 border-t border-border bg-card px-2 pt-1.5 pb-[calc(env(safe-area-inset-bottom)+12px)] print:hidden",
         className,
       )}
     >
@@ -51,7 +51,7 @@ export function BottomNav({ label, items, action, className }: BottomNavProps) {
         );
       })}
       {action && (
-        <form action={action.action} className="flex flex-1">
+        <form action={action.action} className="flex flex-1" data-nav-action="">
           <button type="submit" className={tabClass}>
             <span aria-hidden>{action.icon}</span>
             {action.label}

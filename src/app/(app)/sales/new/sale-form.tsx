@@ -13,8 +13,8 @@ import { TextArea } from "@/components/ui/text-area";
 import { TextInput } from "@/components/ui/text-input";
 import { toast } from "@/components/ui/toast";
 import { useErrorMessage } from "@/hooks/use-error-message";
-import { checkBill, recordSale } from "@/lib/actions/sale";
-import { recordVisit } from "@/lib/actions/visit";
+import { checkBill } from "@/lib/actions/sale";
+import { saveSale, saveVisit } from "@/lib/offline/actions";
 import type { MessageValues } from "@/lib/errors";
 import {
   clearFollowUpNote,
@@ -69,6 +69,7 @@ function SaleFields({
   visit,
 }: SaleFormProps & { visit: VisitDraft | null }) {
   const t = useTranslations("sales");
+  const tSync = useTranslations("sync");
   const tError = useErrorMessage();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -88,8 +89,14 @@ function SaleFields({
   useEffect(() => {
     if (!bill) return;
     const timer = setTimeout(async () => {
-      const result = await checkBill({ billNumber: bill });
-      if (result.ok) setChecked({ bill, result: result.data });
+      // Offline there is no one to ask; the sync catches a used number (M19).
+      if (!navigator.onLine) return;
+      try {
+        const result = await checkBill({ billNumber: bill });
+        if (result.ok) setChecked({ bill, result: result.data });
+      } catch {
+        // The connection dropped while typing: same as offline.
+      }
     }, CHECK_DELAY_MS);
     return () => clearTimeout(timer);
   }, [bill]);
@@ -132,7 +139,7 @@ function SaleFields({
 
     startTransition(async () => {
       const result = visit
-        ? await recordVisit({
+        ? await saveVisit({
             clientId: visit.clientId,
             customerId: customer.id,
             categoryIds: visit.categoryIds,
@@ -141,7 +148,7 @@ function SaleFields({
             outcome: "PURCHASED",
             sale: { ...sale, clientId: saleClientId },
           })
-        : await recordSale({
+        : await saveSale({
             clientId: saleClientId,
             customerId: customer.id,
             sale,
@@ -162,7 +169,7 @@ function SaleFields({
       }
       clearVisitDraft(userId, customer.id);
       if (followUpId) clearFollowUpNote(userId, followUpId);
-      toast(t("saved", { bill }));
+      toast(result.data.queued ? tSync("savedOnPhone") : t("saved", { bill }));
       // "/" sends each role home: Today for a salesperson, Overview otherwise.
       router.push("/");
     });

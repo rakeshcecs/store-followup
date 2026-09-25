@@ -13,6 +13,7 @@ import { getCurrentBranch } from "@/lib/current-branch";
 import { db } from "@/lib/db";
 import { formatDayDate, isoDate } from "@/lib/format";
 import { ALL_BRANCHES } from "@/lib/permissions";
+import { firstParam, type SearchValue } from "@/lib/search-params";
 
 // Set follow-up (M08). Reached from Record visit's "No, will decide later", carrying the
 // visit as a draft (?draft=…), and from the profile's "Follow-up" (M08.07). Every role
@@ -23,10 +24,12 @@ import { ALL_BRANCHES } from "@/lib/permissions";
 export default async function NewFollowUpPage({
   searchParams,
 }: {
-  searchParams: Promise<{ customerId?: string; draft?: string }>;
+  searchParams: Promise<{ customerId?: SearchValue; draft?: SearchValue }>;
 }) {
   const user = await requireUser();
-  const { customerId, draft } = await searchParams;
+  const params = await searchParams;
+  const customerId = firstParam(params.customerId);
+  const draft = firstParam(params.draft);
   if (!customerId) notFound();
   const t = await getTranslations("followUps");
   const tVisits = await getTranslations("visits");

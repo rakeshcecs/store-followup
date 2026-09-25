@@ -8,7 +8,10 @@ const push = vi.hoisted(() => vi.fn());
 const recordResultAction = vi.hoisted(() => vi.fn());
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
-vi.mock("@/lib/actions/follow-up", () => ({ recordFollowUpResult: recordResultAction }));
+vi.mock("@/lib/actions/follow-up", () => ({
+  recordFollowUpResult: recordResultAction,
+  setFollowUp: vi.fn(),
+}));
 
 const { ResultForm } = await import("@/app/(app)/follow-ups/[id]/result-form");
 

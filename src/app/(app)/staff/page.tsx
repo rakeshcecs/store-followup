@@ -1,4 +1,4 @@
-import { Users } from "lucide-react";
+import { ArrowRightLeft, Users } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -18,11 +18,18 @@ import { formatMobile } from "@/lib/format";
 import { normalizeMobile } from "@/lib/mobile";
 import { canResetPin, staffBranchWhere } from "@/lib/staff-scope";
 import { openWorkFor } from "@/lib/staff-work";
+import { firstParam, type SearchValue } from "@/lib/search-params";
 
 // Everyone who may see this screen. Only an admin may change anything on it; a manager
 // gets the list and the one power the login screen promises them — resetting a PIN.
 
-type Search = { q?: string; role?: string; department?: string; status?: string };
+type Search = Record<"q" | "role" | "department" | "status", SearchValue>;
+
+// Hand-typed values that are no role or status show everyone, not a 500.
+const ROLES = ["SALESPERSON", "MANAGER", "ADMIN"] as const;
+const STATUSES = ["ACTIVE", "INACTIVE"] as const;
+const oneOf = <T extends string>(list: readonly T[], value: string | undefined) =>
+  list.find((item) => item === value);
 
 // Name or mobile. A search that looks like a number is matched against the mobile in the
 // shape it is stored, so "98765 43210" and "+91 98765 43210" both find the same person.
@@ -44,7 +51,13 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
   // nothing the admin area shows them, not an error page.
   if (user.role === "SALESPERSON") notFound();
   const scope = await getBranchScope(user);
-  const filters = await searchParams;
+  const params = await searchParams;
+  const filters = {
+    q: firstParam(params.q),
+    role: oneOf(ROLES, firstParam(params.role)),
+    department: firstParam(params.department),
+    status: oneOf(STATUSES, firstParam(params.status)),
+  };
   const t = await getTranslations("staff");
 
   const isAdmin = user.role === "ADMIN";
@@ -53,9 +66,9 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
   // branch filter — a manager searching the list then saw every branch's staff.
   const where: Prisma.UserWhereInput = {
     AND: [staffBranchWhere(scope), searchWhere(filters.q)],
-    ...(filters.role ? { role: filters.role as Prisma.EnumRoleFilter["equals"] } : {}),
+    ...(filters.role ? { role: filters.role } : {}),
     ...(filters.department ? { departmentId: filters.department } : {}),
-    ...(filters.status ? { status: filters.status as "ACTIVE" | "INACTIVE" } : {}),
+    ...(filters.status ? { status: filters.status } : {}),
   };
 
   const [staff, departments] = await Promise.all([
@@ -84,13 +97,13 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
     }),
   ]);
 
-  // Only for the rows an admin could actually deactivate, and only to explain why the
-  // button is disabled — the action checks again before it writes (BR-15).
+  // Only for the rows an admin could actually deactivate, to swap the button for the
+  // reassign-and-deactivate link — the action checks again before it writes (BR-15).
   const openWork = isAdmin
     ? new Map(
         await Promise.all(
           staff
-            .filter((person) => person.status === "ACTIVE" && person.role === "SALESPERSON")
+            .filter((person) => person.status === "ACTIVE")
             .map(async (person) => [person.id, await openWorkFor(db, person.id)] as const),
         ),
       )
@@ -98,11 +111,20 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
 
   return (
     <AppShell role={user.role} title={t("title")}>
-      {isAdmin && (
-        <Button asChild>
-          <Link href="/staff/new">{t("add")}</Link>
+      <div className="flex flex-wrap gap-2.5">
+        {isAdmin && (
+          <Button asChild className="grow">
+            <Link href="/staff/new">{t("add")}</Link>
+          </Button>
+        )}
+        {/* M15: managers and admins hand customers from one salesperson to another. */}
+        <Button asChild variant="secondary" className="grow">
+          <Link href="/staff/reassign">
+            <ArrowRightLeft aria-hidden />
+            {t("reassign")}
+          </Link>
         </Button>
-      )}
+      </div>
 
       <StaffFilters departments={departments} />
 
