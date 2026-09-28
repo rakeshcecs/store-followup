@@ -8,12 +8,12 @@ import { demoPin, demoStaff } from "./demo-store";
 
 const BRANCH_NAME = "Deepak Silk – Branch A";
 
-// Where the branches are. Surat addresses and store phones in the formats the branch
+// Where the branches are. Ahmedabad addresses and store phones in the formats the branch
 // form accepts, so editing a branch in Settings saves without retyping anything.
 const BRANCH_DETAILS = {
-  address: "12, Ring Road, near Textile Market",
-  city: "Surat",
-  phone: "0261 234 5678",
+  address: "12, C.G. Road, near Navrangpura Bus Stand, Navrangpura",
+  city: "Ahmedabad",
+  phone: "079 2640 1234",
   openingHours: "10 AM to 9 PM",
 };
 
@@ -21,9 +21,9 @@ const BRANCH_DETAILS = {
 // Never set SEED_DEMO in production.
 const DEMO_BRANCH_NAME = "Deepak Silk – Branch B";
 const DEMO_BRANCH_DETAILS = {
-  address: "Shop 5, Ghod Dod Road, near Chowpatty",
-  city: "Surat",
-  phone: "0261 876 5432",
+  address: "Shop 5, Satellite Road, near Shivranjani Cross Roads, Satellite",
+  city: "Ahmedabad",
+  phone: "079 2675 5432",
   openingHours: "10:30 AM to 9:30 PM",
 };
 
