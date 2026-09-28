@@ -41,7 +41,14 @@ describe("staffInScope", () => {
 
 describe("canResetPin", () => {
   const as = (role: "SALESPERSON" | "MANAGER" | "ADMIN", homeBranchId = "a", branchIds = ["a"]) =>
-    ({ id: `me-${role}`, role, homeBranchId, branchIds, language: "en", mustChangePin: false }) as const;
+    ({
+      id: `me-${role}`,
+      role,
+      homeBranchId,
+      branchIds,
+      language: "en",
+      mustChangePin: false,
+    }) as const;
   const staff = (
     role: "SALESPERSON" | "MANAGER" | "ADMIN",
     homeBranchId = "a",

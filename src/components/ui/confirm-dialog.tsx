@@ -12,7 +12,7 @@ type ConfirmDialogProps = {
   title: string;
   description?: string;
   confirmLabel: string;
-  cancelLabel: string;
+  cancelLabel?: string; // left out when there is nothing to back out of: one button only
   danger?: boolean;
   onConfirm: () => void;
   children?: ReactNode; // sits between the text and the buttons, e.g. a one-time PIN
@@ -56,9 +56,11 @@ export function ConfirmDialog({
             >
               {confirmLabel}
             </AlertDialog.Action>
-            <AlertDialog.Cancel className={buttonVariants({ variant: "secondary" })}>
-              {cancelLabel}
-            </AlertDialog.Cancel>
+            {cancelLabel && (
+              <AlertDialog.Cancel className={buttonVariants({ variant: "secondary" })}>
+                {cancelLabel}
+              </AlertDialog.Cancel>
+            )}
           </div>
         </AlertDialog.Content>
       </AlertDialog.Portal>

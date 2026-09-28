@@ -23,9 +23,8 @@ export function TempPinDialog({ name, pin, onClose }: TempPinDialogProps) {
       }}
       title={t("tempPin.title")}
       description={t("tempPin.text", { name })}
-      confirmLabel={t("tempPin.done")}
       // No cancel: there is nothing to undo, and closing is the only way out.
-      cancelLabel={t("tempPin.done")}
+      confirmLabel={t("tempPin.done")}
       onConfirm={onClose}
     >
       <p
