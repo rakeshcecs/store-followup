@@ -68,6 +68,32 @@ test.describe("find and create a customer", () => {
     expect(await db.customer.count({ where: { mobile } })).toBe(1);
   });
 
+  test("no internet on Save: the form stays filled and says so; online it saves once", async ({
+    page,
+    context,
+  }) => {
+    // M01.05: offline entry was dropped (M19), but what was typed must not be lost.
+    const sales = await makeStaff("SALESPERSON", "E2E Offline Seller");
+    users.push(sales.id);
+    await signIn(page, sales.mobile, "SALESPERSON");
+    const mobile = randomMobile();
+    await page.goto(`/customers/new?mobile=${mobile}`);
+    await page.getByLabel(en.customers.fields.name).fill("Kiran Offline");
+
+    await context.setOffline(true);
+    await page.getByRole("button", { name: en.customers.save }).click();
+    await expect(page.getByText(en.errors.offline)).toBeVisible();
+    await expect(page.getByLabel(en.customers.fields.name)).toHaveValue("Kiran Offline");
+    expect(await db.customer.count({ where: { mobile } })).toBe(0);
+
+    await context.setOffline(false);
+    await page.getByRole("button", { name: en.customers.save }).click();
+    await expect(page).toHaveURL(/\/visits\/new\?customerId=/);
+    const saved = await db.customer.findUniqueOrThrow({ where: { mobile } });
+    customers.push(saved.id);
+    expect(await db.customer.count({ where: { mobile } })).toBe(1);
+  });
+
   test("a manager finds the same customer from the overview", async ({ page }) => {
     const sales = await makeStaff("SALESPERSON", "E2E Owner");
     const manager = await makeStaff("MANAGER", "E2E Finder");

@@ -2,7 +2,15 @@
 // so the screen shows it in the user's language.
 
 export type ErrorCode =
-  "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "RULE" | "INTERNAL";
+  | "VALIDATION"
+  | "UNAUTHENTICATED"
+  | "FORBIDDEN"
+  | "NOT_FOUND"
+  | "CONFLICT"
+  | "RULE"
+  | "INTERNAL"
+  // Never from the server: the phone could not reach it (src/lib/reach-server.ts).
+  | "OFFLINE";
 
 // Values for the placeholders in that message — "already used by {name}", "{count} open
 // customers". They travel with the key because the key alone cannot carry them, and the
@@ -21,6 +29,7 @@ export const defaultMessageKey: Record<ErrorCode, string> = {
   CONFLICT: "errors.conflict",
   RULE: "errors.rule",
   INTERNAL: "errors.internal",
+  OFFLINE: "errors.offline",
 };
 
 // Thrown by business rules and permission checks; safeAction() turns it into an ActionResult.

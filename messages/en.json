@@ -100,7 +100,8 @@
     "notFound": "This record was not found.",
     "conflict": "This already exists. Please check and try again.",
     "rule": "This action is not allowed right now.",
-    "internal": "Something went wrong. Please try again."
+    "internal": "Something went wrong. Please try again.",
+    "offline": "No internet. What you typed is still here: save again when you are back online."
   },
   "pwa": {
     "install": "Install app",

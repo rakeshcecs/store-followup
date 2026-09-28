@@ -15,6 +15,7 @@ import { useErrorMessage } from "@/hooks/use-error-message";
 import { recordAiOutcome } from "@/lib/actions/ai";
 import type { AiFollowUp, AiSuggestion } from "@/lib/ai/check";
 import { recordVisit } from "@/lib/actions/visit";
+import { reachServer } from "@/lib/reach-server";
 import {
   clearVisitDraft,
   parseVisitDraft,
@@ -164,7 +165,7 @@ function VisitFields({
     }
 
     startTransition(async () => {
-      const result = await recordVisit({ ...visit, outcome, lostReasonId });
+      const result = await reachServer(recordVisit({ ...visit, outcome, lostReasonId }));
       if (!result.ok) {
         setErrors({ [result.field ?? "form"]: result.message });
         return;

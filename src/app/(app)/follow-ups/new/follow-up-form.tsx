@@ -21,6 +21,7 @@ import { recordAiOutcome } from "@/lib/actions/ai";
 import type { AiSuggestion } from "@/lib/ai/check";
 import { setFollowUp } from "@/lib/actions/follow-up";
 import { recordVisit } from "@/lib/actions/visit";
+import { reachServer } from "@/lib/reach-server";
 import {
   dayForDisplay,
   FOLLOW_UP_SHORTCUTS,
@@ -180,18 +181,20 @@ function FollowUpFields({
     const followUp = { dueDate, timeSlot: slot, method, reason: reason.trim() || undefined };
 
     startTransition(async () => {
-      const result = visit
-        ? await recordVisit({
-            clientId: visit.clientId,
-            customerId: customer.id,
-            categoryIds: visit.categoryIds,
-            expectedPurchase: visit.expectedPurchase,
-            intent: visit.intent,
-            remarks: visit.remarks,
-            outcome: "DECIDE_LATER",
-            followUp: { ...followUp, clientId },
-          })
-        : await setFollowUp({ clientId, customerId: customer.id, followUp });
+      const result = await reachServer(
+        visit
+          ? recordVisit({
+              clientId: visit.clientId,
+              customerId: customer.id,
+              categoryIds: visit.categoryIds,
+              expectedPurchase: visit.expectedPurchase,
+              intent: visit.intent,
+              remarks: visit.remarks,
+              outcome: "DECIDE_LATER",
+              followUp: { ...followUp, clientId },
+            })
+          : setFollowUp({ clientId, customerId: customer.id, followUp }),
+      );
 
       if (!result.ok) {
         // "followUp.dueDate" from the actions, "dueDate" from a nested zod parse.

@@ -3,6 +3,7 @@
 import { useState, useTransition, type FormEvent } from "react";
 import type { z } from "zod";
 import type { ActionResult, MessageValues } from "@/lib/errors";
+import { reachServer } from "@/lib/reach-server";
 
 type SafeActionFn<T> = (input: unknown) => Promise<ActionResult<T>>;
 
@@ -56,7 +57,7 @@ export function useActionForm<T>(
     setErrorValues(undefined);
 
     startTransition(async () => {
-      const result = await action(parsed.data);
+      const result = await reachServer(action(parsed.data));
       if (result.ok) {
         onSuccess?.(result.data);
         clear();

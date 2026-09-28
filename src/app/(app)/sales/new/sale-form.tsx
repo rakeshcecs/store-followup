@@ -16,6 +16,7 @@ import { useErrorMessage } from "@/hooks/use-error-message";
 import { checkBill } from "@/lib/actions/sale";
 import { recordSale } from "@/lib/actions/sale";
 import { recordVisit } from "@/lib/actions/visit";
+import { reachServer } from "@/lib/reach-server";
 import type { MessageValues } from "@/lib/errors";
 import {
   clearFollowUpNote,
@@ -138,27 +139,29 @@ function SaleFields({
     };
 
     startTransition(async () => {
-      const result = visit
-        ? await recordVisit({
-            clientId: visit.clientId,
-            customerId: customer.id,
-            categoryIds: visit.categoryIds,
-            expectedPurchase: visit.expectedPurchase,
-            remarks: visit.remarks,
-            outcome: "PURCHASED",
-            sale: { ...sale, clientId: saleClientId },
-          })
-        : await recordSale({
-            clientId: saleClientId,
-            customerId: customer.id,
-            sale,
-            ...(followUpId
-              ? {
-                  followUpId,
-                  followUpNote: readFollowUpNote(userId, followUpId) ?? undefined,
-                }
-              : {}),
-          });
+      const result = await reachServer(
+        visit
+          ? recordVisit({
+              clientId: visit.clientId,
+              customerId: customer.id,
+              categoryIds: visit.categoryIds,
+              expectedPurchase: visit.expectedPurchase,
+              remarks: visit.remarks,
+              outcome: "PURCHASED",
+              sale: { ...sale, clientId: saleClientId },
+            })
+          : recordSale({
+              clientId: saleClientId,
+              customerId: customer.id,
+              sale,
+              ...(followUpId
+                ? {
+                    followUpId,
+                    followUpNote: readFollowUpNote(userId, followUpId) ?? undefined,
+                  }
+                : {}),
+            }),
+      );
 
       if (!result.ok) {
         // "sale.billNumber" from the visit action, "billNumber" from the zod parse.

@@ -18,6 +18,7 @@ import type { Locale } from "@/i18n/config";
 import { recordAiOutcome } from "@/lib/actions/ai";
 import type { AiSuggestion } from "@/lib/ai/check";
 import { recordFollowUpResult } from "@/lib/actions/follow-up";
+import { reachServer } from "@/lib/reach-server";
 import {
   CALL_AGAIN_SHORTCUTS,
   dayForDisplay,
@@ -127,12 +128,14 @@ export function ResultForm({ userId, followUp, reasons, today, aiEnabled }: Resu
 
     const base = { id: followUp.id, clientId, note: trimmed || undefined };
     startTransition(async () => {
-      const saved = await recordFollowUpResult(
-        result === "WILL_VISIT" || result === "CALL_LATER"
-          ? { ...base, result, nextDate }
-          : result === "NOT_INTERESTED"
-            ? { ...base, result, lostReasonId }
-            : { ...base, result },
+      const saved = await reachServer(
+        recordFollowUpResult(
+          result === "WILL_VISIT" || result === "CALL_LATER"
+            ? { ...base, result, nextDate }
+            : result === "NOT_INTERESTED"
+              ? { ...base, result, lostReasonId }
+              : { ...base, result },
+        ),
       );
       if (!saved.ok) {
         // "followUp.dueDate" is assertDueDate's field; here it is the next follow-up's day.
