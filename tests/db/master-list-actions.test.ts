@@ -242,6 +242,41 @@ describe("deleteItem", () => {
       await db.requirementCategory.findUnique({ where: { id: created.data.id } }),
     ).not.toBeNull();
   });
+
+  it("counts one 'not interested' at the counter once, not for its visit and its enquiry", async () => {
+    const created = await createItem({ kind: "reason", ...names(unique("Price")) });
+    if (!created.ok) throw new Error("setup failed");
+
+    const salesperson = await makeUser({ role: "SALESPERSON", homeBranchId: branchId });
+    const customer = await makeCustomer(branchId, salesperson.id);
+    const enquiry = await makeEnquiry(customer.id, salesperson.id);
+    // What Record visit writes: the reason on the visit and on the enquiry it closes.
+    await db.enquiry.update({
+      where: { id: enquiry.id },
+      data: { lostReasonId: created.data.id },
+    });
+    await db.visit.create({
+      data: {
+        branchId,
+        customerId: customer.id,
+        enquiryId: enquiry.id,
+        clientId: crypto.randomUUID(),
+        visitAt: new Date(),
+        salespersonId: salesperson.id,
+        outcome: "NOT_INTERESTED",
+        lostReasonId: created.data.id,
+        visitType: "NEW",
+      },
+    });
+
+    const result = await deleteItem({ kind: "reason", id: created.data.id });
+
+    expect(result).toMatchObject({
+      ok: false,
+      message: "masterLists.errors.inUse",
+      values: { count: 1 },
+    });
+  });
 });
 
 describe("branch scope", () => {

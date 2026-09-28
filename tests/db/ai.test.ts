@@ -64,6 +64,7 @@ const asUser = (user: {
   homeBranchId: user.homeBranchId,
   branchIds: [user.homeBranchId],
   language: "en",
+  mustChangePin: false,
 });
 
 const ctx = (provider: AiProvider, branch?: string) => ({

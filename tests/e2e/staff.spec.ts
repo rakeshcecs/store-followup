@@ -48,6 +48,9 @@ test.describe("staff", () => {
     await page.getByRole("button", { name: en.auth.logIn }).click();
 
     await expect(page).toHaveURL(/\/set-pin/);
+    // The one-time PIN opens nothing else, even typed straight into the address bar.
+    await page.goto("/customers");
+    await expect(page).toHaveURL(/\/set-pin/);
     // exact: "New PIN" is also a substring of "Enter the new PIN again".
     await page.getByLabel(en.auth.fields.newPin, { exact: true }).fill("7261");
     await page.getByLabel(en.auth.fields.confirmPin).fill("7261");

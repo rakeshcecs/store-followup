@@ -16,11 +16,14 @@ export type SessionUser = {
   homeBranchId: string;
   branchIds: string[]; // home branch + extra branches
   language: Locale; // the language every screen, report and export uses (M18)
+  mustChangePin: boolean; // signed in with a one-time PIN; only /set-pin until it is replaced
 };
 
 export type RequireUserOptions = {
   roles?: Role[];
   branchId?: string; // the branch of the record being touched (never "all")
+  // Setting the PIN (and logging out) is all someone still on a one-time PIN may do.
+  allowPinChange?: boolean;
 };
 
 // The session is re-read from the database on every request, which is what makes
@@ -45,6 +48,7 @@ const getSessionUser = cache(async (): Promise<SessionUser | null> => {
           status: true,
           homeBranchId: true,
           language: true,
+          mustChangePin: true,
           extraBranches: { select: { branchId: true } },
         },
       },
@@ -67,6 +71,7 @@ const getSessionUser = cache(async (): Promise<SessionUser | null> => {
     homeBranchId: user.homeBranchId,
     branchIds: [user.homeBranchId, ...user.extraBranches.map((row) => row.branchId)],
     language: user.language,
+    mustChangePin: user.mustChangePin,
   };
 });
 
@@ -74,6 +79,10 @@ const getSessionUser = cache(async (): Promise<SessionUser | null> => {
 export async function requireUser(options: RequireUserOptions = {}): Promise<SessionUser> {
   const user = await getSessionUser();
   if (!user) throw new AppError("UNAUTHENTICATED");
+  // A one-time PIN was chosen by someone else (the admin who added them, the manager who
+  // reset it), so it opens nothing but the screen that replaces it. The login screen's
+  // hop to /set-pin is only a convenience; this is the rule.
+  if (user.mustChangePin && !options.allowPinChange) throw new AppError("FORBIDDEN");
   if (options.roles && !options.roles.includes(user.role)) throw new AppError("FORBIDDEN");
   if (options.branchId) assertBranchAccess(user, options.branchId);
   return user;

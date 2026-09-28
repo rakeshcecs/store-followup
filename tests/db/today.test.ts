@@ -30,6 +30,7 @@ function session(user: { id: string; role: SessionUser["role"]; homeBranchId: st
     homeBranchId: user.homeBranchId,
     branchIds: [user.homeBranchId],
     language: "en",
+    mustChangePin: false,
   } satisfies SessionUser;
 }
 

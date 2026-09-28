@@ -7,6 +7,10 @@ import { getUser } from "@/lib/auth";
 // an error page. src/proxy.ts cannot do it: it only sees that a cookie exists, not
 // whether the session behind it is still alive.
 export default async function AppLayout({ children }: { children: ReactNode }) {
-  if (!(await getUser())) redirect("/login");
+  const user = await getUser();
+  if (!user) redirect("/login");
+  // Still on a one-time PIN: every page's requireUser would refuse, so go where it can
+  // be replaced rather than show an error page.
+  if (user.mustChangePin) redirect("/set-pin");
   return children;
 }

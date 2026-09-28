@@ -9,6 +9,7 @@ export const runtime = "nodejs";
 export async function GET() {
   const user = await getUser();
   if (!user) return new Response(null, { status: 401 });
+  if (user.mustChangePin) return new Response(null, { status: 403 }); // still on a one-time PIN
   if (user.role === "SALESPERSON") return new Response(null, { status: 404 });
   const locale = (await getLocale()) as Locale;
   const tApp = await getTranslations("app");

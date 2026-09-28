@@ -93,19 +93,24 @@ function txTable(tx: Tx, kind: ListKind): ListDelegate {
 //
 // branch-scope-exempt: a lost reason is one list for the whole store, so "is it in use"
 // has to count visits in every branch; only a number comes back, never a row.
+//
+// The larger of the two, not their sum: a visit's pick is copied onto its enquiry, so one
+// "not interested" at the counter is a visit row and an enquiry row, and adding them
+// showed every use twice. Either side alone still counts a use the other never saw (a
+// follow-up call closes an enquiry with no visit), so neither is dropped.
 async function usageCount(kind: ListKind, id: string): Promise<number> {
   if (kind === "category") {
     const [enquiries, visits] = await Promise.all([
       db.enquiryCategory.count({ where: { categoryId: id } }),
       db.visitCategory.count({ where: { categoryId: id } }),
     ]);
-    return enquiries + visits;
+    return Math.max(enquiries, visits);
   }
   const [enquiries, visits] = await Promise.all([
     db.enquiry.count({ where: { lostReasonId: id } }),
     db.visit.count({ where: { lostReasonId: id } }),
   ]);
-  return enquiries + visits;
+  return Math.max(enquiries, visits);
 }
 
 // Unique within its list. No database index can do this: a category's branchId is

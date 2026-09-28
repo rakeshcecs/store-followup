@@ -30,7 +30,8 @@ export default async function ReasonsPage() {
         items={items.map(({ _count, ...item }) => ({
           ...item,
           branchId: null,
-          usageCount: _count.enquiries + _count.visits,
+          // The larger, not the sum: see usageCount in master-lists/actions.ts.
+          usageCount: Math.max(_count.enquiries, _count.visits),
         }))}
       />
     </AppShell>

@@ -170,4 +170,40 @@ describe("CustomerForm", () => {
     // Not an error to argue with: the search result for that number is that customer.
     await waitFor(() => expect(push).toHaveBeenCalledWith("/customers?mobile=9825011223"));
   });
+
+  it("shows the customer for the number sent, not the one carried in (M05.09)", async () => {
+    createCustomerAction.mockResolvedValue({
+      ok: false,
+      code: "CONFLICT",
+      message: "customers.errors.mobileTaken",
+      field: "mobile",
+      values: { name: "Asha Patel" },
+    });
+    renderForm("9825011223");
+    const mobile = screen.getByLabelText(en.customers.fields.mobile);
+
+    await userEvent.type(screen.getByLabelText(en.customers.fields.name), "Someone Else");
+    await userEvent.clear(mobile);
+    await userEvent.type(mobile, "9876543210");
+    await userEvent.click(screen.getByRole("button", { name: en.customers.save }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/customers?mobile=9876543210"));
+  });
+
+  it("shows the existing customer when the form was opened with no search (M05.09)", async () => {
+    createCustomerAction.mockResolvedValue({
+      ok: false,
+      code: "CONFLICT",
+      message: "customers.errors.mobileTaken",
+      field: "mobile",
+      values: { name: "Asha Patel" },
+    });
+    renderForm("");
+
+    await userEvent.type(screen.getByLabelText(en.customers.fields.name), "Someone Else");
+    await userEvent.type(screen.getByLabelText(en.customers.fields.mobile), "9876543210");
+    await userEvent.click(screen.getByRole("button", { name: en.customers.save }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/customers?mobile=9876543210"));
+  });
 });

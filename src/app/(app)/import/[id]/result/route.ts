@@ -12,6 +12,7 @@ export const runtime = "nodejs";
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getUser();
   if (!user) return new Response(null, { status: 401 });
+  if (user.mustChangePin) return new Response(null, { status: 403 }); // still on a one-time PIN
   const { id } = await params;
   const job = user.role === "SALESPERSON" ? null : await loadImportJob(user, id);
   if (!job || job.status !== "DONE") return new Response(null, { status: 404 });

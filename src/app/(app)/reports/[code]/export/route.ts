@@ -24,6 +24,7 @@ const TYPES = {
 export async function GET(request: NextRequest, { params }: { params: Promise<{ code: string }> }) {
   const user = await getUser();
   if (!user) return new Response(null, { status: 401 });
+  if (user.mustChangePin) return new Response(null, { status: 403 }); // still on a one-time PIN
   const { code } = await params;
   const query = Object.fromEntries(request.nextUrl.searchParams);
   const format = query["format"];

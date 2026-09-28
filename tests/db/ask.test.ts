@@ -46,6 +46,7 @@ const asUser = (user: {
   homeBranchId: user.homeBranchId,
   branchIds: [user.homeBranchId],
   language: "en",
+  mustChangePin: false,
 });
 
 const branchOf = (user: { homeBranchId: string }): BranchScope => ({

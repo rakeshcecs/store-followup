@@ -195,7 +195,7 @@ export const login = safeAction({
 export const logout = safeAction({
   name: "logout",
   schema: z.object({}),
-  auth: {},
+  auth: { allowPinChange: true },
   handler: async () => {
     const token = await currentToken();
     if (token) await destroySession(token);
@@ -221,7 +221,7 @@ export async function logoutAndReturnToLogin(): Promise<void> {
 export const setPin = safeAction({
   name: "setPin",
   schema: setPinInput,
-  auth: {},
+  auth: { allowPinChange: true },
   handler: async ({ currentPin, pin }, { user }) => {
     const row = await db.user.findUniqueOrThrow({
       where: { id: user.id },

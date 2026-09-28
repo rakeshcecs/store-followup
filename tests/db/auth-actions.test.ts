@@ -244,6 +244,24 @@ describe("setPin", () => {
     );
   });
 
+  it("opens nothing but Set PIN on a one-time PIN, and everything once it is replaced", async () => {
+    const { requireUser } = await import("@/lib/auth");
+    const staff = await makeStaff({
+      role: "SALESPERSON",
+      homeBranchId: branchId,
+      mustChangePin: true,
+    });
+    await signInAs(staff.mobile);
+
+    // Typing /today into the address bar lands here: the screen's own requireUser.
+    await expect(requireUser()).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+    await expect(setPin({ pin: OTHER_PIN, confirmPin: OTHER_PIN })).resolves.toMatchObject({
+      ok: true,
+    });
+    await expect(requireUser()).resolves.toMatchObject({ id: staff.id, mustChangePin: false });
+  });
+
   it("refuses an obvious PIN", async () => {
     const staff = await makeStaff({ role: "SALESPERSON", homeBranchId: branchId });
     await signInAs(staff.mobile);

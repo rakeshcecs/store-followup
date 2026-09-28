@@ -16,6 +16,7 @@ const user = {
   homeBranchId: "b1",
   branchIds: ["b1"],
   language: "en" as const,
+  mustChangePin: false,
 };
 
 beforeEach(() => {

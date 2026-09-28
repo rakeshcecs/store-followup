@@ -13,6 +13,9 @@ export const runtime = "nodejs";
 export async function POST(request: NextRequest) {
   const user = await getUser();
   if (!user) return Response.json({ ok: false, error: "errors.unauthenticated" }, { status: 401 });
+  if (user.mustChangePin) {
+    return Response.json({ ok: false, error: "errors.forbidden" }, { status: 403 }); // one-time PIN
+  }
   if (user.role === "SALESPERSON") return new Response(null, { status: 404 });
 
   const form = await request.formData().catch(() => null);

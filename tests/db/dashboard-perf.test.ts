@@ -158,6 +158,7 @@ describe("AI question searches with 12 months of data", () => {
         homeBranchId: branchId,
         branchIds: [branchId],
         language: "en" as const,
+        mustChangePin: false,
       },
       self: null,
       scope,

@@ -36,5 +36,15 @@ Build order: M01 → M17 → M18 → M02 → M03 → M04 → M05 → M06 → M07
 - IST (`Asia/Kolkata`). Indian mobiles normalised to 10 digits starting with 6–9.
 - AI never writes data. AI questions use only read-only tools.
 
+## Manual testing (docs/manual-tests.md)
+- One module at a time. Give short Hinglish steps: login → action → expected.
+- Right after the steps, without asking, start in background:
+  1. Form/validation/role audit on the isolated copy `D:\Rakesh\Local\customer-followup-app-e2e` (DB `followup_e2e`, port 3100).
+  2. Screen ↔ DB match: snapshot `followup` into `followup_e2e`, log in as every role (admin, manager A/B, salesman A/B), compare every number/list with SQL, look at the screenshots. Cross-branch included.
+  3. DB verify of the user's manual run on `followup` (read-only).
+- Never touch :3000 or write to `followup` during these checks. One agent on :3100 at a time.
+- Tick ✅ only when the manual run and all three checks pass. On a fail: read the code, propose a fix, wait for OK.
+- Report one line per check.
+
 ## Git
 - `.claude/`, `.agents/`, `.windsurf/` and `skills-lock.json` stay local (gitignored).

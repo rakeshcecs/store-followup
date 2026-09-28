@@ -15,6 +15,7 @@ import { toast } from "@/components/ui/toast";
 import { useActionForm } from "@/hooks/use-action-form";
 import { useErrorMessage } from "@/hooks/use-error-message";
 import { createCustomer } from "@/lib/actions/customer";
+import { normalizeMobile } from "@/lib/mobile";
 import { createCustomerInput } from "@/lib/validation/customer";
 
 const FIND_PATH = "/customers";
@@ -70,12 +71,16 @@ export function CustomerForm({
     },
   );
 
+  // The number actually sent, not the one carried in: the box can be edited, or the form
+  // opened with no search behind it at all.
+  const [sentMobile, setSentMobile] = useState(mobile);
+
   // M05.09: someone already has this number. The screen does not argue about it — it
   // goes to the search result for that number, which is that customer's card.
   const taken = errors["mobile"] === MOBILE_TAKEN;
   useEffect(() => {
-    if (taken) router.push(`${FIND_PATH}?mobile=${mobile}`);
-  }, [taken, router, mobile]);
+    if (taken) router.push(`${FIND_PATH}?mobile=${sentMobile}`);
+  }, [taken, router, sentMobile]);
 
   const errorFor = (field: string) =>
     errors[field] ? tError(errors[field], errorValues) : undefined;
@@ -85,7 +90,15 @@ export function CustomerForm({
   const bottomError = formError ?? strayError;
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-4.5" noValidate>
+    <form
+      onSubmit={(event) => {
+        const typed = new FormData(event.currentTarget).get("mobile");
+        setSentMobile(normalizeMobile(typed) ?? "");
+        onSubmit(event);
+      }}
+      className="flex flex-col gap-4.5"
+      noValidate
+    >
       <input type="hidden" name="clientId" value={clientId} />
       <TextInput
         name="name"

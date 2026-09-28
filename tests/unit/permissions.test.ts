@@ -22,6 +22,7 @@ const sales: SessionUser = {
   homeBranchId: A,
   branchIds: [A],
   language: "en",
+  mustChangePin: false,
 };
 const manager: SessionUser = {
   id: "u2",
@@ -29,6 +30,7 @@ const manager: SessionUser = {
   homeBranchId: A,
   branchIds: [A, B],
   language: "en",
+  mustChangePin: false,
 };
 const admin: SessionUser = {
   id: "u3",
@@ -36,6 +38,7 @@ const admin: SessionUser = {
   homeBranchId: A,
   branchIds: [A],
   language: "en",
+  mustChangePin: false,
 };
 
 describe("allowedBranchIds", () => {

@@ -43,7 +43,8 @@ export default async function CategoriesPage() {
         branches={branches}
         items={items.map(({ _count, ...item }) => ({
           ...item,
-          usageCount: _count.enquiries + _count.visits,
+          // The larger, not the sum: see usageCount in master-lists/actions.ts.
+          usageCount: Math.max(_count.enquiries, _count.visits),
         }))}
       />
     </AppShell>
