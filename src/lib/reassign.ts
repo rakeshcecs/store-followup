@@ -7,8 +7,10 @@
 // Who may do it is checked on the people instead: both must be inside the actor's scope
 // (src/lib/actions/reassign.ts).
 import type { Prisma, TimeSlot } from "@/generated/prisma/client";
+import type { Locale } from "@/i18n/config";
 import { AUDIT, writeAudit } from "@/lib/audit";
 import { db } from "@/lib/db";
+import { enquiryTitleTranslator } from "@/lib/master-list-text";
 import { staffBranchWhere } from "@/lib/staff-scope";
 import type { BranchScope } from "@/lib/permissions";
 import { reassignDetail, writeTimelineEvent } from "@/lib/timeline";
@@ -37,7 +39,8 @@ export type ReassignRow = {
 
 // The "From" list: every customer the person still holds, next follow-up first, then
 // those with none, by name.
-export async function openCustomersOf(userId: string): Promise<ReassignRow[]> {
+export async function openCustomersOf(userId: string, locale: Locale): Promise<ReassignRow[]> {
+  const title = await enquiryTitleTranslator(locale);
   const customers = await db.customer.findMany({
     where: openCustomersWhere(userId),
     select: {
@@ -62,7 +65,7 @@ export async function openCustomersOf(userId: string): Promise<ReassignRow[]> {
     id: customer.id,
     name: customer.name,
     mobile: customer.mobile,
-    requirement: customer.enquiries[0]?.title ?? null,
+    requirement: title(customer.enquiries[0]?.title ?? null),
     nextFollowUp: customer.followUps[0] ?? null,
     followUps: customer.followUps.length,
   }));

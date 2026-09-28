@@ -133,6 +133,29 @@ describe("updateStaff", () => {
     ).toBe(1);
   });
 
+  it("records a language changed by the admin, old and new (M18 / M03)", async () => {
+    const created = await createStaff(await staffInput());
+    if (!created.ok) throw new Error("setup failed");
+    const before = await db.user.findUniqueOrThrow({ where: { id: created.data.id } });
+
+    await updateStaff({
+      id: before.id,
+      fullName: before.fullName,
+      mobile: before.mobile,
+      role: before.role,
+      homeBranchId: before.homeBranchId,
+      departmentId: "",
+      joinedOn: "2026-01-15",
+      language: before.language === "gu" ? "hi" : "gu",
+    });
+
+    const audit = await db.auditLog.findFirstOrThrow({
+      where: { entityId: before.id, action: AUDIT.userUpdate },
+    });
+    expect(audit.oldValue).toMatchObject({ language: before.language });
+    expect(audit.newValue).toMatchObject({ language: before.language === "gu" ? "hi" : "gu" });
+  });
+
   it("refuses an admin changing their own role (the way round the last-admin guard)", async () => {
     const self = await db.user.findUniqueOrThrow({ where: { mobile: adminMobile } });
 

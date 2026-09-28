@@ -13,6 +13,7 @@ import { addDays, daysBetween } from "@/lib/follow-up-dates";
 import { calendarDay } from "@/lib/follow-ups";
 import { formatDate, formatDayDate, isoDate } from "@/lib/format";
 import { localizedName } from "@/lib/localized-name";
+import { enquiryTitleTranslator } from "@/lib/master-list-text";
 import { reportTranslators } from "@/lib/messages";
 import { normalizeMobile } from "@/lib/mobile";
 import { branchWhere } from "@/lib/permissions";
@@ -64,6 +65,8 @@ const r1: ReportDef = {
   filters: ["salesperson", "department", "visitType", "outcome"],
   defaultSort: { key: "date", dir: "desc" },
   run: async (ctx) => {
+    // M18.03: enquiry titles are stored in English; shown in the runner's language.
+    const title = await enquiryTitleTranslator(ctx.locale);
     const t = await tr(ctx);
     const person = personWhere(ctx);
     const visits = await db.visit.findMany({
@@ -105,7 +108,7 @@ const r1: ReportDef = {
               customer: visit.customer.name,
               mobile: visit.customer.mobile,
               visitType: t(`enums.visitType.${visit.visitType}`),
-              requirement: visit.enquiry.title,
+              requirement: title(visit.enquiry.title),
               outcome: t(`enums.outcome.${visit.outcome}`),
               salesperson: visit.salesperson.fullName,
             },
@@ -202,6 +205,8 @@ const r3: ReportDef = {
   filters: ["salesperson", "status"],
   defaultSort: { key: "dueDate", dir: "asc" },
   run: async (ctx) => {
+    // M18.03: enquiry titles are stored in English; shown in the runner's language.
+    const title = await enquiryTitleTranslator(ctx.locale);
     const { t, tFollowUps, tResult } = await reportTranslators(ctx.locale);
     const today = calendarDay(ctx.today);
     const status: Prisma.FollowUpWhereInput = {
@@ -265,7 +270,7 @@ const r3: ReportDef = {
               slot: tFollowUps(`slot.${row.timeSlot}`),
               customer: row.customer.name,
               mobile: row.customer.mobile,
-              requirement: row.enquiry.title,
+              requirement: title(row.enquiry.title),
               method: tFollowUps(`method.${row.method}`),
               status: label(row),
               result: row.result ? tResult(`option.${row.result}.label`) : null,
@@ -291,6 +296,8 @@ const r4: ReportDef = {
   filters: ["salesperson"],
   defaultSort: { key: "saleDate", dir: "desc" },
   run: async (ctx) => {
+    // M18.03: enquiry titles are stored in English; shown in the runner's language.
+    const title = await enquiryTitleTranslator(ctx.locale);
     const t = await tr(ctx);
     const person = personWhere(ctx);
     const sales = await db.sale.findMany({
@@ -322,7 +329,7 @@ const r4: ReportDef = {
         href: profile(sale.customer),
         cells: {
           customer: sale.customer.name,
-          enquiry: sale.enquiry.title,
+          enquiry: title(sale.enquiry.title),
           followUps: sale.enquiry._count.followUps,
           firstVisit: first ? isoDate(first) : null,
           saleDate: saleDay,
@@ -522,6 +529,8 @@ const r7: ReportDef = {
   filters: ["salesperson", "reason"],
   defaultSort: { key: "date", dir: "desc" },
   run: async (ctx) => {
+    // M18.03: enquiry titles are stored in English; shown in the runner's language.
+    const title = await enquiryTitleTranslator(ctx.locale);
     const t = await tr(ctx);
     const person = personWhere(ctx);
     const reason = ctx.filters.reason;
@@ -566,7 +575,7 @@ const r7: ReportDef = {
       ...visits.map((visit) => ({
         at: visit.visitAt,
         customer: visit.customer,
-        requirement: visit.enquiry.title,
+        requirement: title(visit.enquiry.title),
         reason: visit.lostReason,
         remarks: visit.remarks,
         salesperson: visit.salesperson.fullName,
@@ -574,7 +583,7 @@ const r7: ReportDef = {
       ...calls.map((call) => ({
         at: call.completedAt!,
         customer: call.customer,
-        requirement: call.enquiry.title,
+        requirement: title(call.enquiry.title),
         reason: call.enquiry.lostReason,
         remarks: call.resultNote,
         salesperson: call.completedBy?.fullName ?? "",
@@ -649,7 +658,7 @@ const r8: ReportDef = {
     if (!customer) {
       return { tables: [], empty: ctx.filters.mobile ? t("r8.notFound") : t("r8.pick") };
     }
-    const { events } = await customerTimeline(customer.id, R8_MAX_EVENTS);
+    const { events } = await customerTimeline(customer.id, R8_MAX_EVENTS, ctx.locale);
     const title = (key: string) =>
       tAll.has(key as Parameters<typeof tAll>[0]) ? tAll(key as Parameters<typeof tAll>[0]) : key;
     const heading = (event: (typeof events)[number]) => {

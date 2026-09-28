@@ -6,7 +6,7 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import type { Prisma } from "@/generated/prisma/client";
-import { localeCookie, localeCookieMaxAge } from "@/i18n/config";
+import { isLocale, localeCookie, localeCookieMaxAge, localePickedCookie } from "@/i18n/config";
 import { AUDIT, writeAudit } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { AppError } from "@/lib/errors";
@@ -97,6 +97,7 @@ export const login = safeAction({
         mustChangePin: true,
         failedPinCount: true,
         lockedUntil: true,
+        language: true,
       },
     });
 
@@ -164,22 +165,29 @@ export const login = safeAction({
       throw badCredentials();
     }
 
+    // M18.02: a language picked on this login screen belongs to the person from now on.
+    // One not picked here — the English a new phone starts in, or the last person's
+    // cookie on a shared one — must not overwrite the language they saved: this device
+    // takes theirs instead.
+    const store = await cookies();
+    const picked = language && store.get(localePickedCookie)?.value === "1" ? language : null;
+    const shown = picked ?? user.language;
+
     await db.$transaction(async (tx) => {
       await tx.user.update({
         where: { id: user.id },
         data: {
           failedPinCount: 0,
           lockedUntil: null,
-          // The language picked on the login screen belongs to the person, not the
-          // browser, from this moment on (M18.02).
-          ...(language ? { language } : {}),
+          ...(picked ? { language: picked } : {}),
         },
       });
       await createSession(tx, user.id, await device());
     });
 
-    if (language) {
-      (await cookies()).set(localeCookie, language, {
+    store.delete(localePickedCookie);
+    if (isLocale(shown)) {
+      store.set(localeCookie, shown, {
         sameSite: "lax",
         secure: process.env.NODE_ENV === "production",
         path: "/",

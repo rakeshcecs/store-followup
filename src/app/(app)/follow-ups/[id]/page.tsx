@@ -16,6 +16,7 @@ import { requireUser } from "@/lib/auth";
 import { telHref, whatsappHref } from "@/lib/contact-links";
 import { db } from "@/lib/db";
 import { followUpAccessWhere, MISSED_CALLS_ALERT } from "@/lib/follow-ups";
+import { enquiryTitleTranslator } from "@/lib/master-list-text";
 import { formatDayDate, isoDate } from "@/lib/format";
 import { activeLostReasons } from "@/lib/master-lists";
 import { cn } from "@/lib/utils";
@@ -98,7 +99,7 @@ export default async function UpdateFollowUpPage({ params }: { params: Promise<{
           <div className="min-w-0 grow">
             <p className="font-extrabold">{customer.name}</p>
             <p className="text-sm text-muted-foreground">
-              {followUp.enquiry.title} ·{" "}
+              {(await enquiryTitleTranslator(locale))(followUp.enquiry.title)} ·{" "}
               <span className={cn(due < today && "font-bold text-danger")}>{dueLine}</span>
             </p>
           </div>

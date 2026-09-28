@@ -15,7 +15,8 @@ const { db } = await import("@/lib/db");
 const { AUDIT } = await import("@/lib/audit");
 const { LOCK_MINUTES, MAX_FAILED_ATTEMPTS } = await import("@/lib/validation/auth");
 const { makeBranch, makeUser, nextMobile } = await import("../helpers/branch-access");
-const { signInAs } = await import("../helpers/session");
+const { deviceLanguageCookie, pickLanguageOnLoginScreen, signInAs } =
+  await import("../helpers/session");
 const { makeStore } = await import("../helpers/store");
 
 const PIN = "4839";
@@ -67,13 +68,28 @@ describe("login", () => {
     await expect(login({ mobile: spaced, pin: PIN })).resolves.toMatchObject({ ok: true });
   });
 
-  it("saves the language chosen on the login screen onto the account", async () => {
+  it("saves the language picked on the login screen onto the account", async () => {
     const staff = await makeStaff({ role: "SALESPERSON", homeBranchId: branchId });
 
+    pickLanguageOnLoginScreen();
     await login({ mobile: staff.mobile, pin: PIN, language: "gu" });
 
     const saved = await db.user.findUniqueOrThrow({ where: { id: staff.id } });
     expect(saved.language).toBe("gu");
+    expect(deviceLanguageCookie()).toBe("gu");
+  });
+
+  it("keeps the saved language when the login screen was only showing its default", async () => {
+    // M18.02: a new phone opens the login screen in English; logging in there must not
+    // wipe the Gujarati the person chose, and the phone switches to Gujarati instead.
+    const staff = await makeStaff({ role: "SALESPERSON", homeBranchId: branchId });
+    await db.user.update({ where: { id: staff.id }, data: { language: "gu" } });
+
+    await login({ mobile: staff.mobile, pin: PIN, language: "en" });
+
+    const saved = await db.user.findUniqueOrThrow({ where: { id: staff.id } });
+    expect(saved.language).toBe("gu");
+    expect(deviceLanguageCookie()).toBe("gu");
   });
 
   it("gives the same message for an unknown mobile and a wrong PIN", async () => {

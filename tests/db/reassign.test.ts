@@ -192,7 +192,9 @@ describe("reassignCustomers", () => {
       where: { id: m.pending.id },
       data: { assignedToId: store.salesA.id },
     });
-    expect((await openCustomersOf(store.salesA.id)).map((row) => row.id)).toContain(m.customer.id);
+    expect((await openCustomersOf(store.salesA.id, "en")).map((row) => row.id)).toContain(
+      m.customer.id,
+    );
 
     await signInAs(store.managerA.mobile);
     const result = await reassignCustomers({

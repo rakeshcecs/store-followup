@@ -118,6 +118,8 @@ async function loadStaffInScope(id: string) {
       homeBranchId: true,
       departmentId: true,
       joinedOn: true,
+      mobile: true,
+      language: true,
       extraBranches: { select: { branchId: true } },
     },
   });
@@ -225,6 +227,8 @@ export const updateStaff = safeAction({
         entityId: updated.id,
         oldValue: {
           fullName: staff.fullName,
+          mobile: staff.mobile,
+          language: staff.language,
           role: staff.role,
           homeBranchId: staff.homeBranchId,
           departmentId: staff.departmentId,
@@ -232,6 +236,8 @@ export const updateStaff = safeAction({
         },
         newValue: {
           fullName: updated.fullName,
+          mobile: updated.mobile,
+          language: updated.language,
           role: updated.role,
           homeBranchId: updated.homeBranchId,
           departmentId: updated.departmentId,

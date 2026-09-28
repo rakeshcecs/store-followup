@@ -26,6 +26,7 @@ import { addDays, daysBetween } from "@/lib/follow-up-dates";
 import { calendarDay } from "@/lib/follow-ups";
 import { isoDate } from "@/lib/format";
 import { localizedName } from "@/lib/localized-name";
+import { enquiryTitleTranslator } from "@/lib/master-list-text";
 import { loadMessages } from "@/lib/messages";
 import { accessScope, branchWhere, branchWhereShared, type BranchScope } from "@/lib/permissions";
 import { parseFilters, type Cell, type ColumnKind } from "@/lib/reports/core";
@@ -268,6 +269,7 @@ const findFollowUps: AskToolDef = {
     if ("error" in staff) return refuse(staff.error);
     const named = await branchNamed(actor, args.branchName);
     if ("error" in named) return refuse(named.error);
+    const title = await enquiryTitleTranslator(actor.locale);
     const status = args.overdueOnly ? "pending" : (args.status ?? "pending");
     const where: Prisma.FollowUpWhereInput = {
       AND: [
@@ -341,7 +343,7 @@ const findFollowUps: AskToolDef = {
             dueDate: isoDate(row.dueDate),
             slot: t(`followUps.slot.${row.timeSlot}`),
             method: t(`followUps.method.${row.method}`),
-            reason: row.reason ?? row.enquiry.title,
+            reason: row.reason ?? title(row.enquiry.title),
             salesperson: row.assignedTo.fullName,
             result: row.result ? t(`followUpResult.option.${row.result}.label`) : null,
           },
@@ -407,6 +409,7 @@ const findCustomers: AskToolDef = {
     if ("error" in staff) return refuse(staff.error);
     const named = await branchNamed(actor, args.branchName);
     if ("error" in named) return refuse(named.error);
+    const title = await enquiryTitleTranslator(actor.locale);
 
     let categoryIds: string[] | null = null;
     if (args.categoryNames?.length) {
@@ -538,7 +541,9 @@ const findCustomers: AskToolDef = {
           href: profileHref(c.row),
           cells: {
             customer: c.row.name,
-            lookingFor: c.categories.length ? c.categories.join(", ") : (c.enquiry?.title ?? null),
+            lookingFor: c.categories.length
+              ? c.categories.join(", ")
+              : title(c.enquiry?.title ?? null),
             expected: c.enquiry?.expectedPurchase
               ? t(`visits.expected.${c.enquiry.expectedPurchase}`)
               : null,

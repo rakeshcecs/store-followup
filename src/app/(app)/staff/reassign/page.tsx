@@ -35,7 +35,7 @@ export default async function ReassignPage({ searchParams }: { searchParams: Pro
 
   const [sources, targets] = await Promise.all([reassignSources(scope), reassignTargets(scope)]);
   const from = sources.find((person) => person.id === params.from) ?? null;
-  const rows = from ? await openCustomersOf(from.id) : [];
+  const rows = from ? await openCustomersOf(from.id, locale) : [];
   const only = params.customer && rows.some((row) => row.id === params.customer);
   const exit = user.role === "ADMIN" && params.exit === "1" && from !== null && from.active;
 

@@ -2,12 +2,26 @@
 // test mocks onto next/headers hands back that row's token. Nothing here is a special
 // test path — requireUser() runs its normal query against it.
 import { randomBytes } from "node:crypto";
+import { localeCookie, localePickedCookie } from "@/i18n/config";
 import { BRANCH_COOKIE } from "@/lib/current-branch";
 import { PUSH_COOKIE } from "@/lib/push-device";
 import { db } from "@/lib/db";
 import { hashToken, SESSION_COOKIE } from "@/lib/session";
 
 let token: string | null = null;
+
+// M18.02: the login screen's "picked a language" mark, and the language cookie login
+// leaves on the device, so a test can pick before signing in and read what was set.
+let languagePicked = false;
+let deviceLanguage: string | null = null;
+
+export function pickLanguageOnLoginScreen(): void {
+  languagePicked = true;
+}
+
+export function deviceLanguageCookie(): string | null {
+  return deviceLanguage;
+}
 let branch: string | null = null;
 
 // The branch the signed-in person is currently looking at — the switcher's cookie
@@ -54,13 +68,16 @@ export function sessionCookieStore() {
       if (name === SESSION_COOKIE) return token ? { name, value: token } : undefined;
       if (name === BRANCH_COOKIE) return branch ? { name, value: branch } : undefined;
       if (name === PUSH_COOKIE) return pushEndpoint ? { name, value: pushEndpoint } : undefined;
+      if (name === localePickedCookie) return languagePicked ? { name, value: "1" } : undefined;
       return undefined;
     },
     set: (name: string, value: string) => {
       if (name === PUSH_COOKIE) pushEndpoint = value;
+      if (name === localeCookie) deviceLanguage = value;
     },
     delete: (name?: string) => {
       if (name === PUSH_COOKIE) pushEndpoint = null;
+      else if (name === localePickedCookie) languagePicked = false;
       else token = null;
     },
   };

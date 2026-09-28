@@ -10,6 +10,7 @@ import { telHref, whatsappHref } from "@/lib/contact-links";
 import { followUpTiming, type FollowUpRow } from "@/lib/follow-up-list";
 import { MISSED_CALLS_ALERT } from "@/lib/follow-ups";
 import { formatDayDate } from "@/lib/format";
+import { enquiryTitleTranslator } from "@/lib/master-list-text";
 
 type FollowUpCardProps = {
   followUp: FollowUpRow;
@@ -25,6 +26,7 @@ export async function FollowUpCard({ followUp, today, showDate, showAssignee }: 
   const tResult = await getTranslations("followUpResult");
   const tCustomers = await getTranslations("customers");
   const locale = (await getLocale()) as Locale;
+  const title = await enquiryTitleTranslator(locale);
   const { customer } = followUp;
   const pending = followUp.status === "PENDING";
   const timing = followUpTiming(followUp.dueDate, today);
@@ -50,7 +52,7 @@ export async function FollowUpCard({ followUp, today, showDate, showAssignee }: 
             <span className="font-extrabold text-foreground">{customer.name}</span>
           )}
           <p className="text-sm text-muted-foreground">
-            {followUp.enquiry.title} · {when}
+            {title(followUp.enquiry.title)} · {when}
           </p>
           {showAssignee && (
             <p className="text-sm text-muted-foreground">

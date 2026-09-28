@@ -4,7 +4,7 @@
 
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
-import { localeCookie, localeCookieMaxAge } from "@/i18n/config";
+import { localeCookie, localeCookieMaxAge, localePickedCookie } from "@/i18n/config";
 import { getUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { safeAction } from "@/lib/safe-action";
@@ -32,13 +32,24 @@ export const setLanguage = safeAction({
       });
     }
 
-    (await cookies()).set(localeCookie, language, {
+    const store = await cookies();
+    store.set(localeCookie, language, {
       httpOnly: true, // only the server reads it; the screen gets its locale from the provider
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
       path: "/",
       maxAge: localeCookieMaxAge,
     });
+    // Picked before signing in: the login that follows saves it on the person. Until
+    // the browser closes only, so a phone left on the login screen does not keep it.
+    if (!user) {
+      store.set(localePickedCookie, "1", {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+      });
+    }
 
     // Every screen's text changes.
     revalidatePath("/", "layout");

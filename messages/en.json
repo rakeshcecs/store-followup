@@ -116,6 +116,17 @@
     "text": "Check your internet and try again.",
     "retry": "Try again"
   },
+  "notFoundPage": {
+    "title": "Page not found",
+    "text": "This page does not exist, or it is not open to your account.",
+    "home": "Go to the home screen"
+  },
+  "errorPage": {
+    "title": "Something went wrong",
+    "text": "Please try again. If it keeps happening, tell your manager.",
+    "retry": "Try again",
+    "home": "Go to the home screen"
+  },
   "auth": {
     "title": "Customer Follow-up",
     "tagline": "Keep track of every walk-in, every follow-up and every sale.",

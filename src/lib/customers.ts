@@ -7,9 +7,16 @@
 //
 // branch-scope-exempt: the history shows a customer's events from every branch,
 // like the rest of it (BR-16); they are read by the customer's id and the timeline row's id.
+import type { Locale } from "@/i18n/config";
+import { resolveLocale } from "@/i18n/locale";
 import type { SessionUser } from "@/lib/auth";
 import { customerStatus, type CustomerStatus } from "@/lib/customer-status";
 import { db } from "@/lib/db";
+import {
+  enquiryTitleTranslator,
+  masterListTranslator,
+  type NameTranslator,
+} from "@/lib/master-list-text";
 import { followUpDays } from "@/lib/follow-ups";
 import { TIMELINE } from "@/lib/timeline";
 import type { TimeSlot } from "@/generated/prisma/client";
@@ -69,7 +76,10 @@ export async function findByMobile(value: string): Promise<CustomerCard | null> 
     where: { active: true, OR: [{ mobile }, { altMobile: mobile }] },
     select: cardSelect,
   });
-  return row ? toCard(row) : null;
+  if (!row) return null;
+  const title = await enquiryTitleTranslator(await resolveLocale());
+  const card = toCard(row);
+  return { ...card, openEnquiryTitle: title(card.openEnquiryTitle) };
 }
 
 export type RecentCustomer = { id: string; name: string; subtitle: string | null };
@@ -92,6 +102,7 @@ export async function recentlyHandledBy(userId: string, take = 5): Promise<Recen
     },
   });
 
+  const title = await enquiryTitleTranslator(await resolveLocale());
   const seen = new Map<string, RecentCustomer>();
   for (const event of events) {
     if (seen.size >= take) break;
@@ -99,7 +110,7 @@ export async function recentlyHandledBy(userId: string, take = 5): Promise<Recen
     seen.set(event.customerId, {
       id: event.customer.id,
       name: event.customer.name,
-      subtitle: event.customer.enquiries[0]?.title ?? null,
+      subtitle: title(event.customer.enquiries[0]?.title ?? null),
     });
   }
   return [...seen.values()];
@@ -199,6 +210,7 @@ export async function customerProfile(
     : null;
   const latest = row.enquiries[0] ?? null;
   const open = latest?.status === "OPEN" ? latest : null;
+  const title = await enquiryTitleTranslator(await resolveLocale());
 
   return {
     id: row.id,
@@ -225,7 +237,7 @@ export async function customerProfile(
       byName: consentBy?.fullName ?? null,
     },
     openEnquiry: open
-      ? { title: open.title, latestRemarks: open.latestRemarks, openedAt: open.openedAt }
+      ? { title: title(open.title), latestRemarks: open.latestRemarks, openedAt: open.openedAt }
       : null,
     pendingFollowUp: open ? (row.followUps[0] ?? null) : null,
   };
@@ -257,6 +269,7 @@ export type TimelineRow = {
 export async function customerTimeline(
   customerId: string,
   take: number,
+  locale?: Locale,
 ): Promise<{ events: TimelineRow[]; hasMore: boolean }> {
   const rows = await db.timelineEvent.findMany({
     where: { customerId },
@@ -276,6 +289,9 @@ export async function customerTimeline(
   });
 
   const events = rows.slice(0, take);
+  // M18.03: the reason on a "not interested" row, and before the note on a call's
+  // result, is saved as its English name; shown in the reader's language.
+  const name = await masterListTranslator(locale ?? (await resolveLocale()));
   const days = await followUpDays(
     db,
     events.flatMap((event) =>
@@ -289,10 +305,22 @@ export async function customerTimeline(
   return {
     events: events.map(({ staff, branch, ...event }) => ({
       ...event,
+      detail: translatedDetail(event.type, event.detail, name),
       staffName: staff?.fullName ?? null,
       branchName: branch?.name ?? null,
       followUp: (event.entityId && days.get(event.entityId)) || null,
     })),
     hasMore: rows.length > take,
   };
+}
+
+function translatedDetail(type: string, detail: string | null, name: NameTranslator) {
+  if (!detail) return detail;
+  if (type === TIMELINE.notInterested.type) return name(detail);
+  if (type === TIMELINE.followUpResult.type) {
+    // "<reason> · <note>": only the first part can be a reason.
+    const [first, ...rest] = detail.split(" · ");
+    return [name(first!), ...rest].join(" · ");
+  }
+  return detail;
 }

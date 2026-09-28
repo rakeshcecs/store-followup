@@ -6,6 +6,9 @@ export type Locale = (typeof locales)[number];
 export const defaultLocale: Locale = "en";
 export const localeCookie = "NEXT_LOCALE";
 export const localeCookieMaxAge = 60 * 60 * 24 * 365;
+// Set when the login screen's switcher is used before signing in, so login knows the
+// language was picked on purpose and saves it on the person (M18.02).
+export const localePickedCookie = "NEXT_LOCALE_PICKED";
 export const timeZone = "Asia/Kolkata";
 
 // Every language in its own script: someone stranded in a script they cannot read

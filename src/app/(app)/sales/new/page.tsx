@@ -13,6 +13,7 @@ import { getCurrentBranch } from "@/lib/current-branch";
 import { db } from "@/lib/db";
 import { formatDayDate, isoDate } from "@/lib/format";
 import { ALL_BRANCHES } from "@/lib/permissions";
+import { enquiryTitleTranslator } from "@/lib/master-list-text";
 import { billAmountRequired } from "@/lib/settings";
 import { firstParam, type SearchValue } from "@/lib/search-params";
 
@@ -93,7 +94,9 @@ export default async function NewSalePage({
         customer={{ id: customer.id, name: customer.name }}
         draftId={draft ?? null}
         followUpId={followUpId ?? null}
-        openEnquiryTitle={customer.enquiries[0]?.title ?? null}
+        openEnquiryTitle={(await enquiryTitleTranslator(locale))(
+          customer.enquiries[0]?.title ?? null,
+        )}
         amountRequired={await billAmountRequired()}
         today={isoDate(now)}
       />
