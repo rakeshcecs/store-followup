@@ -8,6 +8,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { Locale } from "@/i18n/config";
+import { aiAvailable } from "@/lib/ai/suggest";
 import { requireUser } from "@/lib/auth";
 import { getCurrentBranch } from "@/lib/current-branch";
 import { db } from "@/lib/db";
@@ -22,10 +23,11 @@ import { firstParam, type SearchValue } from "@/lib/search-params";
 export default async function NewVisitPage({
   searchParams,
 }: {
-  searchParams: Promise<{ customerId?: SearchValue }>;
+  searchParams: Promise<{ customerId?: SearchValue; ai?: SearchValue }>;
 }) {
   const user = await requireUser();
-  const customerId = firstParam((await searchParams).customerId);
+  const params = await searchParams;
+  const customerId = firstParam(params.customerId);
   if (!customerId) notFound();
   const t = await getTranslations("visits");
   const locale = (await getLocale()) as Locale;
@@ -60,9 +62,10 @@ export default async function NewVisitPage({
     );
   }
 
-  const [categories, reasons] = await Promise.all([
+  const [categories, reasons, ai] = await Promise.all([
     activeCategories({ all: false, branchIds: [branch] }, locale),
     activeLostReasons(locale),
+    aiAvailable(),
   ]);
 
   return shell(
@@ -80,6 +83,8 @@ export default async function NewVisitPage({
         customerId={customer.id}
         categories={categories.map(({ id, name }) => ({ id, name }))}
         reasons={reasons.map(({ id, name }) => ({ id, name }))}
+        aiEnabled={ai}
+        aiOpen={firstParam(params.ai) === "1"} // the profile's "Ask AI to fill" (M20.01)
       />
     </>,
   );

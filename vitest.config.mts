@@ -34,6 +34,18 @@ export default defineConfig({
           setupFiles: ["tests/ui-setup.ts"],
         },
       },
+      // M20: the fixture notes against the real model. Costs money and needs the key, so
+      // it is its own command (`npm run test:ai`) and never part of `npm test`.
+      {
+        extends: true,
+        test: {
+          name: "ai",
+          environment: "node",
+          include: ["tests/ai/**/*.test.ts"],
+          testTimeout: 30_000,
+          fileParallelism: false,
+        },
+      },
       {
         extends: true,
         test: {

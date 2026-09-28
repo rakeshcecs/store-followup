@@ -5,7 +5,7 @@ export const fieldControlClass =
   "w-full border-[1.5px] border-input bg-card focus:border-primary focus:outline-2 focus:outline-offset-1 focus:outline-primary aria-invalid:border-danger aria-invalid:focus:outline-danger disabled:bg-surface-disabled disabled:text-muted-foreground";
 
 type FieldProps = {
-  label: string;
+  label: ReactNode; // text, or text with a mark next to it (the AI tag, M20)
   hint?: string;
   error?: string;
   children: (control: {

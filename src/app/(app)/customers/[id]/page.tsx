@@ -7,6 +7,7 @@ import { HistoryList } from "@/app/(app)/customers/[id]/history-list";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import type { Locale } from "@/i18n/config";
+import { aiAvailable } from "@/lib/ai/suggest";
 import { requireUser } from "@/lib/auth";
 import { telHref, whatsappHref } from "@/lib/contact-links";
 import {
@@ -102,6 +103,7 @@ export default async function CustomerProfilePage({
         canUpdateFollowUp={
           customer.pendingFollowUp !== null && canUpdateFollowUp(user, customer.pendingFollowUp)
         }
+        aiEnabled={await aiAvailable()}
       />
       <HistoryList
         customerId={customer.id}

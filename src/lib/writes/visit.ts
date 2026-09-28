@@ -107,6 +107,7 @@ export async function recordVisitCore(
             where: { id: open.id },
             data: {
               ...(input.expectedPurchase ? { expectedPurchase: input.expectedPurchase } : {}),
+              ...(input.intent ? { intent: input.intent } : {}),
               ...(input.remarks ? { latestRemarks: input.remarks } : {}),
             },
             select: { id: true },
@@ -116,6 +117,7 @@ export async function recordVisitCore(
               customerId: customer.id,
               title: enquiryTitle(categories.map((category) => category.nameEn)),
               expectedPurchase: input.expectedPurchase ?? null,
+              intent: input.intent ?? null,
               latestRemarks: input.remarks ?? null,
               assignedToId: customer.assignedToId,
             },

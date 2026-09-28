@@ -21,6 +21,9 @@ const visitBase = z.object({
   customerId: id,
   categoryIds: z.array(id).min(1, "visits.errors.categoryRequired").max(30),
   expectedPurchase: z.preprocess(emptyToUndefined, z.enum(EXPECTED).optional()),
+  // M20 / SOW 5.5: Hot / Warm / Cold, suggested by the AI and confirmed by staff. Kept
+  // on the enquiry, like expectedPurchase.
+  intent: z.preprocess(emptyToUndefined, z.enum(["HOT", "WARM", "COLD"]).optional()),
   remarks: optionalText(500, "visits.errors.remarksTooLong"),
 });
 

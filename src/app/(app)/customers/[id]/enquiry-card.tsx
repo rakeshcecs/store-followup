@@ -1,4 +1,4 @@
-import { CalendarClock, CalendarPlus, Check, Plus } from "lucide-react";
+import { CalendarClock, CalendarPlus, Check, Plus, Sparkles } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -15,10 +15,12 @@ export async function EnquiryCard({
   customer,
   locale,
   canUpdateFollowUp,
+  aiEnabled,
 }: {
   customer: CustomerProfile;
   locale: Locale;
   canUpdateFollowUp: boolean; // M09: the reader may record what happened on it
+  aiEnabled: boolean; // M20.01: "Ask AI to fill" on the profile too
 }) {
   const t = await getTranslations("customers.profile");
   const tFollowUps = await getTranslations("followUps");
@@ -102,6 +104,16 @@ export async function EnquiryCard({
           </Link>
         </Button>
       </div>
+      {/* M20.01 (SOW): the note is about a visit, so the button opens Record visit with
+          the AI panel already open — the profile itself has no fields to fill. */}
+      {aiEnabled && (
+        <Button asChild variant="secondary" size="sm">
+          <Link href={`/visits/new?${query}&ai=1`} data-testid="profile-ai">
+            <Sparkles aria-hidden className="text-primary" />
+            {t("askAi")}
+          </Link>
+        </Button>
+      )}
     </Card>
   );
 }

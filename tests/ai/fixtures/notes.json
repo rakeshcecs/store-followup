@@ -1,0 +1,193 @@
+[
+  {
+    "id": "en-wedding-sherwani",
+    "screen": "visit",
+    "language": "en",
+    "text": "Customer liked wedding sherwani. He will return next Sunday with family. Call him Saturday evening.",
+    "expect": {
+      "categoryIds": ["seed-cat-sherwani"],
+      "outcome": "DECIDE_LATER",
+      "followUp": { "date": { "shortcut": "SATURDAY" }, "timeSlot": "EVENING", "method": "CALL" },
+      "intent": ["WARM", "HOT"]
+    }
+  },
+  {
+    "id": "en-bought-suit",
+    "screen": "visit",
+    "language": "en",
+    "text": "Bought a blue suit today, bill done.",
+    "expect": { "categoryIds": ["seed-cat-suit"], "outcome": "PURCHASED" }
+  },
+  {
+    "id": "en-not-interested-price",
+    "screen": "visit",
+    "language": "en",
+    "text": "Not interested, found the sarees too expensive and has already bought elsewhere.",
+    "expect": {
+      "categoryIds": ["seed-cat-saree"],
+      "outcome": "NOT_INTERESTED",
+      "lostReasonId": ["seed-lost-price", "seed-lost-elsewhere"]
+    }
+  },
+  {
+    "id": "en-after-diwali",
+    "screen": "visit",
+    "language": "en",
+    "text": "Looking at the festival collection for Diwali, will decide after Diwali. WhatsApp him two days after Diwali, in the morning.",
+    "expect": {
+      "categoryIds": ["seed-cat-festival"],
+      "outcome": "DECIDE_LATER",
+      "followUp": {
+        "date": { "festival": "diwali", "plus": 2 },
+        "timeSlot": "MORNING",
+        "method": "WHATSAPP"
+      }
+    }
+  },
+  {
+    "id": "en-bulk-keen",
+    "screen": "visit",
+    "language": "en",
+    "text": "Wants 40 sarees for staff uniforms, a bulk order. Very keen, wants the quote within this week.",
+    "expect": {
+      "categoryIds": ["seed-cat-bulk"],
+      "outcome": "DECIDE_LATER",
+      "intent": "HOT",
+      "expectedPurchase": ["THIS_WEEK", "THIS_MONTH"]
+    }
+  },
+  {
+    "id": "en-followup-alteration",
+    "screen": "followUp",
+    "language": "en",
+    "text": "Call him tomorrow afternoon about the sherwani alteration.",
+    "expect": {
+      "followUp": { "date": { "shortcut": "TOMORROW" }, "timeSlot": "AFTERNOON", "method": "CALL" }
+    }
+  },
+  {
+    "id": "hi-saree-next-month",
+    "screen": "visit",
+    "language": "hi",
+    "text": "ग्राहक को लाल साड़ी पसंद आई, शादी दिसंबर में है, अगले महीने खरीदेंगे। 10 दिन बाद कॉल करना।",
+    "expect": {
+      "categoryIds": ["seed-cat-saree"],
+      "outcome": "DECIDE_LATER",
+      "expectedPurchase": "NEXT_MONTH",
+      "followUp": { "date": { "daysFromToday": 10 }, "method": "CALL" },
+      "remarksScript": "devanagari"
+    }
+  },
+  {
+    "id": "hi-not-interested-price",
+    "screen": "visit",
+    "language": "hi",
+    "text": "आज कुछ नहीं लिया, कीमत ज़्यादा लगी, रुचि नहीं है।",
+    "expect": { "outcome": "NOT_INTERESTED", "lostReasonId": "seed-lost-price" }
+  },
+  {
+    "id": "hi-result-not-reachable",
+    "screen": "followUpResult",
+    "language": "hi",
+    "text": "फ़ोन नहीं उठाया, स्विच ऑफ था।",
+    "expect": { "result": "NOT_REACHABLE" }
+  },
+  {
+    "id": "hi-result-will-visit-sunday",
+    "screen": "followUpResult",
+    "language": "hi",
+    "text": "बात हुई, रविवार को दुकान पर आएंगे।",
+    "expect": { "result": "WILL_VISIT", "followUp": { "date": { "shortcut": "SUNDAY" } } }
+  },
+  {
+    "id": "hi-this-week-tomorrow-visit",
+    "screen": "visit",
+    "language": "hi",
+    "text": "शेरवानी और सूट देखे, इसी हफ़्ते खरीदेंगे, कल शाम फिर आएंगे।",
+    "expect": {
+      "categoryIds": ["seed-cat-sherwani", "seed-cat-suit"],
+      "outcome": "DECIDE_LATER",
+      "expectedPurchase": "THIS_WEEK",
+      "followUp": { "date": { "shortcut": "TOMORROW" }, "timeSlot": "EVENING", "method": "VISIT" },
+      "intent": ["HOT", "WARM"]
+    }
+  },
+  {
+    "id": "gu-wedding-suit-friday-call",
+    "screen": "visit",
+    "language": "gu",
+    "text": "ગ્રાહકને લગ્નનો સૂટ ગમ્યો, પરિવાર સાથે બુધવારે આવશે. મંગળવારે સાંજે કૉલ કરવો.",
+    "expect": {
+      "categoryIds": ["seed-cat-suit"],
+      "outcome": "DECIDE_LATER",
+      "followUp": { "date": { "weekday": 2 }, "timeSlot": "EVENING", "method": "CALL" },
+      "remarksScript": "gujarati"
+    }
+  },
+  {
+    "id": "gu-bought-saree",
+    "screen": "visit",
+    "language": "gu",
+    "text": "સાડી ખરીદી, બિલ થઈ ગયું.",
+    "expect": { "categoryIds": ["seed-cat-saree"], "outcome": "PURCHASED" }
+  },
+  {
+    "id": "gu-result-call-in-3-days",
+    "screen": "followUpResult",
+    "language": "gu",
+    "text": "ગ્રાહકે કહ્યું 3 દિવસ પછી ફરી કૉલ કરો.",
+    "expect": { "result": "CALL_LATER", "followUp": { "date": { "daysFromToday": 3 } } }
+  },
+  {
+    "id": "gu-not-interested-size",
+    "screen": "visit",
+    "language": "gu",
+    "text": "સાઇઝ મળી નહીં, રસ નથી.",
+    "expect": { "outcome": "NOT_INTERESTED", "lostReasonId": "seed-lost-size" }
+  },
+  {
+    "id": "mixed-casual-design",
+    "screen": "visit",
+    "language": "en",
+    "text": "Casual wear dekha, design pasand nahi aaya, bought elsewhere already.",
+    "expect": {
+      "categoryIds": ["seed-cat-casual"],
+      "outcome": "NOT_INTERESTED",
+      "lostReasonId": ["seed-lost-design", "seed-lost-elsewhere"]
+    }
+  },
+  {
+    "id": "mixed-family-navratri",
+    "screen": "visit",
+    "language": "en",
+    "text": "Family shopping ke liye aaye the, Navratri ke pehle lenge. Agle hafte WhatsApp karna.",
+    "expect": {
+      "categoryIds": ["seed-cat-family"],
+      "outcome": "DECIDE_LATER",
+      "followUp": { "date": { "shortcut": "NEXT_WEEK" }, "method": "WHATSAPP" }
+    }
+  },
+  {
+    "id": "mixed-followup-tomorrow-morning",
+    "screen": "followUp",
+    "language": "en",
+    "text": "Kal subah call karke Sunday ka visit confirm karna.",
+    "expect": {
+      "followUp": { "date": { "shortcut": "TOMORROW" }, "timeSlot": "MORNING", "method": "CALL" }
+    }
+  },
+  {
+    "id": "mixed-result-not-interested-elsewhere",
+    "screen": "followUpResult",
+    "language": "en",
+    "text": "Baat hui, ab interested nahi hai, kahin aur se le liya.",
+    "expect": { "result": "NOT_INTERESTED", "lostReasonId": "seed-lost-elsewhere" }
+  },
+  {
+    "id": "mixed-bought-two",
+    "screen": "visit",
+    "language": "en",
+    "text": "Customer ne 2 sherwani aur ek saree li aaj, bill ban gaya, bahut khush hai.",
+    "expect": { "categoryIds": ["seed-cat-sherwani", "seed-cat-saree"], "outcome": "PURCHASED" }
+  }
+]

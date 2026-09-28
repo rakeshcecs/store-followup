@@ -44,6 +44,8 @@ const eslintConfig = defineConfig([
               "endsWith",
               "startsWith",
               "errorFor",
+              "mark", // mark("remarks"), touch("remarks"): a form field's name (M20 AI marks)
+              "touch",
               "cn",
               "clsx",
               "cva",
@@ -77,6 +79,7 @@ const eslintConfig = defineConfig([
               "action",
               "variant",
               "kind", // which master list a screen is showing, not text
+              "screen", // which form the AI panel fills (M20), not text
               "size",
               "tone",
               "align",

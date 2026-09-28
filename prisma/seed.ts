@@ -50,10 +50,11 @@ const LOST_REASONS: [string, string, string, string][] = [
   ["seed-lost-other", "Other", "अन्य", "અન્ય"],
 ];
 
-// The bill amount switch is not seeded: no row means "required" (src/lib/settings.ts, M10).
+// Keys as src/lib/settings.ts names them. The bill amount switch and the reminder times
+// are not seeded: no row means "required" (M10) and the default times (M14). The AI
+// assistant starts switched off (M20; the client's data agreement is pending).
 const SETTINGS: Record<string, Prisma.InputJsonValue> = {
-  reminderTimes: ["09:30", "10:30", "14:00", "17:30"],
-  aiEnabled: false,
+  "ai:enabled": false,
 };
 
 function requireEnv(name: string): string {

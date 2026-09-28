@@ -8,6 +8,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { Locale } from "@/i18n/config";
+import { aiAvailable } from "@/lib/ai/suggest";
 import { requireUser } from "@/lib/auth";
 import { getCurrentBranch } from "@/lib/current-branch";
 import { db } from "@/lib/db";
@@ -90,6 +91,7 @@ export default async function NewFollowUpPage({
         hasOpenEnquiry={customer.enquiries.length > 0}
         replaces={pending ? formatDayDate(pending.dueDate, locale) : null}
         today={isoDate(now)}
+        aiEnabled={await aiAvailable()}
       />
     </>,
   );

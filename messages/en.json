@@ -12,7 +12,8 @@
     "staff": "Staff",
     "settings": "Settings",
     "customers": "Customers",
-    "followUps": "Follow-ups"
+    "followUps": "Follow-ups",
+    "ask": "Ask AI"
   },
   "language": {
     "label": "Language",
@@ -374,7 +375,9 @@
     "reminders": "Reminders",
     "remindersText": "When phone reminders and summaries go out",
     "festivals": "Festivals and occasions",
-    "festivalsText": "Festival calendar and occasion follow-ups"
+    "festivalsText": "Festival calendar and occasion follow-ups",
+    "ai": "AI assistant",
+    "aiText": "Fill forms from a typed or spoken note"
   },
   "masterLists": {
     "add": "Add",
@@ -516,7 +519,8 @@
       "consentGiven": "Consent given on {date}, recorded by {name}",
       "consentNone": "No consent recorded",
       "someone": "someone",
-      "deleteData": "Delete customer data"
+      "deleteData": "Delete customer data",
+      "askAi": "Ask AI to fill"
     },
     "edit": {
       "title": "Edit details",
@@ -607,6 +611,12 @@
       "methodRequired": "Pick how to follow up.",
       "followUpReasonTooLong": "Keep the reason under 250 characters.",
       "billAmountRequired": "Enter the amount."
+    },
+    "intent": "Customer intent",
+    "intentOption": {
+      "HOT": "Hot – buying soon",
+      "WARM": "Warm – interested",
+      "COLD": "Cold – unlikely"
     }
   },
   "followUps": {
@@ -922,7 +932,8 @@
       "r6": "New vs existing customers",
       "r7": "Not-interested reasons",
       "r8": "Customer history",
-      "r9": "Branch comparison"
+      "r9": "Branch comparison",
+      "r11": "AI usage"
     },
     "about": {
       "r1": "Every visit with its customer, outcome and salesperson.",
@@ -933,7 +944,8 @@
       "r6": "New and returning customers, day by day.",
       "r7": "Why customers said no, most common first.",
       "r8": "One customer's full history, printable.",
-      "r9": "Each branch side by side."
+      "r9": "Each branch side by side.",
+      "r11": "AI fills and questions per person."
     },
     "total": "Total",
     "totals": {
@@ -1003,7 +1015,11 @@
       "sent": "Sent",
       "read": "Read",
       "failed": "Not sent",
-      "visited": "Visited in 30 days"
+      "visited": "Visited in 30 days",
+      "aiFills": "AI fills used",
+      "acceptedPercent": "% accepted without change",
+      "questions": "Questions asked",
+      "markedWrong": "Answers marked wrong"
     },
     "enums": {
       "visitType": {
@@ -1454,6 +1470,142 @@
       "nameTooLong": "Keep the name under 100 characters.",
       "leadDays": "Enter 1 to 90 days.",
       "date": "Pick a valid date."
+    }
+  },
+  "ai": {
+    "ask": "Ask AI to fill",
+    "title": "Ask AI to fill",
+    "close": "Close",
+    "note": "What did the customer say?",
+    "placeholder": "e.g. Liked wedding sherwani, will come Sunday with family, call Saturday evening",
+    "hint": "AI suggests, you check and save. The customer's number is never sent.",
+    "fill": "Fill the form",
+    "filling": "Filling…",
+    "filled": "Form filled — please check before saving",
+    "holdToTalk": "Hold to talk",
+    "recording": "Recording… {seconds}s — release to stop",
+    "transcribing": "Listening…",
+    "check": "Please check",
+    "errors": {
+      "off": "The AI assistant is switched off.",
+      "unavailable": "The AI assistant is not set up on this server.",
+      "limit": "Daily AI limit reached ({limit} a day). Please fill the form.",
+      "failed": "AI could not help this time. Please fill the form.",
+      "nothing": "AI found nothing to fill from this note. Please fill the form.",
+      "empty": "Type or speak the note first.",
+      "tooLong": "The note is too long (2,000 characters at most).",
+      "micDenied": "Microphone not allowed. Allow it in the browser, or type the note.",
+      "noAudio": "Nothing was recorded.",
+      "audioTooLong": "The recording is too long (60 seconds at most).",
+      "nothingHeard": "Nothing was heard. Hold the button and speak.",
+      "noMic": "No microphone found on this device. Type the note instead."
+    }
+  },
+  "ask": {
+    "title": "Ask AI",
+    "label": "Ask a question",
+    "placeholder": "Ask about customers, follow-ups or sales…",
+    "hint": "AI only reads your data. It never changes anything.",
+    "send": "Ask",
+    "asking": "Asking…",
+    "thinking": "Thinking…",
+    "suggested": "Try asking",
+    "off": "The AI assistant is switched off. The admin can switch it on in Settings.",
+    "allBranches": "all branches",
+    "wrong": "Was this wrong?",
+    "wrongDone": "Thanks — this answer is marked for checking.",
+    "shown": "Showing {shown} of {total}",
+    "looking": {
+      "find_followups": "Looking at follow-ups…",
+      "find_customers": "Looking at customers…",
+      "get_sales": "Looking at sales…",
+      "get_salesperson_stats": "Looking at staff figures…",
+      "get_lost_reasons": "Looking at not-interested reasons…",
+      "get_dashboard": "Looking at the store figures…"
+    },
+    "tables": {
+      "followUps": "Follow-ups",
+      "customers": "Customers",
+      "sales": "Sales",
+      "staff": "Staff figures",
+      "reasons": "Not-interested reasons",
+      "dashboard": "Store figures"
+    },
+    "columns": {
+      "customer": "Customer",
+      "dueDate": "Due",
+      "slot": "Time",
+      "method": "How",
+      "reason": "Reason",
+      "salesperson": "Salesperson",
+      "result": "Result",
+      "lookingFor": "Looking for",
+      "expected": "Expects to buy",
+      "lastVisit": "Last visit",
+      "nextFollowUp": "Next follow-up",
+      "billDate": "Bill date",
+      "billNumber": "Bill no.",
+      "amount": "Amount",
+      "fromFollowUp": "From follow-up",
+      "visits": "Visits",
+      "due": "Due",
+      "done": "Done",
+      "overdue": "Overdue",
+      "sales": "Sales",
+      "conversions": "From follow-ups",
+      "conversionPercent": "Conversion %",
+      "count": "Count",
+      "share": "% of total",
+      "figure": "Figure",
+      "value": "Value"
+    },
+    "figures": {
+      "visited": "Customers visited",
+      "newCustomers": "New customers",
+      "existing": "Existing customers",
+      "sales": "Sales",
+      "fromFollowUps": "Sales from follow-ups",
+      "due": "Follow-ups due",
+      "done": "Follow-ups done",
+      "overdue": "Overdue now",
+      "notInterested": "Not interested",
+      "topReason": "Top reason",
+      "conversionPercent": "Conversion %"
+    },
+    "errors": {
+      "empty": "Type a question first.",
+      "tooLong": "The question is too long (500 characters at most).",
+      "failed": "AI could not answer this time. Please try again, or open the reports."
+    },
+    "suggestions": {
+      "mine": {
+        "today": "Which of my customers should I follow up today?",
+        "visitWeek": "Who said they would visit this week?",
+        "notContacted": "Which of my pending customers have I not contacted in 7 days?",
+        "salesMonth": "How many sales did I make this month?"
+      },
+      "store": {
+        "today": "Which customers should be followed up today?",
+        "visitWeek": "Which customers said they would visit this week?",
+        "wedding": "Show customers interested in wedding clothes",
+        "notContacted": "Which pending customers have not been contacted in 7 days?",
+        "salesMonth": "How many sales came from follow-ups this month?",
+        "performance": "How did each salesperson do this month?"
+      }
+    }
+  },
+  "aiSettings": {
+    "title": "AI assistant",
+    "enabled": "AI assistant is on",
+    "enabledHint": "Staff see \"Ask AI to fill\" on Record visit, Set follow-up, Update follow-up and the customer profile. Nothing is saved without their Save.",
+    "dailyLimit": "Fills per person per day",
+    "dailyLimitHint": "1 to 1,000. Over the limit the button says so and the form is filled by hand.",
+    "noKey": "No AI key is set on the server (OPENAI_API_KEY). The switch has no effect until it is.",
+    "privacy": "Only the note, the customer's first name and the enquiry go to the AI service. Mobile numbers and addresses never do.",
+    "save": "Save",
+    "saved": "Settings saved",
+    "errors": {
+      "limit": "Enter a whole number from 1 to 1,000."
     }
   }
 }

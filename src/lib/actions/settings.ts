@@ -6,7 +6,15 @@ import { z } from "zod";
 import { AUDIT, writeAudit } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { safeAction } from "@/lib/safe-action";
-import { billAmountRequired, reminderTimes, SETTING, setSetting } from "@/lib/settings";
+import {
+  aiDailyLimit,
+  aiEnabled,
+  billAmountRequired,
+  reminderTimes,
+  SETTING,
+  setSetting,
+} from "@/lib/settings";
+import { aiSettingsInput } from "@/lib/validation/ai";
 import { reminderTimesInput } from "@/lib/validation/reminders";
 
 // Settings → Sales. Admin only: a store-wide rule, not a branch one.
@@ -68,6 +76,44 @@ export const updateReminderSettings = safeAction({
     });
 
     revalidatePath("/settings/reminders");
+    return { saved: true };
+  },
+});
+
+// Settings → AI assistant (M20.08). The switch and the per-person daily limit; one audit
+// row per value that changed, like the other settings.
+export const updateAiSettings = safeAction({
+  name: "updateAiSettings",
+  schema: aiSettingsInput,
+  auth: { roles: ["ADMIN"] },
+  handler: async (input, { user }) => {
+    const [enabledBefore, limitBefore] = await Promise.all([aiEnabled(), aiDailyLimit()]);
+    const changes: { key: string; before: boolean | number; after: boolean | number }[] = [];
+    if (enabledBefore !== input.enabled) {
+      changes.push({ key: SETTING.aiEnabled, before: enabledBefore, after: input.enabled });
+    }
+    if (limitBefore !== input.dailyLimit) {
+      changes.push({ key: SETTING.aiDailyLimit, before: limitBefore, after: input.dailyLimit });
+    }
+    if (changes.length === 0) return { saved: true };
+
+    const device = (await headers()).get("user-agent");
+    await db.$transaction(async (tx) => {
+      for (const change of changes) {
+        await setSetting(tx, change.key, change.after, user.id);
+        await writeAudit(tx, {
+          userId: user.id,
+          action: AUDIT.settingUpdate,
+          entityType: "Setting",
+          entityId: change.key,
+          oldValue: change.before,
+          newValue: change.after,
+          device,
+        });
+      }
+    });
+
+    revalidatePath("/settings/ai");
     return { saved: true };
   },
 });

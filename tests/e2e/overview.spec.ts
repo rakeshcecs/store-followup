@@ -122,7 +122,7 @@ test.describe("store overview", () => {
     const day = addDays(isoDate(new Date()), -2);
     await page.getByLabel(en.overview.period.from, { exact: true }).fill(day);
     await page.getByLabel(en.overview.period.to, { exact: true }).fill(day);
-    await page.getByRole("button", { name: en.overview.period.show }).click();
+    await page.getByRole("button", { name: en.overview.period.show, exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`period=custom&from=${day}&to=${day}`));
     await expect(page.getByTestId("tile-sales-value")).toHaveText("0");
     // Overdue is always as of now.

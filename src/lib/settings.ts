@@ -6,6 +6,7 @@
 // the "setting:update" row with the old and new value.
 import type { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
+import { AI_DAILY_LIMIT_MAX, DEFAULT_AI_DAILY_LIMIT } from "@/lib/validation/ai";
 import {
   DEFAULT_REMINDER_TIMES,
   reminderTimesInput,
@@ -23,6 +24,10 @@ export const SETTING = {
   // M23: how many days before the occasion the follow-up is created (Settings →
   // Festivals and occasions).
   occasionLeadDays: "occasions:leadDays",
+  // M20: the AI note assistant. Off until the admin switches it on (Settings → AI
+  // assistant), and at most this many fills per person per IST day.
+  aiEnabled: "ai:enabled",
+  aiDailyLimit: "ai:dailyLimit",
 } as const;
 
 export const DEFAULT_OCCASION_LEAD_DAYS = 30;
@@ -37,6 +42,20 @@ async function numberSetting(key: string, fallback: number, min: number, max: nu
 
 export function occasionLeadDays(): Promise<number> {
   return numberSetting(SETTING.occasionLeadDays, DEFAULT_OCCASION_LEAD_DAYS, 1, 90);
+}
+
+export function aiDailyLimit(): Promise<number> {
+  return numberSetting(SETTING.aiDailyLimit, DEFAULT_AI_DAILY_LIMIT, 1, AI_DAILY_LIMIT_MAX);
+}
+
+// Off by default: the client's data agreement for a cloud AI service is still pending
+// (docs/decisions.md), so a fresh install must not send a note anywhere.
+export async function aiEnabled(): Promise<boolean> {
+  const row = await db.setting.findUnique({
+    where: { key: SETTING.aiEnabled },
+    select: { value: true },
+  });
+  return row?.value === true;
 }
 
 export async function billAmountRequired(): Promise<boolean> {

@@ -5,6 +5,8 @@ import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState, useSyncExternalStore, useTransition } from "react";
+import { AiFillPanel } from "@/components/ai/ai-fill-panel";
+import { aiBox, markOf, unmark, type AiMarks } from "@/components/ai/ai-tag";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ChoiceChips } from "@/components/ui/choice-chips";
@@ -15,6 +17,8 @@ import { TextInput } from "@/components/ui/text-input";
 import { toast } from "@/components/ui/toast";
 import { useErrorMessage } from "@/hooks/use-error-message";
 import type { Locale } from "@/i18n/config";
+import { recordAiOutcome } from "@/lib/actions/ai";
+import type { AiSuggestion } from "@/lib/ai/check";
 import { saveFollowUp, saveVisit } from "@/lib/offline/actions";
 import {
   dayForDisplay,
@@ -44,9 +48,15 @@ type FollowUpFormProps = {
   hasOpenEnquiry: boolean;
   replaces: string | null; // "Sat, 26 Sep" of the pending follow-up this one replaces
   today: string; // "2026-09-24", IST
+  aiEnabled?: boolean; // M20
 };
 
 const noSubscribe = () => () => {};
+
+// A suggested day is shown on the chip that means it, or under "Pick a date".
+function whenFor(date: string, today: string): When {
+  return FOLLOW_UP_SHORTCUTS.find((kind) => followUpShortcut(kind, today) === date) ?? "PICK";
+}
 
 // M08. With a visit draft the visit and the follow-up are saved in one call (BR-04);
 // without one the follow-up is added to the open enquiry (M08.07). With neither there is
@@ -70,6 +80,7 @@ function FollowUpFields({
   hasOpenEnquiry,
   replaces,
   today,
+  aiEnabled,
   visit,
 }: FollowUpFormProps & { visit: VisitDraft | null }) {
   const t = useTranslations("followUps");
@@ -79,16 +90,65 @@ function FollowUpFields({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
+  // M20: the follow-up the AI suggested on Record visit arrives in the draft and starts
+  // the form off, marked, so the person sees what came from the note.
+  const fromAi = visit?.ai?.followUp;
+  const startWhen: When = fromAi?.date ? whenFor(fromAi.date, today) : "SATURDAY";
+
   const [clientId] = useState(() => crypto.randomUUID());
   // Defaults from the prototype: This Saturday, evening, phone call (decisions.md).
-  const [when, setWhen] = useState<When>("SATURDAY");
-  const [picked, setPicked] = useState("");
-  const [slot, setSlot] = useState<Slot>("EVENING");
-  const [method, setMethod] = useState<Method>("CALL");
+  const [when, setWhen] = useState<When>(startWhen);
+  const [picked, setPicked] = useState(fromAi?.date && startWhen === "PICK" ? fromAi.date : "");
+  const [slot, setSlot] = useState<Slot>((fromAi?.timeSlot as Slot | undefined) ?? "EVENING");
+  const [method, setMethod] = useState<Method>((fromAi?.method as Method | undefined) ?? "CALL");
   // M08.04: the visit's remarks are copied in. They may be up to 500 characters and the
   // reason only 250; the full remarks stay on the visit.
-  const [reason, setReason] = useState(() => (visit?.remarks ?? "").slice(0, REASON_MAX));
+  const [reason, setReason] = useState(() =>
+    (fromAi?.reason ?? visit?.remarks ?? "").slice(0, REASON_MAX),
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [ai, setAi] = useState<AiMarks | null>(() =>
+    visit?.ai
+      ? {
+          suggestionId: visit.ai.suggestionId,
+          fields: new Set(
+            fromAi
+              ? [
+                  ...(fromAi.date ? ["dueDate"] : []),
+                  "slot",
+                  "method",
+                  ...(fromAi.reason ? ["reason"] : []),
+                ]
+              : [],
+          ),
+          check: new Set(visit.ai.checkFollowUp ? ["dueDate", "slot", "method"] : []),
+        }
+      : null,
+  );
+  const touch = (field: string) => setAi((marks) => unmark(marks, field));
+
+  function applySuggestion(s: AiSuggestion, suggestionId: string) {
+    const fields = new Set<string>();
+    if (s.followUp) {
+      if (s.followUp.date) {
+        const kind = whenFor(s.followUp.date, today);
+        setWhen(kind);
+        setPicked(kind === "PICK" ? s.followUp.date : "");
+        fields.add("dueDate");
+      }
+      setSlot(s.followUp.timeSlot);
+      setMethod(s.followUp.method);
+      fields.add("slot");
+      fields.add("method");
+      if (s.followUp.reason) {
+        setReason(s.followUp.reason.slice(0, REASON_MAX));
+        fields.add("reason");
+      }
+    }
+    const check = new Set(s.check.includes("followUp") ? ["dueDate", "slot", "method"] : []);
+    setAi({ suggestionId, fields, check });
+    setErrors({});
+  }
 
   if (!visit && !hasOpenEnquiry) {
     return (
@@ -126,6 +186,7 @@ function FollowUpFields({
             customerId: customer.id,
             categoryIds: visit.categoryIds,
             expectedPurchase: visit.expectedPurchase,
+            intent: visit.intent,
             remarks: visit.remarks,
             outcome: "DECIDE_LATER",
             followUp: { ...followUp, clientId },
@@ -137,6 +198,23 @@ function FollowUpFields({
         const field = result.field?.replace(/^followUp\./, "") ?? "form";
         setErrors({ [field]: result.message });
         return;
+      }
+      // M20.07: what was finally saved, against what the AI suggested.
+      if (ai) {
+        const saved = { date: dueDate, timeSlot: slot, method, reason: followUp.reason };
+        void recordAiOutcome({
+          suggestionId: ai.suggestionId,
+          finalValues: visit
+            ? {
+                categoryIds: visit.categoryIds,
+                expectedPurchase: visit.expectedPurchase,
+                intent: visit.intent,
+                remarks: visit.remarks,
+                outcome: "DECIDE_LATER",
+                followUp: saved,
+              }
+            : { followUp: saved },
+        });
       }
       clearVisitDraft(userId, customer.id);
       toast(
@@ -151,16 +229,30 @@ function FollowUpFields({
   const stray = Object.entries(errors).find(
     ([field]) => !["dueDate", "reason"].includes(field),
   )?.[1];
+  const mark = (field: string) => markOf(ai, field);
 
   return (
     <div className="flex flex-col gap-5.5">
-      <div>
-        <span className="mb-2 block text-sm font-bold text-ink-2">{t("when")}</span>
+      <AiFillPanel
+        screen="followUp"
+        customerId={customer.id}
+        enabled={aiEnabled ?? false}
+        onApply={applySuggestion}
+      />
+
+      <div className={aiBox(mark("dueDate").marked)}>
+        <span className="mb-2 block text-sm font-bold text-ink-2">
+          {t("when")}
+          {mark("dueDate").tag}
+        </span>
         <ChoiceChips
           type="single"
           label={t("when")}
           value={when}
-          onValueChange={(value) => setWhen(value as When)}
+          onValueChange={(value) => {
+            setWhen(value as When);
+            touch("dueDate");
+          }}
           options={[...FOLLOW_UP_SHORTCUTS, "PICK" as const].map((value) => ({
             value,
             label: t(`shortcut.${value}`),
@@ -172,7 +264,10 @@ function FollowUpFields({
             type="date"
             min={today}
             value={picked}
-            onChange={(event) => setPicked(event.target.value)}
+            onChange={(event) => {
+              setPicked(event.target.value);
+              touch("dueDate");
+            }}
             className="mt-2.5"
           />
         )}
@@ -185,36 +280,58 @@ function FollowUpFields({
         <FieldError>{errorFor("dueDate")}</FieldError>
       </div>
 
-      <div>
-        <span className="mb-2 block text-sm font-bold text-ink-2">{t("bestTime")}</span>
+      <div className={aiBox(mark("slot").marked)}>
+        <span className="mb-2 block text-sm font-bold text-ink-2">
+          {t("bestTime")}
+          {mark("slot").tag}
+        </span>
         <ChoiceChips
           type="single"
           label={t("bestTime")}
           value={slot}
-          onValueChange={(value) => setSlot(value as Slot)}
+          onValueChange={(value) => {
+            setSlot(value as Slot);
+            touch("slot");
+          }}
           options={SLOTS.map((value) => ({ value, label: t(`slot.${value}`) }))}
         />
       </div>
 
-      <div>
-        <span className="mb-2 block text-sm font-bold text-ink-2">{t("how")}</span>
+      <div className={aiBox(mark("method").marked)}>
+        <span className="mb-2 block text-sm font-bold text-ink-2">
+          {t("how")}
+          {mark("method").tag}
+        </span>
         <ChoiceChips
           type="single"
           label={t("how")}
           value={method}
-          onValueChange={(value) => setMethod(value as Method)}
+          onValueChange={(value) => {
+            setMethod(value as Method);
+            touch("method");
+          }}
           options={METHODS.map((value) => ({ value, label: t(`method.${value}`) }))}
         />
       </div>
 
-      <TextArea
-        label={t("reason")}
-        placeholder={t("reasonPlaceholder")}
-        maxLength={REASON_MAX}
-        value={reason}
-        onChange={(event) => setReason(event.target.value)}
-        error={errorFor("reason")}
-      />
+      <div className={aiBox(mark("reason").marked)}>
+        <TextArea
+          label={
+            <>
+              {t("reason")}
+              {mark("reason").tag}
+            </>
+          }
+          placeholder={t("reasonPlaceholder")}
+          maxLength={REASON_MAX}
+          value={reason}
+          onChange={(event) => {
+            setReason(event.target.value);
+            touch("reason");
+          }}
+          error={errorFor("reason")}
+        />
+      </div>
 
       {replaces && (
         <p className="flex items-start gap-2.5 rounded-xl border border-border bg-muted px-3.5 py-3 text-sm leading-relaxed">

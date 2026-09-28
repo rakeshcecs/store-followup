@@ -7,6 +7,9 @@ const withNextIntl = createNextIntlPlugin();
 const nextConfig: NextConfig = {
   // Self-contained server for the Docker image (Dockerfile target "web").
   output: "standalone",
+  // Dev only: lets a phone on the same WiFi (and a trycloudflare tunnel, for the microphone,
+  // which needs HTTPS) load the dev scripts. No effect on the production build.
+  allowedDevOrigins: ["192.168.*.*", "*.trycloudflare.com"],
   // M13 exports. pdfkit reads its own data files from its package folder at run time, so
   // neither it nor exceljs may be bundled; and the PDF fonts are read from node_modules,
   // so the standalone image must carry them.

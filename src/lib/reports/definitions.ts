@@ -2,8 +2,8 @@
 // overview's own figures (src/lib/dashboard.ts), so a report and the dashboard can never
 // disagree about the same period. The row lists (R1, R3–R5, R7) use the same definitions.
 //
-// R10 (WhatsApp and campaigns) went with the API (25 Sep 2026); R11 (AI usage) comes with M20, which is
-// what writes its data — until then there is nothing true to count.
+// R10 (WhatsApp and campaigns) went with the API (25 Sep 2026). R11 (AI usage) came with M21,
+// once both halves of its data were written: AI fills (M20) and AI questions (M21).
 import type { Prisma } from "@/generated/prisma/client";
 import { customerTimeline } from "@/lib/customers";
 import { loadOverview, percent } from "@/lib/dashboard";
@@ -25,6 +25,7 @@ import type {
   Row,
   RunContext,
 } from "@/lib/reports/core";
+import { staffBranchWhere } from "@/lib/staff-scope";
 import { readReassignDetail, systemByline, TIMELINE } from "@/lib/timeline";
 
 type T = Awaited<ReturnType<typeof reportTranslators>>["t"];
@@ -764,6 +765,82 @@ const r9: ReportDef = {
   },
 };
 
+// R11 AI usage (SOW section 7): per person in these branches, the AI fills they asked for
+// (M20), the share of those saved exactly as suggested, the questions they asked (M21) and
+// how many answers they marked wrong. "% accepted without change" is out of every fill
+// asked for, so a fill that was never saved counts as not accepted.
+const r11: ReportDef = {
+  code: "r11",
+  roles: ["MANAGER", "ADMIN"],
+  dateRange: true,
+  filters: ["salesperson"],
+  defaultSort: { key: "staff", dir: "asc" },
+  run: async (ctx) => {
+    const t = await tr(ctx);
+    const person = personWhere(ctx);
+    const staff = await db.user.findMany({
+      where: { ...staffBranchWhere(ctx.scope), ...(person ?? {}) },
+      select: { id: true, fullName: true, status: true },
+      orderBy: { fullName: "asc" },
+    });
+    const ids = staff.map((row) => row.id);
+    const when = { userId: { in: ids }, createdAt: instantWhere(ctx.range) };
+    const [fills, accepted, questions, wrong] = await Promise.all([
+      db.aiSuggestionLog.groupBy({ by: ["userId"], where: when, _count: { _all: true } }),
+      db.aiSuggestionLog.groupBy({
+        by: ["userId"],
+        where: { ...when, accepted: true },
+        _count: { _all: true },
+      }),
+      db.aiQuestionLog.groupBy({ by: ["userId"], where: when, _count: { _all: true } }),
+      db.aiQuestionLog.groupBy({
+        by: ["userId"],
+        where: { ...when, markedWrong: true },
+        _count: { _all: true },
+      }),
+    ]);
+    const count = (rows: { userId: string; _count: { _all: number } }[]) =>
+      new Map(rows.map((row) => [row.userId, row._count._all]));
+    const [f, a, q, w] = [count(fills), count(accepted), count(questions), count(wrong)];
+    // Everyone still working here, and anyone who left but used the AI in the period.
+    const people = staff.filter((row) => row.status === "ACTIVE" || f.has(row.id) || q.has(row.id));
+    const rows: Row[] = people.map((row) => ({
+      cells: {
+        staff: row.status === "ACTIVE" ? row.fullName : t("inactiveName", { name: row.fullName }),
+        aiFills: f.get(row.id) ?? 0,
+        acceptedPercent: percent(a.get(row.id) ?? 0, f.get(row.id) ?? 0),
+        questions: q.get(row.id) ?? 0,
+        markedWrong: w.get(row.id) ?? 0,
+      },
+    }));
+    const total = (map: Map<string, number>) =>
+      people.reduce((sum, row) => sum + (map.get(row.id) ?? 0), 0);
+    return {
+      tables: [
+        {
+          key: "people",
+          main: true,
+          columns: columns(t, [
+            ["staff", "text"],
+            ["aiFills", "number"],
+            ["acceptedPercent", "percent"],
+            ["questions", "number"],
+            ["markedWrong", "number"],
+          ]),
+          rows,
+          totals: {
+            staff: t("total"),
+            aiFills: total(f),
+            acceptedPercent: percent(total(a), total(f)),
+            questions: total(q),
+            markedWrong: total(w),
+          },
+        },
+      ],
+    };
+  },
+};
+
 export const REPORTS: Record<ReportCode, ReportDef> = {
   r1,
   r2,
@@ -774,6 +851,7 @@ export const REPORTS: Record<ReportCode, ReportDef> = {
   r7,
   r8,
   r9,
+  r11,
 };
 
 export type { ReportResult };

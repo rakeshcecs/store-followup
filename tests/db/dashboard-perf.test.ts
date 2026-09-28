@@ -130,7 +130,7 @@ describe("Store overview with 12 months of data", () => {
       self: null,
       locale: "en" as const,
     };
-    for (const code of ["r1", "r2", "r3", "r4", "r5", "r6", "r7", "r9"] as const) {
+    for (const code of ["r1", "r2", "r3", "r4", "r5", "r6", "r7", "r9", "r11"] as const) {
       const started = performance.now();
       const result = await REPORTS[code].run(ctx);
       const table = mainTable(result)!;
@@ -143,4 +143,48 @@ describe("Store overview with 12 months of data", () => {
       expect(took, code).toBeLessThan(5_000);
     }
   }, 120_000);
+});
+
+// M21: "AI answers within 10 seconds" (SOW NFR). The model's two turns take 2–4 s, so each
+// search gets 2 s on the same busy year, with every filter it has switched on at once.
+describe("AI question searches with 12 months of data", () => {
+  it("each search answers in under 2 seconds", async () => {
+    const { askText, runAskTool } = await import("@/lib/ai/ask-tools");
+    const scope = { all: false as const, branchIds: [branchId] };
+    const actor = {
+      user: {
+        id: "perf-manager",
+        role: "MANAGER" as const,
+        homeBranchId: branchId,
+        branchIds: [branchId],
+        language: "en" as const,
+      },
+      self: null,
+      scope,
+      today: TODAY,
+      locale: "en" as const,
+    };
+    const t = await askText("en");
+    const year = { from: addDays(TODAY, -(DAYS - 1)), to: TODAY };
+    const calls: [string, Record<string, unknown>][] = [
+      ["find_followups", {}],
+      ["find_followups", { overdueOnly: true }],
+      ["find_customers", { hasOpenEnquiry: true, notContactedDays: 7 }],
+      ["find_customers", { lastVisitFrom: addDays(TODAY, -30), lastVisitTo: TODAY }],
+      ["get_sales", year],
+      ["get_salesperson_stats", year],
+      ["get_lost_reasons", year],
+      ["get_dashboard", year],
+    ];
+    for (const [tool, args] of calls) {
+      const started = performance.now();
+      const outcome = await runAskTool(tool, JSON.stringify(args), actor, t);
+      const took = performance.now() - started;
+      process.stderr.write(
+        `M21 ${tool} ${JSON.stringify(args)}: ${outcome.total} rows, ${Math.round(took)} ms\n`,
+      );
+      expect(outcome.error, tool).toBeUndefined();
+      expect(took, tool).toBeLessThan(2_000);
+    }
+  }, 60_000);
 });

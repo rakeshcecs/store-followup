@@ -17,6 +17,7 @@
     "test": "vitest run --project unit --project ui",
     "test:watch": "vitest --project unit --project ui",
     "test:db": "vitest run --project db",
+    "test:ai": "vitest run --project ai",
     "worker": "tsx worker/index.ts",
     "worker:test": "tsx worker/enqueue-test.ts",
     "test:e2e": "playwright test",

@@ -140,9 +140,9 @@ describe("occasion follow-ups (6 AM job)", () => {
 
   it("the lead days setting moves the day; the tick enqueues the job once from 6 AM", async () => {
     await as(store.admin.mobile);
-    expect(
-      await festivals.updateOccasionSettings({ occasionLeadDays: 7 }),
-    ).toMatchObject({ ok: true });
+    expect(await festivals.updateOccasionSettings({ occasionLeadDays: 7 })).toMatchObject({
+      ok: true,
+    });
     expect(await occasionLeadDays()).toBe(7);
     const c = await customer(store.branchA.id, store.salesA.id);
     await db.customer.update({ where: { id: c.id }, data: { occasionDate: occasionDay(7) } });
@@ -220,9 +220,10 @@ describe("festival calendar and settings (admin)", () => {
     expect(
       await festivals.addFestival({ name: "X", date: "2026-12-01", branch: "all" }),
     ).toMatchObject({ ok: false, code: "FORBIDDEN" });
-    expect(
-      await festivals.updateOccasionSettings({ occasionLeadDays: 10 }),
-    ).toMatchObject({ ok: false, code: "FORBIDDEN" });
+    expect(await festivals.updateOccasionSettings({ occasionLeadDays: 10 })).toMatchObject({
+      ok: false,
+      code: "FORBIDDEN",
+    });
     await as(store.salesA.mobile);
     expect(await festivals.prefillCommonFestivals({})).toMatchObject({
       ok: false,
@@ -247,5 +248,4 @@ describe("festival calendar and settings (admin)", () => {
     });
     expect(audit?.newValue).toEqual({ occasionLeadDays: 15 });
   });
-
 });

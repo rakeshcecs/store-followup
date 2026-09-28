@@ -14,8 +14,16 @@ export type VisitDraft = {
   customerId: string;
   categoryIds: string[];
   expectedPurchase?: string;
+  intent?: string; // M20: Hot / Warm / Cold
   remarks?: string;
   outcome: "PURCHASED" | "DECIDE_LATER";
+  // M20: the AI fill this visit came from, and the follow-up it suggested, for the Set
+  // follow-up screen to start from and to report the final values against.
+  ai?: {
+    suggestionId: string;
+    followUp?: { date?: string; timeSlot: string; method: string; reason?: string };
+    checkFollowUp: boolean;
+  };
 };
 
 const PREFIX = "visit-draft:";

@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   LogOut,
   Settings,
+  Sparkles,
   Users,
   UserSearch,
 } from "lucide-react";
@@ -23,6 +24,7 @@ import type { NavAction, NavItem } from "@/components/ui/bottom-nav";
 import { TopBar } from "@/components/ui/top-bar";
 import type { Role } from "@/generated/prisma/client";
 import { logoutAndReturnToLogin } from "@/lib/actions/auth";
+import { aiAvailable } from "@/lib/ai/suggest";
 import { getUser } from "@/lib/auth";
 import { getCurrentBranch } from "@/lib/current-branch";
 import { ALL_BRANCHES } from "@/lib/permissions";
@@ -42,7 +44,8 @@ type AppShellProps = {
 // The one shell for every signed-in screen. A salesperson gets the phone column; a
 // manager or admin gets the side menu on laptops.
 //
-// Four nav items at most: a phone's bottom bar has room for four plus Log out. Branches
+// Four nav items at most: a phone's bottom bar has room for four plus Log out (a
+// salesperson's fourth is Ask AI when the AI is on, M21). Branches
 // and departments therefore live behind Settings, and My profile behind the avatar at
 // the top right (M11: the SOW's menu is Today, Customers, Follow-ups, Log out, and the
 // follow-up list is "Used by: All").
@@ -68,6 +71,10 @@ export async function AppShell({
         { href: "/today", label: t("nav.today"), icon: <CalendarCheck /> },
         { href: "/customers", label: t("nav.customers"), icon: <UserSearch /> },
         followUps,
+        // M21: "in the menu for salespeople" — the fourth and last slot of the phone's bar.
+        ...((await aiAvailable())
+          ? [{ href: "/ask", label: t("nav.ask"), icon: <Sparkles /> }]
+          : []),
       ]
     : [
         { href: "/overview", label: t("nav.overview"), icon: <LayoutDashboard /> },

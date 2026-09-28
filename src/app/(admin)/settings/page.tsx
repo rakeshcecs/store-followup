@@ -5,6 +5,7 @@ import {
   ListChecks,
   PartyPopper,
   Receipt,
+  Sparkles,
   Tags,
   Users,
 } from "lucide-react";
@@ -44,6 +45,7 @@ export default async function SettingsPage() {
       text: t("festivalsText"),
       icon: PartyPopper,
     },
+    { href: "/settings/ai", label: t("ai"), text: t("aiText"), icon: Sparkles },
   ];
 
   return (

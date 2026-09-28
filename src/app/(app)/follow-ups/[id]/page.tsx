@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Pill } from "@/components/ui/pill";
 import type { Locale } from "@/i18n/config";
+import { aiAvailable } from "@/lib/ai/suggest";
 import { requireUser } from "@/lib/auth";
 import { telHref, whatsappHref } from "@/lib/contact-links";
 import { db } from "@/lib/db";
@@ -136,6 +137,7 @@ export default async function UpdateFollowUpPage({ params }: { params: Promise<{
           name,
         }))}
         today={today}
+        aiEnabled={await aiAvailable()}
       />
     </>,
   );

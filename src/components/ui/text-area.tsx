@@ -1,9 +1,9 @@
-import type { ComponentProps } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { Field, fieldControlClass } from "@/components/ui/field";
 import { cn } from "@/lib/utils";
 
 type TextAreaProps = Omit<ComponentProps<"textarea">, "id"> & {
-  label: string;
+  label: ReactNode;
   hint?: string;
   error?: string;
 };
