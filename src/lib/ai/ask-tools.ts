@@ -112,6 +112,27 @@ function periodOf(from: string | null, to: string | null, today: string): DayRan
   return range;
 }
 
+// Whether a name asked for is this one, word by word: every word asked for starts a word
+// of the name ("amit" finds "Amit Shah"), and a single letter must be a whole word — the
+// "a" of "Salesman A" is not the one inside "Test Salesman", and "Branch B" is not
+// "Branch A" because "b" starts "branch".
+export function nameMatches(full: string, asked: string): boolean {
+  const tokens = full
+    .toLowerCase()
+    .split(/[\s\-–—·,]+/)
+    .filter(Boolean);
+  const words = asked
+    .toLowerCase()
+    .split(/[\s\-–—·,]+/)
+    .filter(Boolean);
+  return (
+    words.length > 0 &&
+    words.every((word) =>
+      tokens.some((token) => (word.length === 1 ? token === word : token.startsWith(word))),
+    )
+  );
+}
+
 // Staff the asker may see, found by (part of) their name. A salesperson is always
 // themselves: asking about a colleague is refused in words the model passes on, rather
 // than quietly answered with the salesperson's own rows under the colleague's name.
@@ -122,9 +143,9 @@ async function staffNamed(
   if (actor.self) {
     if (!name) return { ids: [actor.self] };
     const own = await db.user.findUnique({ where: { id: actor.self }, select: { fullName: true } });
-    const words = name.toLowerCase().split(/\s+/).filter(Boolean);
-    const mine = own && words.every((word) => own.fullName.toLowerCase().includes(word));
-    return mine ? { ids: [actor.self] } : { error: SALESPERSON_OWN_ONLY };
+    return own && nameMatches(own.fullName, name)
+      ? { ids: [actor.self] }
+      : { error: SALESPERSON_OWN_ONLY };
   }
   if (!name) return { ids: null };
   const staff = await db.user.findMany({
@@ -135,11 +156,7 @@ async function staffNamed(
   const wanted = name.toLowerCase();
   const exact = staff.filter((person) => person.fullName.toLowerCase() === wanted);
   if (exact.length > 0) return { ids: exact.map((person) => person.id) };
-  const words = wanted.split(/\s+/).filter((word) => word.length >= 2);
-  const matches = staff.filter((person) => {
-    const full = person.fullName.toLowerCase();
-    return full.includes(wanted) || words.every((word) => full.includes(word));
-  });
+  const matches = staff.filter((person) => nameMatches(person.fullName, name));
   const names = staff.map((person) => person.fullName).join(", ");
   if (matches.length === 0) return { error: `No staff member called "${name}". Staff: ${names}` };
   if (matches.length > 1) {
@@ -149,6 +166,40 @@ async function staffNamed(
   }
   return { ids: [matches[0]!.id] };
 }
+
+// A branch the question names ("sales in Branch A"): any branch the asker may reach, not
+// only the one on screen. One they cannot reach is refused in words the model passes on,
+// so it never answers with the on-screen branch's figures under the other branch's name.
+async function branchNamed(
+  actor: AskActor,
+  name: string | null,
+): Promise<{ scope: BranchScope; branch: string | null } | { error: string }> {
+  if (!name) return { scope: actor.scope, branch: null };
+  const reach = accessScope(actor.user);
+  const branches = await db.branch.findMany({
+    where: { status: "ACTIVE", ...(reach.all ? {} : { id: { in: reach.branchIds } }) },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
+  const wanted = name.trim().toLowerCase();
+  const exact = branches.filter((b) => b.name.toLowerCase() === wanted);
+  const matches = exact.length > 0 ? exact : branches.filter((b) => nameMatches(b.name, name));
+  if (matches.length === 1) {
+    return { scope: { all: false, branchIds: [matches[0]!.id] }, branch: matches[0]!.name };
+  }
+  const names = branches.map((b) => b.name).join(", ");
+  if (matches.length > 1) {
+    return { error: `"${name}" matches ${matches.map((b) => b.name).join(", ")}. Ask which one.` };
+  }
+  return {
+    error: `The asker cannot see a branch called "${name}". They can only see: ${names}. Tell them so, and do not give another branch's figures instead.`,
+  };
+}
+
+const branchNameParam = nullable(
+  "string",
+  "Only this branch, by name, when the question names a branch. Default: the branches on screen.",
+);
 
 type Col = { key: string; kind: ColumnKind };
 
@@ -194,6 +245,7 @@ const followUpArgs = z.object({
   dueTo: day,
   salespersonName: text,
   method: z.enum(METHODS).nullish(),
+  branchName: text,
 });
 
 const findFollowUps: AskToolDef = {
@@ -207,19 +259,22 @@ const findFollowUps: AskToolDef = {
     dueTo: nullable("string", "Last due day, YYYY-MM-DD."),
     salespersonName: nullable("string", "Only this salesperson's follow-ups."),
     method: nullableEnum(METHODS, "CALL, WHATSAPP, or VISIT (the customer said they will come)."),
+    branchName: branchNameParam,
   }),
   roles: ["SALESPERSON", "MANAGER", "ADMIN"],
   run: async (raw, actor, t) => {
     const args = followUpArgs.parse(raw);
     const staff = await staffNamed(actor, args.salespersonName);
     if ("error" in staff) return refuse(staff.error);
+    const named = await branchNamed(actor, args.branchName);
+    if ("error" in named) return refuse(named.error);
     const status = args.overdueOnly ? "pending" : (args.status ?? "pending");
     const where: Prisma.FollowUpWhereInput = {
       AND: [
         actor.self
-          ? { assignedToId: actor.self }
+          ? { assignedToId: actor.self, ...(named.branch ? branchWhere(named.scope) : {}) }
           : {
-              ...branchWhere(actor.scope),
+              ...branchWhere(named.scope),
               ...(staff.ids ? { assignedToId: { in: staff.ids } } : {}),
             },
         { status: status.toUpperCase() as "PENDING" },
@@ -310,20 +365,19 @@ const customerArgs = z.object({
   notContactedDays: z.number().int().min(1).max(366).nullish(),
   intent: z.enum(INTENTS).nullish(),
   hasOpenEnquiry: flag,
+  salespersonName: text,
+  branchName: text,
 });
 
 // Which customers "belong" to the asker: a salesperson's are the ones assigned to them; a
 // manager's are the ones whose home branch is in the switcher or who visited one of those
 // branches (customers are shared, BR-16, so a visit elsewhere does not hide them).
-function customersOf(actor: AskActor): Prisma.CustomerWhereInput {
+function customersOf(actor: AskActor, scope: BranchScope): Prisma.CustomerWhereInput {
   if (actor.self) return { assignedToId: actor.self };
-  if (actor.scope.all) return {};
-  const branchIds = actor.scope.branchIds;
+  if (scope.all) return {};
+  const branchIds = scope.branchIds;
   return {
-    OR: [
-      { homeBranchId: { in: branchIds } },
-      { visits: { some: { ...branchWhere(actor.scope) } } },
-    ],
+    OR: [{ homeBranchId: { in: branchIds } }, { visits: { some: { ...branchWhere(scope) } } }],
   };
 }
 
@@ -343,10 +397,16 @@ const findCustomers: AskToolDef = {
     notContactedDays: nullable("integer", "No visit and no completed follow-up in this many days."),
     intent: nullableEnum(INTENTS, "HOT, WARM or COLD."),
     hasOpenEnquiry: nullable("boolean", "true: still deciding (pending). false: no open enquiry."),
+    salespersonName: nullable("string", "Only the customers assigned to this salesperson."),
+    branchName: branchNameParam,
   }),
   roles: ["SALESPERSON", "MANAGER", "ADMIN"],
   run: async (raw, actor, t) => {
     const args = customerArgs.parse(raw);
+    const staff = await staffNamed(actor, args.salespersonName);
+    if ("error" in staff) return refuse(staff.error);
+    const named = await branchNamed(actor, args.branchName);
+    if ("error" in named) return refuse(named.error);
 
     let categoryIds: string[] | null = null;
     if (args.categoryNames?.length) {
@@ -378,7 +438,11 @@ const findCustomers: AskToolDef = {
     const needsOpen =
       categoryIds !== null || !!args.expectedPurchase || !!args.intent || args.hasOpenEnquiry;
 
-    const and: Prisma.CustomerWhereInput[] = [customersOf(actor), { active: true }];
+    const and: Prisma.CustomerWhereInput[] = [customersOf(actor, named.scope), { active: true }];
+    // A salesperson's are theirs already; for a manager this is "Salesman B's customers".
+    if (staff.ids && !actor.self) and.push({ assignedToId: { in: staff.ids } });
+    // A salesperson naming a branch: their customers seen there.
+    if (actor.self && named.branch) and.push({ visits: { some: branchWhere(named.scope) } });
     if (needsOpen) and.push({ enquiries: { some: openEnquiry } });
     else if (args.hasOpenEnquiry === false) and.push({ enquiries: { none: { status: "OPEN" } } });
     if (args.lastVisitFrom || args.lastVisitTo) {
@@ -496,6 +560,7 @@ const salesArgs = z.object({
   to: day,
   salespersonName: text,
   fromFollowUp: flag,
+  branchName: text,
 });
 
 const getSales: AskToolDef = {
@@ -507,6 +572,7 @@ const getSales: AskToolDef = {
     to: nullable("string", "Last bill day, YYYY-MM-DD. Default: today."),
     salespersonName: nullable("string", "Only this salesperson's sales."),
     fromFollowUp: nullable("boolean", "true: only sales that came from follow-ups."),
+    branchName: branchNameParam,
   }),
   roles: ["SALESPERSON", "MANAGER", "ADMIN"],
   run: async (raw, actor, t) => {
@@ -515,8 +581,10 @@ const getSales: AskToolDef = {
     if (typeof range === "string") return refuse(range);
     const staff = await staffNamed(actor, args.salespersonName);
     if ("error" in staff) return refuse(staff.error);
+    const named = await branchNamed(actor, args.branchName);
+    if ("error" in named) return refuse(named.error);
     const base: Prisma.SaleWhereInput = {
-      ...branchWhere(actor.scope),
+      ...branchWhere(named.scope),
       billDate: dateWhere(range),
       cancelled: false,
       ...(staff.ids ? { salespersonId: { in: staff.ids } } : {}),
@@ -594,7 +662,7 @@ const getSales: AskToolDef = {
 
 // ---------- get_salesperson_stats ----------
 
-const statsArgs = z.object({ from: day, to: day, salespersonName: text });
+const statsArgs = z.object({ from: day, to: day, salespersonName: text, branchName: text });
 
 // The Store overview's own table (M12), so the answer and R2 agree for the same days.
 const getSalespersonStats: AskToolDef = {
@@ -605,6 +673,7 @@ const getSalespersonStats: AskToolDef = {
     from: nullable("string", "First day, YYYY-MM-DD. Default: 1st of this month."),
     to: nullable("string", "Last day, YYYY-MM-DD. Default: today."),
     salespersonName: nullable("string", "Only this salesperson."),
+    branchName: branchNameParam,
   }),
   roles: ["SALESPERSON", "MANAGER", "ADMIN"],
   run: async (raw, actor, t) => {
@@ -613,7 +682,9 @@ const getSalespersonStats: AskToolDef = {
     if (typeof range === "string") return refuse(range);
     const staff = await staffNamed(actor, args.salespersonName);
     if ("error" in staff) return refuse(staff.error);
-    const overview = await loadOverview(actor.scope, range, actor.today, actor.locale);
+    const named = await branchNamed(actor, args.branchName);
+    if ("error" in named) return refuse(named.error);
+    const overview = await loadOverview(named.scope, range, actor.today, actor.locale);
     const people = overview.people.filter((p) => !staff.ids || staff.ids.includes(p.id));
     return {
       total: people.length,
@@ -669,7 +740,7 @@ const getSalespersonStats: AskToolDef = {
 
 // ---------- get_lost_reasons ----------
 
-const lostArgs = z.object({ from: day, to: day });
+const lostArgs = z.object({ from: day, to: day, branchName: text });
 
 // Report R7's own summary, so the answer and the report agree.
 const getLostReasons: AskToolDef = {
@@ -679,14 +750,17 @@ const getLostReasons: AskToolDef = {
   parameters: schema({
     from: nullable("string", "First day, YYYY-MM-DD. Default: 1st of this month."),
     to: nullable("string", "Last day, YYYY-MM-DD. Default: today."),
+    branchName: branchNameParam,
   }),
   roles: ["MANAGER", "ADMIN"],
   run: async (raw, actor, t) => {
     const args = lostArgs.parse(raw);
     const range = periodOf(args.from, args.to, actor.today);
     if (typeof range === "string") return refuse(range);
+    const named = await branchNamed(actor, args.branchName);
+    if ("error" in named) return refuse(named.error);
     const result = await REPORTS.r7.run({
-      scope: actor.scope,
+      scope: named.scope,
       range,
       today: actor.today,
       filters: parseFilters({}),
@@ -735,33 +809,17 @@ const getDashboard: AskToolDef = {
   parameters: schema({
     from: nullable("string", "First day, YYYY-MM-DD. Default: 1st of this month."),
     to: nullable("string", "Last day, YYYY-MM-DD. Default: today."),
-    branchName: nullable("string", "One branch by name. Default: the branches on screen."),
+    branchName: branchNameParam,
   }),
   roles: ["MANAGER", "ADMIN"],
   run: async (raw, actor, t) => {
     const args = dashboardArgs.parse(raw);
     const range = periodOf(args.from, args.to, actor.today);
     if (typeof range === "string") return refuse(range);
-    let scope = actor.scope;
-    let branch: string | null = null;
-    if (args.branchName) {
-      // Any branch the asker may reach, not only the one on screen.
-      const reach = accessScope(actor.user);
-      const branches = await db.branch.findMany({
-        where: { status: "ACTIVE", ...(reach.all ? {} : { id: { in: reach.branchIds } }) },
-        select: { id: true, name: true },
-      });
-      const wanted = args.branchName.toLowerCase();
-      const match = branches.find((b) => b.name.toLowerCase().includes(wanted));
-      if (!match) {
-        return refuse(
-          `No branch called "${args.branchName}" that you can see. Branches: ${branches.map((b) => b.name).join(", ")}`,
-        );
-      }
-      scope = { all: false, branchIds: [match.id] };
-      branch = match.name;
-    }
-    const o = await loadOverview(scope, range, actor.today, actor.locale);
+    const named = await branchNamed(actor, args.branchName);
+    if ("error" in named) return refuse(named.error);
+    const { branch } = named;
+    const o = await loadOverview(named.scope, range, actor.today, actor.locale);
     const figures: [string, number | string | null, ColumnKind][] = [
       ["visited", o.visited.total, "number"],
       ["newCustomers", o.visited.new, "number"],

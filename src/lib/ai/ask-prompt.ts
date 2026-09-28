@@ -79,6 +79,7 @@ export function buildAskPrompt(ctx: AskPromptContext): string {
     "7. Periods: for things that already happened (sales, visits, performance) 'this week' / 'this month' mean from the start of the week / month to today. For things planned (follow-ups due, customers who will visit) 'this week' means today to Sunday.",
     "8. 'Followed up today' / 'call today' = pending follow-ups due today; add overdue ones only if asked. 'Said they would visit' = follow-ups with method VISIT.",
     "9. Never mention searches, tools, JSON or ids. For questions that are not about the store's data, say what you can help with.",
+    "10. If the question names a branch, pass it as branchName to every search. If a search says the asker cannot see that branch, tell them so and give no figures for it; never give the figures of another branch under that branch's name.",
   );
   return lines.join("\n");
 }

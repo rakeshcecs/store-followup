@@ -190,6 +190,9 @@ describe("permissions (M21.05, BR-18)", () => {
     expect(names(b, "followUps")).toEqual(["Mahesh Other Branch"]);
     const wedding = await run(store.managerA, "find_customers", { categoryNames: ["sherwani"] });
     expect(names(wedding, "customers")).toEqual(["Ramesh Mine"]);
+    // "Amit's customers": only those assigned to him, not the whole branch.
+    const amit = await run(store.managerA, "find_customers", { salespersonName: "Amit" });
+    expect(names(amit, "customers")).toEqual(["Ramesh Mine"]);
   });
 
   it("the store-wide searches are a manager's; a salesperson is refused", async () => {
@@ -201,7 +204,33 @@ describe("permissions (M21.05, BR-18)", () => {
     expect(figures.forModel).toMatchObject({ sales: 1, salesFromFollowUps: 1 });
     // A branch the manager cannot reach is not found, and the ones they can are named.
     const other = await run(store.managerA, "get_dashboard", { branchName: store.branchB.name });
-    expect(other.error).toMatch(/No branch/);
+    expect(other.error).toMatch(/cannot see a branch/);
+  });
+
+  it("a branch the question names: refused when out of reach on every search, never relabelled", async () => {
+    // Manager B asks about Branch A: every search says so, none answers with Branch B's rows.
+    for (const tool of [
+      "find_followups",
+      "find_customers",
+      "get_sales",
+      "get_salesperson_stats",
+      "get_lost_reasons",
+      "get_dashboard",
+    ]) {
+      const outcome = await run(store.managerB, tool, { branchName: store.branchA.name });
+      expect(outcome.error, tool).toMatch(/cannot see a branch/);
+      expect(outcome.table, tool).toBeNull();
+    }
+    // The admin, on Branch A, may name Branch B and gets Branch B's rows.
+    const b = await run(store.admin, "find_followups", { branchName: store.branchB.name });
+    expect(names(b, "followUps")).toEqual(["Mahesh Other Branch"]);
+  });
+
+  it("a salesperson's own name is matched word by word, not letter by letter", async () => {
+    // The "a" of "Shah A" is not the one inside "Amit Shah" (Test Salesman asked about
+    // "Salesman A" and got his own rows).
+    const asked = await run(store.salesA, "find_followups", { salespersonName: "Shah A" });
+    expect(asked.error).toBe(SALESPERSON_OWN_ONLY);
   });
 });
 

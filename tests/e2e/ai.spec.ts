@@ -108,9 +108,9 @@ test.describe("AI note assistant", () => {
     await expect(seat.getByTestId("ask-wrong-done")).toBeVisible();
     const asked = await db.aiQuestionLog.findFirstOrThrow({ where: { userId: seller.id } });
     expect(asked).toMatchObject({ question: en.ask.suggestions.mine.today, markedWrong: true });
-    // The Store overview has no Ask box, even with the AI on.
+    // M21.01: the admin gets the Ask box at the top of the Store overview.
     await page.goto("/overview");
-    await expect(page.getByTestId("ask-box")).toHaveCount(0);
+    await expect(page.getByTestId("ask-box")).toBeVisible();
     await page.goto("/settings/ai");
 
     // Admin: off again — and the form is exactly as before M20.
@@ -127,6 +127,9 @@ test.describe("AI note assistant", () => {
     await expect(seat.getByText(en.ask.off)).toBeVisible();
     await expect(seat.getByTestId("ask-box")).toHaveCount(0);
     await other.close();
+    // Off: no box on the overview either.
+    await page.goto("/overview");
+    await expect(page.getByTestId("ask-box")).toHaveCount(0);
 
     const audits = await db.auditLog.findMany({
       where: { userId: admin.id, action: "setting:update" },

@@ -264,7 +264,8 @@ function AnswerTable({ table }: { table: AskTable }) {
                     className={cn(
                       "px-3 py-2 align-top",
                       table.columns[c]?.numeric ? "text-right tabular-nums" : "text-left",
-                      c === 0 && "font-bold whitespace-nowrap",
+                      // A long name wraps instead of pushing the other columns off a phone.
+                      c === 0 && "max-w-56 min-w-32 font-bold [overflow-wrap:anywhere]",
                     )}
                   >
                     {c === 0 && row.href ? (

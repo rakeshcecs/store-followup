@@ -1433,7 +1433,7 @@
   "ask": {
     "title": "Ask AI",
     "label": "Ask a question",
-    "placeholder": "Ask about customers, follow-ups or sales…",
+    "placeholder": "Customers, follow-ups, sales…",
     "hint": "AI only reads your data. It never changes anything.",
     "send": "Ask",
     "asking": "Asking…",
