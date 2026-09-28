@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 import en from "../../messages/en.json";
 import { db } from "@/lib/db";
 import { isoDate } from "@/lib/format";
+import { overviewLink } from "@/lib/reminders";
 import { SETTING } from "@/lib/settings";
 import { makeStaff, signIn } from "./helpers";
 
@@ -11,6 +12,7 @@ import { makeStaff, signIn } from "./helpers";
 
 test.describe("notifications", () => {
   const users: string[] = [];
+  const branches: string[] = [];
 
   test.afterAll(async () => {
     // Test rows only; the app itself never hard-deletes (CLAUDE.md).
@@ -18,6 +20,7 @@ test.describe("notifications", () => {
     await db.auditLog.deleteMany({ where: { userId: { in: users } } });
     await db.session.deleteMany({ where: { userId: { in: users } } });
     await db.user.deleteMany({ where: { id: { in: users } } });
+    await db.branch.deleteMany({ where: { id: { in: branches } } });
     await db.$disconnect();
   });
 
@@ -69,6 +72,62 @@ test.describe("notifications", () => {
     // Tapping it opens the matching screen (M14.05).
     await rows.first().click();
     await expect(page).toHaveURL(/\/today$/);
+  });
+
+  test("the 8 PM summary opens the overview on its own branch", async ({ page }) => {
+    // M14.05: a manager of two branches, looking at the first, taps the second's summary.
+    const made = await Promise.all(
+      ["Home", "Other", "Foreign"].map((name) =>
+        db.branch.create({
+          data: {
+            name: `E2E Summary ${name} ${randomUUID().slice(0, 6)}`,
+            address: "1 Ring Road",
+            city: "Surat",
+            phone: "0261 123 4567",
+          },
+        }),
+      ),
+    );
+    const [home, other, foreign] = made;
+    branches.push(...made.map((branch) => branch.id));
+    const manager = await makeStaff("MANAGER", "E2E Summary Manager", home!.id);
+    users.push(manager.id);
+    await db.userBranch.create({ data: { userId: manager.id, branchId: other!.id } });
+    const today = isoDate(new Date());
+    const summary = (branchId: string, sentAt: Date) => ({
+      id: randomUUID(),
+      userId: manager.id,
+      type: "summary-manager",
+      message: `summary-manager:${today}:${branchId}:1:0:0:0:0`,
+      link: overviewLink(branchId),
+      sentAt,
+      pushedAt: new Date(),
+    });
+    await db.notification.createMany({
+      data: [
+        summary(other!.id, new Date()),
+        // Not theirs to see: the tap opens the overview on the branch they had.
+        summary(foreign!.id, new Date(Date.now() - 60_000)),
+      ],
+    });
+
+    await signIn(page, manager.mobile, "MANAGER");
+    const switcher = page.getByRole("button", { name: en.branch.switch });
+    await expect(switcher).toHaveText(home!.name);
+    await page.goto("/notifications");
+    const rows = page.getByTestId("notification-row");
+    await expect(rows.first()).toContainText(`Today at ${other!.name}`);
+    // Showing the list (and its links) has not switched anything yet.
+    await expect(switcher).toHaveText(home!.name);
+
+    await rows.first().click();
+    await expect(page).toHaveURL(/\/overview$/);
+    await expect(switcher).toHaveText(other!.name);
+
+    await page.goto("/notifications");
+    await rows.nth(1).click();
+    await expect(page).toHaveURL(/\/overview$/);
+    await expect(switcher).toHaveText(other!.name);
   });
 
   test("an empty list says so", async ({ page }) => {

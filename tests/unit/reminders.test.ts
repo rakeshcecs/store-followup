@@ -140,7 +140,8 @@ describe("notification texts", () => {
     expect((await renderNotifications(rows, "en")).get("summary-manager")).toEqual({
       title: "Today at all branches",
       body: "42 visits, 12 sales, 8 of 15 follow-ups done, 7 overdue.",
-      link: "/overview",
+      // M14.05: opens the overview on all branches, even from a row stored before that.
+      link: "/overview/branch?to=all",
     });
   });
 
