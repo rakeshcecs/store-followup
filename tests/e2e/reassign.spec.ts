@@ -98,6 +98,35 @@ test.describe("reassignment", () => {
     );
   });
 
+  test("from a profile, the customer is ticked even when its branch is not the switcher's", async ({
+    page,
+  }) => {
+    // A manager of two branches, parked on the first, opens a customer of the second.
+    const home = await shop();
+    const other = await shop();
+    const manager = await makeStaff("MANAGER", "E2E Two Branch Manager", home);
+    await db.userBranch.create({ data: { userId: manager.id, branchId: other } });
+    const owner = await makeStaff("SALESPERSON", "E2E Other Branch Owner", other);
+    const colleague = await makeStaff("SALESPERSON", "E2E Other Branch Colleague", other);
+    users.push(manager.id, owner.id, colleague.id);
+    const customer = await customerOf(owner.id, other, "E2E Other Branch Buyer");
+
+    await signIn(page, manager.mobile, "MANAGER");
+    await page.goto(`/customers/${customer.id}`);
+    await page.getByRole("link", { name: en.customers.profile.changeSalesperson }).click();
+
+    await expect(page.getByRole("checkbox", { name: /E2E Other Branch Buyer/ })).toBeChecked();
+    await page
+      .getByLabel(en.reassign.to, { exact: true })
+      .selectOption({ label: "E2E Other Branch Colleague" });
+    await page.getByRole("button", { name: "Reassign 1 customer" }).click();
+    await page.getByRole("button", { name: en.reassign.confirm }).click();
+    await expect(page).toHaveURL(new RegExp(`/customers/${customer.id}$`));
+    expect((await db.customer.findUniqueOrThrow({ where: { id: customer.id } })).assignedToId).toBe(
+      colleague.id,
+    );
+  });
+
   test("an admin moves a leaver's customers and makes them inactive", async ({ page }) => {
     const branchId = await shop();
     const admin = await makeStaff("ADMIN", "E2E Reassign Admin", branchId);

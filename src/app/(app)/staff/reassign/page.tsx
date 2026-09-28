@@ -8,6 +8,7 @@ import type { Locale } from "@/i18n/config";
 import { requireUser } from "@/lib/auth";
 import { getBranchScope } from "@/lib/current-branch";
 import { formatDayDate } from "@/lib/format";
+import { accessScope } from "@/lib/permissions";
 import { openCustomersOf, reassignSources, reassignTargets } from "@/lib/reassign";
 
 type Search = { from?: string; customer?: string; exit?: string };
@@ -27,7 +28,10 @@ export default async function ReassignPage({ searchParams }: { searchParams: Pro
   const t = await getTranslations("reassign");
   const tFollowUps = await getTranslations("followUps");
   const locale = (await getLocale()) as Locale;
-  const scope = await getBranchScope(user);
+  // From a profile the customer is opened by its id, so its owner is looked for in every
+  // branch the user may reach (as the profile itself and the move do), not only the
+  // branch in the switcher — Branch B's customer seen by a manager parked on Branch A.
+  const scope = params.customer ? accessScope(user) : await getBranchScope(user);
 
   const [sources, targets] = await Promise.all([reassignSources(scope), reassignTargets(scope)]);
   const from = sources.find((person) => person.id === params.from) ?? null;
