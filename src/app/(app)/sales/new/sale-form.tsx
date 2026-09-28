@@ -14,7 +14,8 @@ import { TextInput } from "@/components/ui/text-input";
 import { toast } from "@/components/ui/toast";
 import { useErrorMessage } from "@/hooks/use-error-message";
 import { checkBill } from "@/lib/actions/sale";
-import { saveSale, saveVisit } from "@/lib/offline/actions";
+import { recordSale } from "@/lib/actions/sale";
+import { recordVisit } from "@/lib/actions/visit";
 import type { MessageValues } from "@/lib/errors";
 import {
   clearFollowUpNote,
@@ -69,7 +70,6 @@ function SaleFields({
   visit,
 }: SaleFormProps & { visit: VisitDraft | null }) {
   const t = useTranslations("sales");
-  const tSync = useTranslations("sync");
   const tError = useErrorMessage();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -89,7 +89,7 @@ function SaleFields({
   useEffect(() => {
     if (!bill) return;
     const timer = setTimeout(async () => {
-      // Offline there is no one to ask; the sync catches a used number (M19).
+      // Offline there is no one to ask; the save itself refuses a used number (BR-07).
       if (!navigator.onLine) return;
       try {
         const result = await checkBill({ billNumber: bill });
@@ -139,7 +139,7 @@ function SaleFields({
 
     startTransition(async () => {
       const result = visit
-        ? await saveVisit({
+        ? await recordVisit({
             clientId: visit.clientId,
             customerId: customer.id,
             categoryIds: visit.categoryIds,
@@ -148,7 +148,7 @@ function SaleFields({
             outcome: "PURCHASED",
             sale: { ...sale, clientId: saleClientId },
           })
-        : await saveSale({
+        : await recordSale({
             clientId: saleClientId,
             customerId: customer.id,
             sale,
@@ -169,7 +169,7 @@ function SaleFields({
       }
       clearVisitDraft(userId, customer.id);
       if (followUpId) clearFollowUpNote(userId, followUpId);
-      toast(result.data.queued ? tSync("savedOnPhone") : t("saved", { bill }));
+      toast(t("saved", { bill }));
       // "/" sends each role home: Today for a salesperson, Overview otherwise.
       router.push("/");
     });

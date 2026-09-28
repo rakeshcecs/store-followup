@@ -17,7 +17,7 @@ import { useErrorMessage } from "@/hooks/use-error-message";
 import type { Locale } from "@/i18n/config";
 import { recordAiOutcome } from "@/lib/actions/ai";
 import type { AiSuggestion } from "@/lib/ai/check";
-import { saveFollowUpResult } from "@/lib/offline/actions";
+import { recordFollowUpResult } from "@/lib/actions/follow-up";
 import {
   CALL_AGAIN_SHORTCUTS,
   dayForDisplay,
@@ -52,7 +52,6 @@ type ResultFormProps = {
 // (M09.07), so the note travels to the Sale screen with the person.
 export function ResultForm({ userId, followUp, reasons, today, aiEnabled }: ResultFormProps) {
   const t = useTranslations("followUpResult");
-  const tSync = useTranslations("sync");
   const tError = useErrorMessage();
   const locale = useLocale() as Locale;
   const router = useRouter();
@@ -128,7 +127,7 @@ export function ResultForm({ userId, followUp, reasons, today, aiEnabled }: Resu
 
     const base = { id: followUp.id, clientId, note: trimmed || undefined };
     startTransition(async () => {
-      const saved = await saveFollowUpResult(
+      const saved = await recordFollowUpResult(
         result === "WILL_VISIT" || result === "CALL_LATER"
           ? { ...base, result, nextDate }
           : result === "NOT_INTERESTED"
@@ -152,7 +151,7 @@ export function ResultForm({ userId, followUp, reasons, today, aiEnabled }: Resu
           },
         });
       }
-      toast(saved.data.queued ? tSync("savedOnPhone") : t("saved"));
+      toast(t("saved"));
       // "/" sends each role home: Today for a salesperson, Overview otherwise.
       router.push("/");
     });

@@ -5,7 +5,6 @@ import {
   LayoutDashboard,
   LogOut,
   Settings,
-  Sparkles,
   Users,
   UserSearch,
 } from "lucide-react";
@@ -15,8 +14,6 @@ import type { ReactNode } from "react";
 import { BranchSwitcher } from "@/components/branch/branch-switcher";
 import { LanguageSwitcher } from "@/components/language/language-switcher";
 import { ManagerShell } from "@/components/layout/manager-shell";
-import { SyncAgent } from "@/components/offline/sync-agent";
-import { SyncStatus } from "@/components/offline/sync-status";
 import { PushPrompt } from "@/components/pwa/push-prompt";
 import { SalesShell } from "@/components/layout/sales-shell";
 import { Avatar } from "@/components/ui/avatar";
@@ -24,10 +21,7 @@ import type { NavAction, NavItem } from "@/components/ui/bottom-nav";
 import { TopBar } from "@/components/ui/top-bar";
 import type { Role } from "@/generated/prisma/client";
 import { logoutAndReturnToLogin } from "@/lib/actions/auth";
-import { aiAvailable } from "@/lib/ai/suggest";
 import { getUser } from "@/lib/auth";
-import { getCurrentBranch } from "@/lib/current-branch";
-import { ALL_BRANCHES } from "@/lib/permissions";
 import { unreadCount } from "@/lib/notifications";
 import { staffName } from "@/lib/staff-name";
 
@@ -44,8 +38,7 @@ type AppShellProps = {
 // The one shell for every signed-in screen. A salesperson gets the phone column; a
 // manager or admin gets the side menu on laptops.
 //
-// Four nav items at most: a phone's bottom bar has room for four plus Log out (a
-// salesperson's fourth is Ask AI when the AI is on, M21). Branches
+// Four nav items at most: a phone's bottom bar has room for four plus Log out. Branches
 // and departments therefore live behind Settings, and My profile behind the avatar at
 // the top right (M11: the SOW's menu is Today, Customers, Follow-ups, Log out, and the
 // follow-up list is "Used by: All").
@@ -63,7 +56,6 @@ export async function AppShell({
   const user = await getUser();
   const name = user ? await staffName(user.id) : "";
   const unread = user ? await unreadCount(user.id) : 0;
-  const branch = user ? await getCurrentBranch(user) : null;
 
   const followUps = { href: "/follow-ups", label: t("nav.followUps"), icon: <BellRing /> };
   const items: NavItem[] = salesperson
@@ -71,10 +63,6 @@ export async function AppShell({
         { href: "/today", label: t("nav.today"), icon: <CalendarCheck /> },
         { href: "/customers", label: t("nav.customers"), icon: <UserSearch /> },
         followUps,
-        // M21: "in the menu for salespeople" — the fourth and last slot of the phone's bar.
-        ...((await aiAvailable())
-          ? [{ href: "/ask", label: t("nav.ask"), icon: <Sparkles /> }]
-          : []),
       ]
     : [
         { href: "/overview", label: t("nav.overview"), icon: <LayoutDashboard /> },
@@ -137,15 +125,12 @@ export async function AppShell({
           </>
         }
       />
-      {/* M19: offline, entries waiting, all synced, needs attention. */}
-      {user && <SyncStatus />}
     </>
   );
 
   // M14.01: asked after login, on whichever screen they land.
   const prompt = user ? (
     <>
-      <SyncAgent branchId={branch === ALL_BRANCHES ? null : branch} language={user.language} />
       <PushPrompt
         publicKey={process.env.VAPID_PUBLIC_KEY ?? ""}
         // The service worker is registered in production builds only (pwa-provider.tsx).

@@ -10,8 +10,19 @@ import { useActionForm } from "@/hooks/use-action-form";
 import { useErrorMessage } from "@/hooks/use-error-message";
 import { login } from "@/lib/actions/auth";
 import { loginInput } from "@/lib/validation/auth";
-import { wipeOfflineData } from "@/lib/offline/store";
 import { clearAllVisitDrafts } from "@/lib/visit-draft";
+
+// Offline entry (M19) was dropped on 28 Sep 2026. Phones that used it may still hold its
+// encrypted copy of customers and follow-ups; it goes at the next login, like the drafts.
+const OLD_OFFLINE_DB = "store-followup-offline";
+
+function clearOldOfflineCopy(): void {
+  try {
+    window.indexedDB?.deleteDatabase(OLD_OFFLINE_DB);
+  } catch {
+    // Storage blocked: nothing to clear.
+  }
+}
 
 export function LoginForm() {
   const t = useTranslations("auth");
@@ -21,11 +32,10 @@ export function LoginForm() {
   const nextPath = useSearchParams().get("next");
 
   // Whoever used this phone before has logged out or been switched off: nothing they
-  // left half-done may stay on it (SOW M19, security NFR).
-  // The offline copy and outbox go too (M19): they belonged to that session.
+  // left half-done may stay on it (security NFR).
   useEffect(() => {
     clearAllVisitDrafts();
-    void wipeOfflineData();
+    clearOldOfflineCopy();
   }, []);
 
   const { onSubmit, pending, errors, formError } = useActionForm(

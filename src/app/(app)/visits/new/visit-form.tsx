@@ -14,7 +14,7 @@ import { toast } from "@/components/ui/toast";
 import { useErrorMessage } from "@/hooks/use-error-message";
 import { recordAiOutcome } from "@/lib/actions/ai";
 import type { AiFollowUp, AiSuggestion } from "@/lib/ai/check";
-import { saveVisit } from "@/lib/offline/actions";
+import { recordVisit } from "@/lib/actions/visit";
 import {
   clearVisitDraft,
   parseVisitDraft,
@@ -78,7 +78,6 @@ function VisitFields({
   draft,
 }: VisitFormProps & { draft: VisitDraft | null }) {
   const t = useTranslations("visits");
-  const tSync = useTranslations("sync");
   const tError = useErrorMessage();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -165,7 +164,7 @@ function VisitFields({
     }
 
     startTransition(async () => {
-      const result = await saveVisit({ ...visit, outcome, lostReasonId });
+      const result = await recordVisit({ ...visit, outcome, lostReasonId });
       if (!result.ok) {
         setErrors({ [result.field ?? "form"]: result.message });
         return;
@@ -176,7 +175,7 @@ function VisitFields({
           finalValues: { ...finalValues, lostReasonId },
         });
       clearVisitDraft(userId, customerId);
-      toast(result.data.queued ? tSync("savedOnPhone") : t("saved"));
+      toast(t("saved"));
       // "/" sends each role to its own home: Today for a salesperson, Overview otherwise.
       router.push("/");
     });

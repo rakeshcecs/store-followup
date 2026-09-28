@@ -5,8 +5,8 @@ import { Card } from "@/components/ui/card";
 import { requireUser } from "@/lib/auth";
 import { aiAvailable } from "@/lib/ai/suggest";
 
-// M21: the Ask screen. Salespeople reach it from the menu (about their own customers);
-// managers and admins have the same box at the top of the Store overview.
+// M21: the Ask screen, scoped to what the person may see (a salesperson: their own
+// customers). Not in any menu and not on the Store overview; reached by its address only.
 export default async function AskPage() {
   const user = await requireUser();
   const t = await getTranslations("ask");

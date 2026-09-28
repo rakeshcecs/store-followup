@@ -5,7 +5,6 @@ import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { PeriodPicker } from "@/app/(app)/overview/period-picker";
 import { ReportLinks } from "@/app/(app)/reports/report-links";
-import { AskSection } from "@/components/ai/ask-section";
 import { FindCustomerButton } from "@/components/customers/find-customer-button";
 import { AppShell } from "@/components/layout/app-shell";
 import { Card } from "@/components/ui/card";
@@ -52,8 +51,6 @@ export default async function OverviewPage({
 
   return (
     <AppShell role={user.role} title={t("title")} subtitle={tRoles(user.role)}>
-      {/* M21.01: the "Ask" box at the top of the Store overview. */}
-      <AskSection user={user} />
       <FindCustomerButton />
       <PeriodPicker period={period} range={range} />
       {range.from !== range.to && (

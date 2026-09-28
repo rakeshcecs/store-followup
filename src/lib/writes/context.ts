@@ -1,6 +1,6 @@
-// What a write needs to know besides its input and who is making it (M19). A Server
-// Action takes all of it from the request; an offline entry replayed through /api/sync
-// brings its own branch and time, because it happened earlier and maybe in another shop.
+// What a write needs to know besides its input and who is making it: the branch on screen
+// and the time, taken from the request. (Split out for offline entry, M19, which brought
+// its own branch and time; M19 was dropped on 28 Sep 2026 and every write is online now.)
 import { headers } from "next/headers";
 import type { SessionUser } from "@/lib/auth";
 import { getCurrentBranch } from "@/lib/current-branch";

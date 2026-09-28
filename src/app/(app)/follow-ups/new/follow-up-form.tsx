@@ -19,7 +19,8 @@ import { useErrorMessage } from "@/hooks/use-error-message";
 import type { Locale } from "@/i18n/config";
 import { recordAiOutcome } from "@/lib/actions/ai";
 import type { AiSuggestion } from "@/lib/ai/check";
-import { saveFollowUp, saveVisit } from "@/lib/offline/actions";
+import { setFollowUp } from "@/lib/actions/follow-up";
+import { recordVisit } from "@/lib/actions/visit";
 import {
   dayForDisplay,
   FOLLOW_UP_SHORTCUTS,
@@ -84,7 +85,6 @@ function FollowUpFields({
   visit,
 }: FollowUpFormProps & { visit: VisitDraft | null }) {
   const t = useTranslations("followUps");
-  const tSync = useTranslations("sync");
   const tError = useErrorMessage();
   const locale = useLocale() as Locale;
   const router = useRouter();
@@ -181,7 +181,7 @@ function FollowUpFields({
 
     startTransition(async () => {
       const result = visit
-        ? await saveVisit({
+        ? await recordVisit({
             clientId: visit.clientId,
             customerId: customer.id,
             categoryIds: visit.categoryIds,
@@ -191,7 +191,7 @@ function FollowUpFields({
             outcome: "DECIDE_LATER",
             followUp: { ...followUp, clientId },
           })
-        : await saveFollowUp({ clientId, customerId: customer.id, followUp });
+        : await setFollowUp({ clientId, customerId: customer.id, followUp });
 
       if (!result.ok) {
         // "followUp.dueDate" from the actions, "dueDate" from a nested zod parse.
@@ -217,9 +217,7 @@ function FollowUpFields({
         });
       }
       clearVisitDraft(userId, customer.id);
-      toast(
-        result.data.queued ? tSync("savedOnPhone") : t("saved", { date: dateWords ?? dueDate }),
-      );
+      toast(t("saved", { date: dateWords ?? dueDate }));
       // "/" sends each role home: Today for a salesperson, Overview otherwise.
       router.push("/");
     });

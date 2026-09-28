@@ -74,7 +74,12 @@ export default async function FollowUpsPage({ searchParams }: { searchParams: Pr
       <PullToRefresh />
       <AutoRefresh />
 
-      <nav aria-label={t("title")} className="flex gap-1 rounded-lg bg-muted p-1">
+      {/* Four equal columns on a card track (--muted is the page colour, so it would not
+          show); on a phone the count sits under the label so Hindi and Gujarati fit. */}
+      <nav
+        aria-label={t("title")}
+        className="grid grid-cols-4 gap-1 rounded-xl border border-border bg-card p-1"
+      >
         {LIST_TABS.map((tab) => {
           const active = tab === filters.tab;
           return (
@@ -83,17 +88,17 @@ export default async function FollowUpsPage({ searchParams }: { searchParams: Pr
               href={href({ tab: tab === "pending" ? undefined : tab, limit: undefined })}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "flex min-h-11 flex-1 items-center justify-center gap-1 rounded-md text-sm font-bold text-muted-foreground",
-                active && "bg-card text-foreground shadow-sm",
+                "flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-center text-sm leading-tight font-bold text-muted-foreground no-underline sm:flex-row sm:gap-1.5",
+                active && "bg-primary-light text-primary",
               )}
             >
-              {t(`tabs.${tab}`)}
+              <span className="max-w-full truncate">{t(`tabs.${tab}`)}</span>
               {/* Under the same filters, so a search shows which tab holds the match. */}
               <span
                 data-testid={`tab-count-${tab}`}
                 className={cn(
                   "min-w-5 rounded-full px-1.5 text-xs tabular-nums",
-                  active ? "bg-primary-light text-primary" : "bg-card/60",
+                  active ? "bg-card text-primary" : "bg-muted",
                 )}
               >
                 {counts[tab]}

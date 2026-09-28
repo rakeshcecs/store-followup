@@ -95,11 +95,12 @@ test.describe("AI note assistant", () => {
     // Only the admin has the settings screen.
     expect((await seat.request.get("/settings/ai")).status()).not.toBe(200);
 
-    // M21: "Ask AI" is the salesperson's fourth menu item; a first-time asker gets the
-    // suggested questions, and one tap asks the real model.
+    // M21: the Ask screen is not in the salesperson's menu (the bar stays Today, Customers,
+    // Follow-ups, Log out); at /ask a first-time asker gets the suggested questions, and one
+    // tap asks the real model.
     await seat.goto("/today");
-    await seat.getByRole("link", { name: en.nav.ask }).first().click();
-    await expect(seat).toHaveURL(/\/ask$/);
+    await expect(seat.getByRole("link", { name: en.nav.ask })).toHaveCount(0);
+    await seat.goto("/ask");
     await expect(seat.getByTestId("ask-suggestions")).toBeVisible();
     await seat.getByRole("button", { name: en.ask.suggestions.mine.today }).click();
     await expect(seat.getByTestId("ask-answer")).toBeVisible({ timeout: 30_000 });
@@ -107,9 +108,9 @@ test.describe("AI note assistant", () => {
     await expect(seat.getByTestId("ask-wrong-done")).toBeVisible();
     const asked = await db.aiQuestionLog.findFirstOrThrow({ where: { userId: seller.id } });
     expect(asked).toMatchObject({ question: en.ask.suggestions.mine.today, markedWrong: true });
-    // Managers and admins have the box at the top of the Store overview.
+    // The Store overview has no Ask box, even with the AI on.
     await page.goto("/overview");
-    await expect(page.getByTestId("ask-box")).toBeVisible();
+    await expect(page.getByTestId("ask-box")).toHaveCount(0);
     await page.goto("/settings/ai");
 
     // Admin: off again — and the form is exactly as before M20.
@@ -126,8 +127,6 @@ test.describe("AI note assistant", () => {
     await expect(seat.getByText(en.ask.off)).toBeVisible();
     await expect(seat.getByTestId("ask-box")).toHaveCount(0);
     await other.close();
-    await page.goto("/overview");
-    await expect(page.getByTestId("ask-box")).toHaveCount(0);
 
     const audits = await db.auditLog.findMany({
       where: { userId: admin.id, action: "setting:update" },

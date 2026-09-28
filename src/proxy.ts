@@ -24,8 +24,8 @@ export function proxy(request: NextRequest) {
 
   if (!token) {
     if (isPublic(pathname)) return NextResponse.next();
-    // A fetch follows a redirect and reads the login page as a 200, so the phone would
-    // never learn it is signed out and never wipe its offline copy (M19). Answer as the
+    // A fetch follows a redirect and reads the login page as a 200, so a screen calling
+    // an API (the AI panel, the Ask box) would never learn it is signed out. Answer as the
     // route itself would.
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "errors.unauthenticated" }, { status: 401 });
