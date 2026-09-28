@@ -31,6 +31,9 @@ export async function makeUser(options: {
       role: options.role,
       homeBranchId: options.homeBranchId,
       pinHash: "x",
+      // Someone who has already chosen their own PIN: on a one-time PIN every action
+      // refuses (requireUser), which only the Set PIN tests want.
+      mustChangePin: false,
     },
   });
 
