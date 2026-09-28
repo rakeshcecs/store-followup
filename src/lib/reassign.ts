@@ -137,14 +137,22 @@ export async function moveCustomers(
     select: { id: true, assignedToId: true, homeBranchId: true },
   });
 
+  let moves = 0;
   let followUps = 0;
   for (const customer of customers) {
-    const owned = customer.assignedToId === from.id;
+    // Still `from`'s at the moment of writing, not just at the read above: a move that
+    // committed in between must win, or the customer would go one way and its enquiry and
+    // follow-ups the other. The update waits for that move's row lock and then finds the
+    // new owner.
+    const owned =
+      customer.assignedToId === from.id &&
+      (
+        await tx.customer.updateMany({
+          where: { id: customer.id, assignedToId: from.id },
+          data: { assignedToId: to.id, updatedById: actorId },
+        })
+      ).count === 1;
     if (owned) {
-      await tx.customer.update({
-        where: { id: customer.id },
-        data: { assignedToId: to.id, updatedById: actorId },
-      });
       await tx.enquiry.updateMany({
         where: { customerId: customer.id, status: "OPEN", assignedToId: from.id },
         data: { assignedToId: to.id },
@@ -154,6 +162,9 @@ export async function moveCustomers(
       where: { customerId: customer.id, assignedToId: from.id, status: "PENDING" },
       data: { assignedToId: to.id },
     });
+    // Nothing of `from`'s is left on it: someone else moved it first.
+    if (!owned && moved.count === 0) continue;
+    moves += 1;
     followUps += moved.count;
 
     // "Reassigned from Amit to Priya by [manager]" (M15.03): the names as they were on
@@ -180,5 +191,5 @@ export async function moveCustomers(
       device: input.device,
     });
   }
-  return { customers: customers.length, followUps };
+  return { customers: moves, followUps };
 }

@@ -312,7 +312,7 @@
       "nameTooLong": "Use 100 characters or fewer.",
       "joinedOnInvalid": "Choose a valid date.",
       "mobileTaken": "This mobile number is already used by {name}.",
-      "reassignFirst": "Give their work to someone else first: {customers} customers and {followUps} pending follow-ups.",
+      "reassignFirst": "Give their work to someone else first: {customers, plural, one {# customer} other {# customers}} and {followUps, plural, one {# pending follow-up} other {# pending follow-ups}}.",
       "cannotDeactivateSelf": "You cannot make your own account inactive.",
       "lastAdmin": "This is the only active admin. Make someone else an admin first.",
       "extraBranchesManagerOnly": "Only a manager can cover more than one branch.",
@@ -918,7 +918,7 @@
       "samePerson": "Choose someone other than the person they come from.",
       "toNotActive": "Customers can only go to an active salesperson.",
       "nothingToMove": "These customers have already been moved. Refresh the screen.",
-      "workLeft": "{customers} customers and {followUps} pending follow-ups are still left. Refresh the screen and move them too."
+      "workLeft": "{customers, plural, one {# customer} other {# customers}} and {followUps, plural, one {# pending follow-up} other {# pending follow-ups}} are still left. Refresh the screen and move them too."
     }
   },
   "reports": {

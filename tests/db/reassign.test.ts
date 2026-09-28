@@ -12,7 +12,8 @@ const { setStaffStatus } = await import("@/app/(app)/staff/actions");
 const { db } = await import("@/lib/db");
 const { AUDIT } = await import("@/lib/audit");
 const { TIMELINE, readReassignDetail } = await import("@/lib/timeline");
-const { openCustomersOf, reassignSources, reassignTargets } = await import("@/lib/reassign");
+const { moveCustomers, openCustomersOf, reassignSources, reassignTargets } =
+  await import("@/lib/reassign");
 const { openWorkFor } = await import("@/lib/staff-work");
 const { accessScope } = await import("@/lib/permissions");
 const { makeUser } = await import("../helpers/branch-access");
@@ -336,6 +337,54 @@ describe("reassignCustomers", () => {
     expect(
       (await db.customer.findUniqueOrThrow({ where: { id: a.customer.id } })).assignedToId,
     ).toBe(other.id);
+  });
+
+  it("two moves at the same moment: the first wins whole, the second moves nothing", async () => {
+    const [first, second] = [await colleagueA(), await colleagueA()];
+    const a = await book(store.salesA.id, store.branchA.id);
+    const from = { id: store.salesA.id, fullName: "Sales A" };
+    const move = (to: { id: string }) => (tx: Parameters<typeof moveCustomers>[0]) =>
+      moveCustomers(tx, {
+        actorId: store.managerA.id,
+        from,
+        to: { id: to.id, fullName: "Colleague" },
+        customerIds: [a.customer.id],
+        device: null,
+      });
+
+    // The first holds its transaction open while the second reads the same, still
+    // unmoved, customer and tries to write.
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    const one = db.$transaction(async (tx) => {
+      const result = await move(first)(tx);
+      await held;
+      return result;
+    });
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const two = db.$transaction(move(second));
+    setTimeout(release, 300);
+    const [r1, r2] = await Promise.all([one, two]);
+
+    expect(r1).toEqual({ customers: 1, followUps: 1 });
+    expect(r2).toEqual({ customers: 0, followUps: 0 });
+    const owner = async (rows: Promise<{ assignedToId: string }[]>) => [
+      ...new Set((await rows).map((row) => row.assignedToId)),
+    ];
+    expect(await owner(db.customer.findMany({ where: { id: a.customer.id } }))).toEqual([first.id]);
+    expect(
+      await owner(db.enquiry.findMany({ where: { customerId: a.customer.id, status: "OPEN" } })),
+    ).toEqual([first.id]);
+    expect(
+      await owner(
+        db.followUp.findMany({ where: { customerId: a.customer.id, status: "PENDING" } }),
+      ),
+    ).toEqual([first.id]);
+    expect(
+      await db.timelineEvent.count({
+        where: { customerId: a.customer.id, type: TIMELINE.reassigned.type },
+      }),
+    ).toBe(1);
   });
 });
 
