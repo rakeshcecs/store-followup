@@ -154,7 +154,9 @@ test.describe("audit and privacy", () => {
     await page.getByRole("button", { name: en.privacy.confirm }).click();
     await expect(page).toHaveURL(/\/customers$/);
     // Nothing behind this is about a customer who still exists: back is the Overview,
-    // not the deleted customer's pages.
+    // not the deleted customer's pages. Wait for Find customer itself to be on screen
+    // first — the arrow in view a moment earlier can still be the Delete data page's.
+    await expect(page.getByRole("button", { name: en.customers.search })).toBeVisible();
     await page
       .locator('[data-slot="top-bar"]')
       .getByRole("link", { name: en.nav.overview })
