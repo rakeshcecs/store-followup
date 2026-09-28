@@ -5,12 +5,16 @@ import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { logoutAndReturnToLogin } from "@/lib/actions/auth";
-import { requireUser } from "@/lib/auth";
+import { landingPath, requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatMobile } from "@/lib/format";
 
 export default async function ProfilePage() {
   const user = await requireUser();
+  // Opened from the avatar or the bell, on any screen; cold, back is home.
+  const tNav = await getTranslations("nav");
+  const home = landingPath(user.role);
+  const homeLabel = tNav(user.role === "SALESPERSON" ? "today" : "overview");
   const t = await getTranslations("profile");
   const tRole = await getTranslations("roles");
   const tAuth = await getTranslations("auth");
@@ -40,7 +44,7 @@ export default async function ProfilePage() {
   ];
 
   return (
-    <AppShell role={user.role} title={t("title")}>
+    <AppShell role={user.role} title={t("title")} backHref={home} backLabel={homeLabel}>
       <Card className="flex flex-col divide-y divide-border">
         {fields.map((field) => (
           <div key={field.label} className="flex items-center justify-between gap-3 px-4 py-3.5">

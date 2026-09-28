@@ -34,7 +34,8 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
   if (user.role === "SALESPERSON") notFound();
   const query = await searchParams;
   const t = await getTranslations("audit");
-  const tReports = await getTranslations("reports");
+  // Both are opened from the Store overview, so that is where back goes.
+  const tNav = await getTranslations("nav");
   const locale = (await getLocale()) as Locale;
   const scope = await getBranchScope(user);
   const filters = parseAuditFilters(query, isoDate(new Date()));
@@ -51,7 +52,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
   };
 
   return (
-    <AppShell role={user.role} title={t("title")} backHref="/reports" backLabel={tReports("title")}>
+    <AppShell role={user.role} title={t("title")} backHref="/overview" backLabel={tNav("overview")}>
       <p className="text-muted-foreground">{t("intro")}</p>
       <Filters filters={filters} users={users.map((u) => ({ value: u.id, label: u.fullName }))} />
       <p className="text-sm text-muted-foreground" data-testid="audit-count">

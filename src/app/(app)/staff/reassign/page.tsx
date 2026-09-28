@@ -36,7 +36,13 @@ export default async function ReassignPage({ searchParams }: { searchParams: Pro
   const exit = user.role === "ADMIN" && params.exit === "1" && from !== null && from.active;
 
   return (
-    <AppShell role={user.role} title={t("title")} backHref="/staff" backLabel={t("back")}>
+    <AppShell
+      role={user.role}
+      title={t("title")}
+      // Opened from a profile's "Change salesperson", back is that profile.
+      backHref={params.customer ? `/customers/${params.customer}` : "/staff"}
+      backLabel={t("back")}
+    >
       {exit && from && (
         <Card className="border-warning p-4 text-[15px]">
           {t("exitIntro", { name: from.fullName })}

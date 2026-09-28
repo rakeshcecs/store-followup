@@ -73,9 +73,10 @@ export default async function CustomerProfilePage({
         /* M06.02: the call and the chat open on the phone, and the salesperson types the
            message; nothing is ever sent by the app (no WhatsApp API, 25 Sep 2026). In the
            page, not the top bar: with the language switcher, the bell and the avatar there
-           as well, a phone had no room left for the title. */
+           as well, a phone had no room left for the title. Small, as on the follow-up
+           cards and the prototype: the big size is for a screen's main action. */
         <div className="grid grid-cols-2 gap-2">
-          <Button asChild variant="secondary">
+          <Button asChild variant="secondary" size="sm" className="[&_svg]:size-4.5">
             <a
               href={telHref(customer.mobile)}
               aria-label={t("profile.call", { name: customer.name })}
@@ -84,7 +85,7 @@ export default async function CustomerProfilePage({
               {tResult("call")}
             </a>
           </Button>
-          <Button asChild variant="secondary">
+          <Button asChild variant="secondary" size="sm" className="[&_svg]:size-4.5">
             <a
               href={whatsappHref(customer.mobile)}
               target="_blank"

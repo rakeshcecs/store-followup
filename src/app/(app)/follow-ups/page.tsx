@@ -21,6 +21,7 @@ import {
   parseListFilters,
 } from "@/lib/follow-up-list";
 import { isoDate } from "@/lib/format";
+import { branchWhere } from "@/lib/permissions";
 import { staffBranchWhere } from "@/lib/staff-scope";
 import { cn } from "@/lib/utils";
 
@@ -45,9 +46,18 @@ export default async function FollowUpsPage({ searchParams }: { searchParams: Pr
       ? null
       : db.user.findMany({
           where: {
-            ...staffBranchWhere(scope),
-            status: "ACTIVE",
-            role: { in: ["SALESPERSON", "MANAGER"] },
+            OR: [
+              {
+                ...staffBranchWhere(scope),
+                status: "ACTIVE",
+                role: { in: ["SALESPERSON", "MANAGER"] },
+              },
+              // Follow-ups belong to the branch where they were set (SOW: "recorded
+              // against the branch where they happen"), so this list can hold another
+              // branch's salesperson — a customer of theirs who walked in here. The
+              // filter must be able to pick everyone the list can show.
+              { assignedFollowUps: { some: branchWhere(scope) } },
+            ],
           },
           orderBy: { fullName: "asc" },
           select: { id: true, fullName: true },

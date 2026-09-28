@@ -10,6 +10,7 @@ import { TextInput } from "@/components/ui/text-input";
 import { toast } from "@/components/ui/toast";
 import { useErrorMessage } from "@/hooks/use-error-message";
 import { deleteCustomerData } from "@/lib/actions/privacy";
+import { startNewTrail } from "@/lib/nav-history";
 
 // Type the last four digits, press, confirm once more. The server checks the digits.
 export function DeleteDataForm({ customerId, name }: { customerId: string; name: string }) {
@@ -31,7 +32,10 @@ export function DeleteDataForm({ customerId, name }: { customerId: string; name:
         return;
       }
       toast(t("done"));
-      router.push("/customers");
+      // Everything behind this screen was about a customer who is gone now: nothing to
+      // go back to, so Customers starts a new trail (its arrow uses its own backHref).
+      startNewTrail();
+      router.replace("/customers");
     });
   }
 

@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Fraunces, Manrope, Noto_Sans_Devanagari, Noto_Sans_Gujarati } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
+import { Suspense } from "react";
+import { NavHistoryTracker } from "@/components/layout/nav-history-tracker";
 import { DevServiceWorkerCleanup } from "@/components/pwa/dev-service-worker-cleanup";
 import { PwaProvider } from "@/components/pwa/pwa-provider";
 import { Toaster } from "@/components/ui/toast";
@@ -74,6 +76,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <NextIntlClientProvider>
           <PwaProvider>
             {children}
+            {/* Suspense: reading the query string must not hold the page back. */}
+            <Suspense fallback={null}>
+              <NavHistoryTracker />
+            </Suspense>
             <Toaster />
           </PwaProvider>
         </NextIntlClientProvider>

@@ -23,6 +23,9 @@ export default async function NewCustomerPage({
   const branchChoice = await getCurrentBranch(user);
   const { mobile } = await searchParams;
   const t = await getTranslations("customers");
+  // Opened cold, back is still the search that found nothing, with its number.
+  const searched = normalizeMobile(mobile);
+  const backHref = searched ? `/customers?mobile=${searched}` : "/customers";
 
   const [departments, staff, branch] = await Promise.all([
     db.department.findMany({
@@ -48,7 +51,7 @@ export default async function NewCustomerPage({
   // form that can never succeed.
   if (branchChoice === ALL_BRANCHES) {
     return (
-      <AppShell role={user.role} title={t("new")} backHref="/customers" backLabel={t("back")}>
+      <AppShell role={user.role} title={t("new")} backHref={backHref} backLabel={t("back")}>
         <Card>
           <EmptyState icon={Building2} title={t("pickBranch")} text={t("pickBranchText")} />
         </Card>
@@ -57,7 +60,7 @@ export default async function NewCustomerPage({
   }
 
   return (
-    <AppShell role={user.role} title={t("new")} backHref="/customers" backLabel={t("back")}>
+    <AppShell role={user.role} title={t("new")} backHref={backHref} backLabel={t("back")}>
       <CustomerForm
         mobile={normalizeMobile(mobile) ?? ""}
         departments={departments}

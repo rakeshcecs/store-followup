@@ -22,7 +22,8 @@ export default async function ImportPage() {
   const user = await requireUser();
   if (user.role === "SALESPERSON") notFound();
   const t = await getTranslations("import");
-  const tReports = await getTranslations("reports");
+  // Both are opened from the Store overview, so that is where back goes.
+  const tNav = await getTranslations("nav");
   const locale = (await getLocale()) as Locale;
   const [branches, choice, scope] = await Promise.all([
     switchableBranches(user),
@@ -32,7 +33,7 @@ export default async function ImportPage() {
   const jobs = await recentImports(scope);
 
   return (
-    <AppShell role={user.role} title={t("title")} backHref="/reports" backLabel={tReports("title")}>
+    <AppShell role={user.role} title={t("title")} backHref="/overview" backLabel={tNav("overview")}>
       <Card className="flex flex-col gap-3 p-4">
         <h2 className="font-heading-style text-lg">{t("step1")}</h2>
         <p className="text-[15px] text-muted-foreground">{t("step1Text")}</p>

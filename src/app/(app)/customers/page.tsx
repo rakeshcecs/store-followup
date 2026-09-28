@@ -37,6 +37,11 @@ export default async function FindCustomerPage({
   const typed = firstParam((await searchParams).mobile);
   const t = await getTranslations("customers");
   const locale = (await getLocale()) as Locale;
+  // Customers is a tab for a salesperson; a manager or admin comes here from the Store
+  // overview's "Find customer", so they get a way back to it.
+  const tNav = await getTranslations("nav");
+  const back =
+    user.role === "SALESPERSON" ? {} : { backHref: "/overview", backLabel: tNav("overview") };
 
   const searched = typed !== undefined && typed.trim() !== "";
   const mobile = searched ? normalizeMobile(typed) : null;
@@ -46,7 +51,7 @@ export default async function FindCustomerPage({
   const recent = searched ? [] : await recentlyHandledBy(user.id);
 
   return (
-    <AppShell role={user.role} title={t("title")}>
+    <AppShell role={user.role} title={t("title")} {...back}>
       <form method="get" action={SEARCH_PATH} className="flex flex-col gap-4">
         <MobileInput
           label={t("fields.mobile")}

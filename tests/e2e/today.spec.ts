@@ -18,6 +18,7 @@ test.describe("today and follow-ups", () => {
   let branchId: string;
   const users: string[] = [];
   const customers: string[] = [];
+  const otherBranches: string[] = [];
 
   test.beforeAll(async () => {
     branchId = (
@@ -43,6 +44,7 @@ test.describe("today and follow-ups", () => {
     await db.session.deleteMany({ where: { userId: { in: users } } });
     await db.user.deleteMany({ where: { id: { in: users } } });
     await db.branch.delete({ where: { id: branchId } });
+    await db.branch.deleteMany({ where: { id: { in: otherBranches } } });
     await db.$disconnect();
   });
 
@@ -180,5 +182,59 @@ test.describe("today and follow-ups", () => {
     await expect(page).toHaveURL(new RegExp(`assignedTo=${other.id}`));
     await expect(cards).toHaveCount(1);
     await expect(cards.first()).toContainText("Other Person Lata");
+  });
+
+  test("a manager can filter by another branch's salesperson whose follow-up was set here", async ({
+    page,
+  }) => {
+    // Their customer walked into this branch: the follow-up is filed here (SOW: "recorded
+    // against the branch where they happen") but stays with their own salesperson.
+    const elsewhere = await db.branch.create({
+      data: {
+        name: `E2E Elsewhere ${randomUUID().slice(0, 6)}`,
+        address: "2 Ring Road",
+        city: "Surat",
+        phone: "0261 111 2222",
+      },
+    });
+    otherBranches.push(elsewhere.id);
+    const visitor = await makeStaff("SALESPERSON", "E2E Visiting Seller", elsewhere.id);
+    users.push(visitor.id);
+    await followUp(visitor, "Walked In Farida", today);
+
+    const manager = await makeStaff("MANAGER", "E2E Filter Manager", branchId);
+    users.push(manager.id);
+    await signIn(page, manager.mobile, "MANAGER");
+    await page.goto("/follow-ups");
+
+    await page.getByLabel(en.followUps.list.filters.assignedTo).selectOption(visitor.id);
+    const cards = page.getByTestId("follow-up-card");
+    await expect(cards).toHaveCount(1);
+    await expect(cards.first()).toContainText("Walked In Farida");
+  });
+
+  test("a finished follow-up's whole card opens the profile; a pending one keeps its buttons", async ({
+    page,
+  }) => {
+    const sales = await seller("E2E Card Seller");
+    const done = await followUp(sales, "Done Card Rekha", today);
+    await db.followUp.update({
+      where: { id: done.id },
+      data: { status: "DONE", result: "CALL_LATER", completedAt: new Date() },
+    });
+    await followUp(sales, "Pending Card Sonal", today);
+    await signIn(page, sales.mobile, "SALESPERSON");
+    await page.goto("/follow-ups?tab=all");
+
+    // Pending: the card itself is not a link, so its buttons stay the only targets.
+    const pending = page.getByTestId("follow-up-card").filter({ hasText: "Pending Card Sonal" });
+    await expect(pending).not.toHaveAttribute("href");
+    await expect(pending.getByRole("link", { name: en.followUps.card.update })).toBeVisible();
+
+    // Done: nothing else to tap, so a tap anywhere — here the result line — opens it.
+    const finished = page.getByTestId("follow-up-card").filter({ hasText: "Done Card Rekha" });
+    await expect(finished).toHaveAttribute("href", `/customers/${done.customerId}`);
+    await finished.getByText(en.followUpResult.option.CALL_LATER.label).click();
+    await expect(page).toHaveURL(new RegExp(`/customers/${done.customerId}`));
   });
 });

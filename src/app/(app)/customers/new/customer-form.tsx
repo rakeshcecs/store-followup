@@ -16,6 +16,7 @@ import { useActionForm } from "@/hooks/use-action-form";
 import { useErrorMessage } from "@/hooks/use-error-message";
 import { createCustomer } from "@/lib/actions/customer";
 import { normalizeMobile } from "@/lib/mobile";
+import { replaceCurrentScreen } from "@/lib/nav-history";
 import { createCustomerInput } from "@/lib/validation/customer";
 
 const FIND_PATH = "/customers";
@@ -66,8 +67,11 @@ export function CustomerForm({
     createCustomerInput,
     (data: { id: string }) => {
       toast(t("saved"));
-      // Straight into Record visit (M05.10). M07 fills that screen in.
-      router.push(`/visits/new?customerId=${data.id}`);
+      // Straight into Record visit (M05.10). M07 fills that screen in. It takes this
+      // form's place: back from it is the search, not an empty form for a customer who
+      // now exists.
+      replaceCurrentScreen();
+      router.replace(`/visits/new?customerId=${data.id}`);
     },
   );
 

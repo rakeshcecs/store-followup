@@ -153,6 +153,13 @@ test.describe("audit and privacy", () => {
     await expect(page.getByRole("alertdialog")).toContainText("E2E Forget Me");
     await page.getByRole("button", { name: en.privacy.confirm }).click();
     await expect(page).toHaveURL(/\/customers$/);
+    // Nothing behind this is about a customer who still exists: back is the Overview,
+    // not the deleted customer's pages.
+    await page
+      .locator('[data-slot="top-bar"]')
+      .getByRole("link", { name: en.nav.overview })
+      .click();
+    await expect(page).toHaveURL(/\/overview$/);
 
     // Gone from search, and the profile is gone with it.
     await page.goto(`/customers?mobile=${mobile}`);

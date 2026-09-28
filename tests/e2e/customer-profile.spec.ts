@@ -150,4 +150,22 @@ test.describe("customer profile and history", () => {
     await expect(page.getByText(en.timeline.customerAdded)).toBeVisible();
     await expect(page.getByRole("link", { name: en.customers.profile.showMore })).toHaveCount(0);
   });
+
+  test("back returns to the screen the profile was opened from", async ({ page }) => {
+    const { salesA, customer } = await twoBranches();
+    await signIn(page, salesA.mobile, "SALESPERSON");
+
+    // From a search: back keeps the number and its result.
+    await page.goto(`/customers?mobile=${customer.mobile}`);
+    await page.getByRole("link", { name: en.customers.openHistory }).click();
+    await expect(page).toHaveURL(new RegExp(`/customers/${customer.id}`));
+    await page.getByRole("link", { name: en.customers.back }).click();
+    await expect(page).toHaveURL(new RegExp(`/customers\\?mobile=${customer.mobile}`));
+    await expect(page.getByRole("link", { name: en.customers.openHistory })).toBeVisible();
+
+    // Opened cold (a bookmark, a notification): back falls to the page's own link.
+    await page.goto(`/customers/${customer.id}`);
+    await page.getByRole("link", { name: en.customers.back }).click();
+    await expect(page).toHaveURL(/\/customers$/);
+  });
 });

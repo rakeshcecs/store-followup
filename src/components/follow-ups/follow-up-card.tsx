@@ -33,17 +33,22 @@ export async function FollowUpCard({ followUp, today, showDate, showAssignee }: 
     ? tResult("dueOn", { date: formatDayDate(followUp.dueDate, locale), slot })
     : slot;
 
-  return (
-    <Card className="flex flex-col gap-3 p-3.5" data-testid="follow-up-card">
+  const profile = `/customers/${customer.id}`;
+  const content = (
+    <>
       <div className="flex items-center gap-3">
         <Avatar name={customer.name} />
         <div className="min-w-0 grow">
-          <Link
-            href={`/customers/${customer.id}`}
-            className="font-extrabold text-foreground underline-offset-2 hover:underline"
-          >
-            {customer.name}
-          </Link>
+          {pending ? (
+            <Link
+              href={profile}
+              className="font-extrabold text-foreground underline-offset-2 hover:underline"
+            >
+              {customer.name}
+            </Link>
+          ) : (
+            <span className="font-extrabold text-foreground">{customer.name}</span>
+          )}
           <p className="text-sm text-muted-foreground">
             {followUp.enquiry.title} · {when}
           </p>
@@ -97,6 +102,26 @@ export async function FollowUpCard({ followUp, today, showDate, showAssignee }: 
           </Button>
         </div>
       )}
-    </Card>
+    </>
+  );
+
+  // A pending card carries its own buttons, so only the name opens the profile there. A
+  // finished one has nothing else to tap: the whole card is the way in, like a search
+  // result on Find customer.
+  if (pending) {
+    return (
+      <Card className="flex flex-col gap-3 p-3.5" data-testid="follow-up-card">
+        {content}
+      </Card>
+    );
+  }
+  return (
+    <Link
+      href={profile}
+      data-testid="follow-up-card"
+      className="flex flex-col gap-3 rounded-xl border border-border bg-card p-3.5 text-card-foreground no-underline hover:bg-black/2"
+    >
+      {content}
+    </Link>
   );
 }

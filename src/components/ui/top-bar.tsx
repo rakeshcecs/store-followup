@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
+import { previousScreen, type BackTarget } from "@/lib/nav-history";
 import { cn } from "@/lib/utils";
 
 type TopBarProps = {
@@ -35,6 +36,12 @@ export function TopBar({
   className,
 }: TopBarProps) {
   const router = useRouter();
+  // Back in history when that is where the screen before is, so the browser's (and the
+  // phone's) own Back afterwards does not reopen the screen just left.
+  const goTo = (previous: BackTarget) => {
+    if (previous.viaHistory) router.back();
+    else router.push(previous.url);
+  };
 
   return (
     <header
@@ -47,16 +54,34 @@ export function TopBar({
         className,
       )}
     >
+      {/* Back goes where this person came from (src/lib/nav-history.ts); backHref is
+          only for a screen opened cold, and stays a real link so it works before
+          JavaScript has loaded. A modified click (new tab) is left to the browser. */}
       {backLabel &&
         (backHref ? (
-          <Link href={backHref} aria-label={backLabel} className={iconButton}>
+          <Link
+            href={backHref}
+            aria-label={backLabel}
+            className={iconButton}
+            onClick={(event) => {
+              const previous = previousScreen();
+              if (!previous || event.button !== 0) return;
+              if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+              event.preventDefault();
+              goTo(previous);
+            }}
+          >
             <ArrowLeft aria-hidden className="size-6" />
           </Link>
         ) : (
           <button
             type="button"
             aria-label={backLabel}
-            onClick={() => router.back()}
+            onClick={() => {
+              const previous = previousScreen();
+              if (previous) goTo(previous);
+              else router.back();
+            }}
             className={iconButton}
           >
             <ArrowLeft aria-hidden className="size-6" />

@@ -6,7 +6,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { Locale } from "@/i18n/config";
-import { requireUser } from "@/lib/auth";
+import { landingPath, requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatDateTime } from "@/lib/format";
 import { renderNotifications } from "@/lib/notification-text";
@@ -17,6 +17,10 @@ import { cn } from "@/lib/utils";
 // Everyone's own rows only.
 export default async function NotificationsPage() {
   const user = await requireUser();
+  // Opened from the avatar or the bell, on any screen; cold, back is home.
+  const tNav = await getTranslations("nav");
+  const home = landingPath(user.role);
+  const homeLabel = tNav(user.role === "SALESPERSON" ? "today" : "overview");
   const t = await getTranslations("notifications");
   const locale = (await getLocale()) as Locale;
 
@@ -29,7 +33,7 @@ export default async function NotificationsPage() {
   const unread = rows.filter((row) => !row.readAt).length;
 
   return (
-    <AppShell role={user.role} title={t("title")}>
+    <AppShell role={user.role} title={t("title")} backHref={home} backLabel={homeLabel}>
       <MarkAllRead unread={unread} />
       {rows.length === 0 ? (
         <Card className="p-2">

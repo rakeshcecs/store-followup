@@ -68,7 +68,9 @@ export default async function ReportPage({
     <AppShell
       role={user.role}
       title={t(`names.${ran.def.code}`)}
-      backHref="/reports"
+      // A manager or admin opens a report from the Store overview's list; a salesperson
+      // from the reports list behind their profile.
+      backHref={user.role === "SALESPERSON" ? "/reports" : "/overview"}
       backLabel={t("back")}
     >
       {ran.ctx.self && <p className="text-muted-foreground">{t("ownOnly")}</p>}

@@ -5,9 +5,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import en from "../../../../../messages/en.json";
 
 const push = vi.hoisted(() => vi.fn());
+const replace = vi.hoisted(() => vi.fn());
 const createCustomerAction = vi.hoisted(() => vi.fn());
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push, replace }) }));
 vi.mock("@/lib/actions/customer", () => ({ createCustomer: createCustomerAction }));
 
 const { CustomerForm } = await import("@/app/(app)/customers/new/customer-form");
@@ -31,6 +32,7 @@ function renderForm(mobile = "9825011223") {
 
 beforeEach(() => {
   push.mockReset();
+  replace.mockReset();
   createCustomerAction.mockReset();
 });
 
@@ -100,14 +102,16 @@ describe("CustomerForm", () => {
     expect(screen.getByLabelText(en.customers.fields.city)).toHaveValue("Ahmedabad");
   });
 
-  it("goes to Record visit after saving (M05.10)", async () => {
+  it("goes to Record visit after saving, in the form's place (M05.10)", async () => {
     createCustomerAction.mockResolvedValue({ ok: true, data: { id: "cust-9" } });
     renderForm();
 
     await userEvent.type(screen.getByLabelText(en.customers.fields.name), "Asha Patel");
     await userEvent.click(screen.getByRole("button", { name: en.customers.save }));
 
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/visits/new?customerId=cust-9"));
+    // Replace, not push: back from Record visit must not reopen this finished form.
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/visits/new?customerId=cust-9"));
+    expect(push).not.toHaveBeenCalled();
   });
 
   it("never swallows an error about a field it does not show", async () => {

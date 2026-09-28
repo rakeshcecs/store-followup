@@ -45,7 +45,7 @@ export default async function BranchesPage() {
   ]);
 
   return (
-    <AppShell role={user.role} title={t("title")}>
+    <AppShell role={user.role} title={t("title")} backHref="/settings" backLabel={t("back")}>
       <Button asChild>
         <Link href="/branches/new">{t("add")}</Link>
       </Button>
