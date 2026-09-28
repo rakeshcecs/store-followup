@@ -215,6 +215,42 @@ describe("festival calendar and settings (admin)", () => {
     expect(diwali).toMatchObject({ branchId: null, confirmed: false });
   });
 
+  it("pre-fill again adds nothing after a date is corrected, one is removed, or in another language", async () => {
+    await as(store.admin.mobile);
+    await festivals.prefillCommonFestivals({});
+    const diwali = await db.festival.findFirstOrThrow({
+      where: { name: "Diwali", date: calendarDay("2026-11-08"), active: true },
+    });
+    await festivals.updateFestival({
+      id: diwali.id,
+      name: "Diwali",
+      date: "2026-11-09",
+      branch: "all",
+      confirmed: true,
+    });
+    const onam = await db.festival.findFirstOrThrow({
+      where: { name: "Onam", date: calendarDay("2026-08-26"), active: true },
+    });
+    await festivals.removeFestival({ id: onam.id });
+
+    expect(await festivals.prefillCommonFestivals({})).toMatchObject({ data: { added: 0 } });
+    // A Hindi admin: the same festivals under their Hindi names are already there.
+    await db.user.update({ where: { id: store.admin.id }, data: { language: "hi" } });
+    try {
+      expect(await festivals.prefillCommonFestivals({})).toMatchObject({ data: { added: 0 } });
+    } finally {
+      await db.user.update({ where: { id: store.admin.id }, data: { language: "en" } });
+    }
+  });
+
+  it("refuses a day that does not exist instead of rolling it over", async () => {
+    await as(store.admin.mobile);
+    expect(
+      await festivals.addFestival({ name: `Leap ${tag}`, date: "2026-02-31", branch: "all" }),
+    ).toMatchObject({ ok: false, code: "VALIDATION" });
+    expect(await db.festival.count({ where: { name: `Leap ${tag}` } })).toBe(0);
+  });
+
   it("managers and salespeople cannot touch the calendar or the settings", async () => {
     await as(store.managerA.mobile);
     expect(

@@ -18,9 +18,13 @@ export default async function NotFound() {
           icon={SearchX}
           title={t("title")}
           text={t("text")}
+          // No prefetch: a background request here would renew the session cookie
+          // (proxy.ts) of someone who is on their way out.
           action={
             <Button asChild className="w-full">
-              <Link href="/">{t("home")}</Link>
+              <Link href="/" prefetch={false}>
+                {t("home")}
+              </Link>
             </Button>
           }
         />

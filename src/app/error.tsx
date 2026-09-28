@@ -36,7 +36,9 @@ export default function Error({
                 {t("retry")}
               </Button>
               <Button asChild variant="secondary" className="w-full">
-                <Link href="/">{t("home")}</Link>
+                <Link href="/" prefetch={false}>
+                  {t("home")}
+                </Link>
               </Button>
             </div>
           }

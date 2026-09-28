@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { id, requiredText } from "@/lib/validation/common";
+import { id, isRealDay, requiredText } from "@/lib/validation/common";
 
 // M23: the festival calendar and the occasion follow-up setting. Messages are next-intl
 // keys, like every schema the screens share.
@@ -13,11 +13,8 @@ export const festivalBranch = z.union([z.literal("all"), id]);
 
 export const festivalInput = z.object({
   name: requiredText(1, 100, "festivals.errors.nameRequired", "festivals.errors.nameTooLong"),
-  date: day.pipe(
-    z.string().refine((value) => !Number.isNaN(new Date(`${value}T00:00:00.000Z`).getTime()), {
-      message: "festivals.errors.date",
-    }),
-  ),
+  // A real calendar day: "2026-02-31" is refused, not rolled over into March.
+  date: day.refine(isRealDay, "festivals.errors.date"),
   branch: festivalBranch,
 });
 

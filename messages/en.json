@@ -1372,7 +1372,7 @@
     "edit": "Edit",
     "remove": "Remove",
     "removeTitle": "Remove {name}?",
-    "removeText": "It disappears from the calendar. Campaigns already made for it are not affected.",
+    "removeText": "It disappears from the calendar.",
     "removeConfirm": "Remove",
     "keep": "Cancel",
     "removed": "Festival removed",

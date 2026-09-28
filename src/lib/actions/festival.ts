@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { createTranslator } from "next-intl";
+import { locales } from "@/i18n/config";
 import { AUDIT, writeAudit } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { AppError } from "@/lib/errors";
@@ -143,8 +144,11 @@ export const removeFestival = safeAction({
 });
 
 // "Add common festivals": this year's and next year's, named in the admin's language,
-// for all branches, unconfirmed until the admin checks each date. Ones already in the
-// calendar (same name and day) are left alone, so pressing it twice adds nothing.
+// for all branches, unconfirmed until the admin checks each date. One already in the
+// calendar for that year is left alone, so pressing it again adds nothing: found by its
+// name in any of the three languages (another admin may have pressed it in Hindi), by the
+// year rather than the day (the admin may have corrected the date), and removed ones too
+// (the admin took it out on purpose).
 export const prefillCommonFestivals = safeAction({
   name: "prefillCommonFestivals",
   schema: prefillFestivalsInput,
@@ -155,16 +159,22 @@ export const prefillCommonFestivals = safeAction({
       messages: await loadMessages(user.language),
       namespace: "festivals",
     });
-    const wanted = prefillFestivals(isoDate(new Date())).map((festival) => ({
-      name: t(`names.${festival.key}` as Parameters<typeof t>[0]),
-      date: festival.date,
-    }));
+    const everyLanguage = await Promise.all(
+      locales.map(async (locale) =>
+        createTranslator({ locale, messages: await loadMessages(locale), namespace: "festivals" }),
+      ),
+    );
+    const namesOf = (key: string) =>
+      everyLanguage.map((tr) => tr(`names.${key}` as Parameters<typeof tr>[0]));
+    const festivals = prefillFestivals(isoDate(new Date()));
     const existing = await db.festival.findMany({
-      where: { active: true, branchId: null, name: { in: wanted.map((f) => f.name) } },
+      where: { branchId: null, name: { in: festivals.flatMap((f) => namesOf(f.key)) } },
       select: { name: true, date: true },
     });
-    const have = new Set(existing.map((row) => `${row.name}|${isoDate(row.date)}`));
-    const missing = wanted.filter((festival) => !have.has(`${festival.name}|${festival.date}`));
+    const have = new Set(existing.map((row) => `${row.name}|${isoDate(row.date).slice(0, 4)}`));
+    const missing = festivals
+      .filter((f) => !namesOf(f.key).some((name) => have.has(`${name}|${f.date.slice(0, 4)}`)))
+      .map((f) => ({ name: t(`names.${f.key}` as Parameters<typeof t>[0]), date: f.date }));
     const userDevice = await device();
     // Up to ~50 festivals and their audit rows in two statements (ids made here, so the
     // audit rows can name them), not a hundred round trips inside one transaction.
