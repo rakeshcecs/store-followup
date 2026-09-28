@@ -27,15 +27,35 @@ const isBranchActive = cache(async (branchId: string): Promise<boolean> => {
   return branch !== null;
 });
 
+// The choice a value stands for, or null when this user may not use it (another branch,
+// "all" for a manager, or a branch that has been switched off).
+export async function branchChoiceFor(
+  user: SessionUser,
+  value: string,
+): Promise<BranchChoice | null> {
+  if (value === ALL_BRANCHES) return canSeeAllBranches(user) ? ALL_BRANCHES : null;
+  if (!canAccessBranch(user, value)) return null;
+  return (await isBranchActive(value)) ? value : null;
+}
+
 // Never throws: a bad cookie must not break a screen, it just falls back to the
 // home branch. Deactivating a branch therefore also drops anyone parked on it.
 export const getCurrentBranch = cache(async (user: SessionUser): Promise<BranchChoice> => {
   const value = (await cookies()).get(BRANCH_COOKIE)?.value;
   if (!value) return user.homeBranchId;
-  if (value === ALL_BRANCHES) return canSeeAllBranches(user) ? ALL_BRANCHES : user.homeBranchId;
-  if (!canAccessBranch(user, value)) return user.homeBranchId;
-  return (await isBranchActive(value)) ? value : user.homeBranchId;
+  return (await branchChoiceFor(user, value)) ?? user.homeBranchId;
 });
+
+// Callers check the choice first (setCurrentBranch, the overview branch link).
+export async function writeBranchCookie(choice: BranchChoice): Promise<void> {
+  (await cookies()).set(BRANCH_COOKIE, choice, {
+    httpOnly: true, // only the server reads it; the switcher gets the value as a prop
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: BRANCH_COOKIE_MAX_AGE,
+  });
+}
 
 // The one call every screen and action makes before querying branch-scoped models.
 export async function getBranchScope(user: SessionUser): Promise<BranchScope> {

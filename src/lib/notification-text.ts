@@ -7,7 +7,7 @@ import type { Locale } from "@/i18n/config";
 import { db } from "@/lib/db";
 import { dayForDisplay } from "@/lib/follow-up-dates";
 import { formatDate, formatList } from "@/lib/format";
-import { NOTIFICATION } from "@/lib/reminders";
+import { NOTIFICATION, overviewLink } from "@/lib/reminders";
 
 export type NotificationRow = { id: string; type: string; message: string; link: string | null };
 export type RenderedNotification = { title: string; body: string; link: string };
@@ -125,7 +125,9 @@ export async function renderNotifications(
             due: toNumber(p[6]),
             overdue: toNumber(p[7]),
           }),
-          link,
+          // From the row, not its stored link: rows written before M14.05 held a bare
+          // "/overview", which opened whichever branch the switcher was on.
+          link: p[2] ? overviewLink(p[2]) : link,
         });
         break;
       }

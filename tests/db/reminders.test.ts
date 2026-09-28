@@ -223,6 +223,14 @@ describe("manager summary (M14.04)", () => {
     );
     // Salespeople get none.
     expect(await mine(store.salesA.id, NOTIFICATION.manager)).toHaveLength(0);
+    // M14.05: each opens the overview on its own branch — also a row written before
+    // the link carried the branch.
+    const [bRow] = await mine(store.managerB.id, NOTIFICATION.manager);
+    expect(bRow!.link).toBe(`/overview/branch?to=${store.branchB.id}`);
+    const old = { ...bRow!, link: "/overview" };
+    expect((await renderNotifications([old], "en")).get(old.id)?.link).toBe(
+      `/overview/branch?to=${store.branchB.id}`,
+    );
   });
 
   it("gives the admin one all-branches total", async () => {
@@ -250,7 +258,9 @@ describe("manager summary (M14.04)", () => {
     expect(allVisits).toBeGreaterThanOrEqual(3);
     const text = (await renderNotifications(rows, "en")).get(rows[0]!.id);
     expect(text?.title).toBe("Today at all branches");
-    expect(text?.link).toBe("/overview");
+    // M14.05: the tap opens the overview on all branches.
+    expect(rows[0]!.link).toBe("/overview/branch?to=all");
+    expect(text?.link).toBe("/overview/branch?to=all");
   });
 });
 

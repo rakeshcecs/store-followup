@@ -108,7 +108,7 @@ export default async function OverviewPage({
         {data.people.length === 0 ? (
           <Card className="p-4 text-muted-foreground">{t("people.empty")}</Card>
         ) : (
-          <PeopleTable people={data.people} />
+          <PeopleTable people={data.people} range={range} />
         )}
       </Section>
 
@@ -213,8 +213,15 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-// M12.03: tapping a name opens that salesperson's follow-ups.
-async function PeopleTable({ people }: { people: PersonRow[] }) {
+// M12.03: "tap a row to open that salesperson's follow-up list and customers". The name
+// opens the follow-ups; "Customers" opens R1, the customers they saw in the same period.
+async function PeopleTable({
+  people,
+  range,
+}: {
+  people: PersonRow[];
+  range: { from: string; to: string };
+}) {
   const t = await getTranslations("overview.people");
   const head = "px-3 py-2.5 text-right text-[13px] font-bold text-muted-foreground";
   const cell = "px-3 py-2.5 text-right tabular-nums";
@@ -249,6 +256,13 @@ async function PeopleTable({ people }: { people: PersonRow[] }) {
                 {!person.active && (
                   <span className="ml-1.5 text-[13px] text-muted-foreground">{t("inactive")}</span>
                 )}
+                <Link
+                  href={`/reports/r1?from=${range.from}&to=${range.to}&salesperson=${person.id}`}
+                  className="block text-[13px] font-semibold text-muted-foreground"
+                  aria-label={t("customersOf", { name: person.name })}
+                >
+                  {t("customers")}
+                </Link>
               </td>
               <td className={cell}>{person.visits}</td>
               <td className={cell}>{person.due}</td>

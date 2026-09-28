@@ -171,7 +171,13 @@ const r2: ReportDef = {
           totals: {
             salesperson: t("total"),
             visits: sum((p) => p.visits),
-            newCustomers: sum((p) => p.newCustomers),
+            // Customers, not a sum of rows: one walk-in seen by two people is one new
+            // customer (the dashboard's "X new" tile). Rows narrowed to one person or one
+            // department only have their own rows to count from.
+            newCustomers:
+              ctx.self || ctx.filters.department
+                ? sum((p) => p.newCustomers)
+                : overview.visited.new,
             due: sum((p) => p.due),
             done: sum((p) => p.done),
             overdue: sum((p) => p.overdue),

@@ -49,6 +49,8 @@ export default async function NotificationsPage() {
                 <Card className={cn(!row.readAt && "border-primary-light bg-primary-light/40")}>
                   <Link
                     href={text.link}
+                    // A summary's link switches the branch; only a tap may do that.
+                    prefetch={false}
                     className="flex items-center gap-3 p-3.5"
                     data-testid="notification-row"
                   >

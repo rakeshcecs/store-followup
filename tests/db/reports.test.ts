@@ -279,6 +279,26 @@ describe("R2 Salesperson summary", () => {
     expect(t.totals?.conversionPercent).toBe(overview.conversionPercent);
   });
 
+  it("counts a walk-in two people saw as one new customer in the total", async () => {
+    // A day of its own, so the other tests' figures stay as they are.
+    const day = "2035-05-23";
+    await customer("n1", store.salesA.id, store.branchA.id);
+    await visit("n1", store.salesA.id, store.branchA.id, ist(day), "NEW");
+    await visit("n1", store.managerA.id, store.branchA.id, ist(day, "12:00"), "NEW");
+
+    const on = ctx({ range: { from: day, to: day }, today: day });
+    const t = table(await REPORTS.r2.run(on));
+    const row = (name: string) =>
+      t.rows.find((r) => r.cells.salesperson === name)!.cells.newCustomers;
+    expect(row(store.salesA.fullName)).toBe(1);
+    expect(row(store.managerA.fullName)).toBe(1);
+    expect(t.totals?.visits).toBe(2);
+    expect(t.totals?.newCustomers).toBe(1); // the same person, not 1 + 1
+
+    const overview = await loadOverview(on.scope, on.range, day, "en");
+    expect(t.totals?.newCustomers).toBe(overview.visited.new);
+  });
+
   it("department and a salesperson's own view show one row", async () => {
     expect(await count("r2", ctx({ params: { department: saree } }))).toBe(1);
     const own = table(await REPORTS.r2.run(ctx({ self: store.salesA.id })));

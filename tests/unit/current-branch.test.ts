@@ -7,7 +7,7 @@ vi.mock("@/lib/db", () => ({
 
 const { cookies } = await import("next/headers");
 const { db } = await import("@/lib/db");
-const { BRANCH_COOKIE, getCurrentBranch, switchableBranches } =
+const { BRANCH_COOKIE, branchChoiceFor, getCurrentBranch, switchableBranches } =
   await import("@/lib/current-branch");
 const { ALL_BRANCHES } = await import("@/lib/permissions");
 const A = "branch-a";
@@ -103,5 +103,22 @@ describe("switchableBranches", () => {
       status: "ACTIVE",
       id: { in: [A, B] },
     });
+  });
+});
+
+// M14.05: the 8 PM summary's link switches only to a branch the reader may use.
+describe("branchChoiceFor", () => {
+  it("accepts a branch the manager works in, and 'all' for an admin", async () => {
+    branchIsActive(true);
+    await expect(branchChoiceFor(manager, B)).resolves.toBe(B);
+    await expect(branchChoiceFor(admin, ALL_BRANCHES)).resolves.toBe(ALL_BRANCHES);
+  });
+
+  it("refuses another branch, 'all' for a manager, and a switched-off branch", async () => {
+    branchIsActive(true);
+    await expect(branchChoiceFor(manager, "branch-c")).resolves.toBeNull();
+    await expect(branchChoiceFor(manager, ALL_BRANCHES)).resolves.toBeNull();
+    branchIsActive(false);
+    await expect(branchChoiceFor(manager, B)).resolves.toBeNull();
   });
 });

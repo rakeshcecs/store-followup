@@ -13,6 +13,7 @@ import { addDays } from "@/lib/follow-up-dates";
 import { calendarDay } from "@/lib/follow-ups";
 import { isoDate, istMinute } from "@/lib/format";
 import type { JobPayloads, JobType } from "@/lib/jobs/types";
+import { ALL_BRANCHES } from "@/lib/permissions";
 import type { ReminderTimes } from "@/lib/validation/reminders";
 
 export const NOTIFICATION = {
@@ -188,6 +189,10 @@ export async function daySummary(date: string, branchIds: string[] | null): Prom
 const summaryMessage = (prefix: string, s: DaySummary) =>
   `${prefix}${s.visits}:${s.sales}:${s.done}:${s.due}:${s.overdue}`;
 
+// M14.05: a summary names its branch ("Today at Branch B"), so tapping it opens the
+// overview on that branch — see src/app/(app)/overview/branch/route.ts.
+export const overviewLink = (branch: string) => `/overview/branch?to=${encodeURIComponent(branch)}`;
+
 // M14.04: each manager gets one summary per branch they work in (home and extras) — the
 // numbers match what they see with that branch in the switcher (M17.06). Every admin
 // gets one all-branches total.
@@ -214,7 +219,7 @@ export async function createManagerSummaries(date: string): Promise<number> {
         userId: manager.id,
         type: NOTIFICATION.manager,
         message,
-        link: "/overview",
+        link: overviewLink(branch.id),
         prefix,
       });
     }
@@ -227,7 +232,7 @@ export async function createManagerSummaries(date: string): Promise<number> {
         userId: admin.id,
         type: NOTIFICATION.manager,
         message,
-        link: "/overview",
+        link: overviewLink(ALL_BRANCHES),
         prefix,
       });
     }

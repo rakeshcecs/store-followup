@@ -107,6 +107,16 @@ test.describe("store overview", () => {
     const row = page.getByTestId("person-row");
     await expect(row).toHaveCount(1);
     await expect(row).toContainText("E2E Overview Seller");
+    // M12.03: the row opens their follow-ups and, for the same days, their customers.
+    await expect(
+      row.getByRole("link", { name: "E2E Overview Seller", exact: true }),
+    ).toHaveAttribute("href", `/follow-ups?assignedTo=${seller.id}`);
+    const today = isoDate(new Date());
+    await expect(
+      row.getByRole("link", {
+        name: en.overview.people.customersOf.replace("{name}", "E2E Overview Seller"),
+      }),
+    ).toHaveAttribute("href", `/reports/r1?from=${today}&to=${today}&salesperson=${seller.id}`);
 
     const alert = page.getByTestId("alert-long-overdue");
     await expect(alert).toContainText("1 follow-up overdue by more than 3 days");
@@ -129,7 +139,7 @@ test.describe("store overview", () => {
     await expect(page.getByTestId("tile-overdue-value")).toHaveText("1");
 
     // A name opens that salesperson's follow-ups; an alert opens the follow-up.
-    await row.getByRole("link", { name: "E2E Overview Seller" }).click();
+    await row.getByRole("link", { name: "E2E Overview Seller", exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`/follow-ups\\?assignedTo=${seller.id}`));
     await page.goBack();
     await page.getByTestId("alert-long-overdue").getByRole("link").first().click();
