@@ -179,7 +179,7 @@ describe("permissions (M21.05, BR-18)", () => {
     // Every result a salesperson gets says whose it is.
     expect(customers.forModel).toMatchObject({ whose: "only the asker's own records" });
     const sales = await run(store.salesB, "get_sales");
-    expect((sales.forModel as { sales: number }).sales).toBe(0);
+    expect((sales.forModel as { salesCount: number }).salesCount).toBe(0);
   });
 
   it("a manager sees their branch, not the other one", async () => {
@@ -214,7 +214,11 @@ describe("the searches", () => {
 
   it("sales: count, from follow-ups and the amount, with links to the customer", async () => {
     const sales = await run(store.managerA, "get_sales", { from: today, to: today });
-    expect(sales.forModel).toMatchObject({ sales: 1, fromFollowUps: 1, totalAmount: 1000 });
+    expect(sales.forModel).toMatchObject({
+      salesCount: 1,
+      salesFromFollowUps: 1,
+      totalAmount: 1000,
+    });
     expect(sales.table?.rows[0]?.href).toBe(`/customers/${mine.customer.id}`);
     // Never the customer's mobile, to the model or on screen.
     const mobile = (await db.customer.findUniqueOrThrow({ where: { id: mine.customer.id } }))

@@ -2,7 +2,7 @@
 
 import { Mic, Sparkles, X } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useCallback, useState, useTransition } from "react";
+import { useCallback, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FieldError } from "@/components/ui/field-error";
@@ -15,6 +15,10 @@ import type { AiSuggestion } from "@/lib/ai/check";
 import { suggestFields } from "@/lib/actions/ai";
 import { AI_AUDIO_MAX_SECONDS, AI_NOTE_MAX, type AiScreen } from "@/lib/validation/ai";
 import { cn } from "@/lib/utils";
+
+// Held at least this long = "hold to talk": letting go stops. A shorter press is a tap:
+// recording goes on until the next tap (SOW M20.01: "tap the microphone and speak").
+const HOLD_MS = 600;
 
 type AiFillPanelProps = {
   screen: AiScreen;
@@ -76,6 +80,15 @@ export function AiFillPanel({
     onError: onRecorderError,
   });
 
+  // Letting go after a hold stops; after a short tap, recording goes on. If the microphone
+  // was still opening (the phone's permission question), it was never a hold.
+  const pressedAt = useRef(0);
+  function letGo() {
+    const held = pressedAt.current > 0 && Date.now() - pressedAt.current >= HOLD_MS;
+    pressedAt.current = 0;
+    if (held && recorder.recording) recorder.stop();
+  }
+
   // Offline there is no AI to ask (M19), so the button is not offered at all.
   if (!enabled || !online) return null;
 
@@ -119,9 +132,11 @@ export function AiFillPanel({
   const busy = pending || transcribing;
   const micLabel = recorder.recording
     ? t("recording", { seconds: recorder.seconds })
-    : transcribing
-      ? t("transcribing")
-      : t("holdToTalk");
+    : recorder.starting
+      ? t("micOpening")
+      : transcribing
+        ? t("transcribing")
+        : t("talk");
 
   return (
     <Card
@@ -157,7 +172,7 @@ export function AiFillPanel({
             variant="secondary"
             size="sm"
             disabled={busy}
-            aria-pressed={recorder.recording}
+            aria-pressed={recorder.recording || recorder.starting}
             data-testid="ai-mic"
             className={cn(
               "w-auto shrink-0 touch-none select-none",
@@ -165,16 +180,22 @@ export function AiFillPanel({
             )}
             onPointerDown={(event) => {
               event.preventDefault();
+              // A second tap stops.
+              if (recorder.recording || recorder.starting) {
+                pressedAt.current = 0;
+                recorder.stop();
+                return;
+              }
+              pressedAt.current = Date.now();
               void recorder.start();
             }}
-            onPointerUp={recorder.stop}
-            onPointerCancel={recorder.stop}
-            onPointerLeave={() => recorder.recording && recorder.stop()}
+            onPointerUp={letGo}
+            onPointerCancel={letGo}
             onContextMenu={(event) => event.preventDefault()}
             onKeyDown={(event) => {
               if (event.key !== " " && event.key !== "Enter") return;
               event.preventDefault();
-              if (recorder.recording) recorder.stop();
+              if (recorder.recording || recorder.starting) recorder.stop();
               else void recorder.start();
             }}
           >

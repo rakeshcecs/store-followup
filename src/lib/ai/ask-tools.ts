@@ -549,8 +549,9 @@ const getSales: AskToolDef = {
       forModel: {
         from: range.from,
         to: range.to,
-        sales: total,
-        fromFollowUps,
+        onlyFromFollowUps: args.fromFollowUp === true,
+        salesCount: total,
+        salesFromFollowUps: fromFollowUps,
         totalAmount: sum,
         shown: rows.length,
         bills: rows.map((row) => ({

@@ -1482,8 +1482,9 @@
     "fill": "Fill the form",
     "filling": "Filling…",
     "filled": "Form filled — please check before saving",
-    "holdToTalk": "Hold to talk",
-    "recording": "Recording… {seconds}s — release to stop",
+    "talk": "Tap to talk",
+    "micOpening": "Opening the microphone…",
+    "recording": "Recording… {seconds}s — tap to stop",
     "transcribing": "Listening…",
     "check": "Please check",
     "errors": {
@@ -1497,8 +1498,9 @@
       "micDenied": "Microphone not allowed. Allow it in the browser, or type the note.",
       "noAudio": "Nothing was recorded.",
       "audioTooLong": "The recording is too long (60 seconds at most).",
-      "nothingHeard": "Nothing was heard. Hold the button and speak.",
-      "noMic": "No microphone found on this device. Type the note instead."
+      "nothingHeard": "Nothing was heard. Tap the microphone and speak.",
+      "noMic": "No microphone found on this device. Type the note instead.",
+      "silent": "The microphone picked up no sound. Check it is not muted or in use by another app, then try again."
     }
   },
   "ask": {

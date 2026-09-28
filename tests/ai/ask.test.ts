@@ -140,10 +140,26 @@ describe.skipIf(!hasKey)("the model picks the right search (M21 examples)", () =
 describe.skipIf(!hasKey)(
   "the model answers from the results, briefly, in the asker's language",
   () => {
+    // What get_sales answers: with "only from follow-ups" the count is the follow-up sales.
+    const sales = (all: number, fromFollowUps: number) => (args: Record<string, unknown>) => {
+      const only = args["fromFollowUp"] === true;
+      return {
+        from: monthStart,
+        to: today,
+        onlyFromFollowUps: only,
+        salesCount: only ? fromFollowUps : all,
+        salesFromFollowUps: fromFollowUps,
+        totalAmount: 90000,
+        shown: 0,
+        bills: [],
+      };
+    };
+
     async function answer(
       question: string,
       tool: string,
-      result: unknown,
+      // Canned, or built from the filters the model chose (as the real search would be).
+      result: unknown | ((args: Record<string, unknown>) => unknown),
       language: "en" | "hi" | "gu" = "en",
     ) {
       const first = await aiProvider().chat({
@@ -160,7 +176,13 @@ describe.skipIf(!hasKey)(
         { role: "system", content: prompt("MANAGER", language) },
         { role: "user", content: question },
         { role: "assistant", content: null, toolCalls: [call!] },
-        { role: "tool", toolCallId: call!.id, content: JSON.stringify(result) },
+        {
+          role: "tool",
+          toolCallId: call!.id,
+          content: JSON.stringify(
+            typeof result === "function" ? result(JSON.parse(call!.arguments)) : result,
+          ),
+        },
       ];
       const final = await aiProvider().chat({
         messages,
@@ -171,15 +193,11 @@ describe.skipIf(!hasKey)(
     }
 
     it("uses the numbers it was given, and says when the list was cut", async () => {
-      const text = await answer("How many sales came from follow-ups this month?", "get_sales", {
-        from: monthStart,
-        to: today,
-        sales: 132,
-        fromFollowUps: 47,
-        totalAmount: 1234500,
-        shown: 50,
-        bills: [],
-      });
+      const text = await answer(
+        "How many sales came from follow-ups this month?",
+        "get_sales",
+        sales(132, 47),
+      );
       expect(text).toMatch(/47/);
       expect(text.length).toBeLessThan(400);
     });
@@ -188,15 +206,7 @@ describe.skipIf(!hasKey)(
       const text = await answer(
         "इस महीने फ़ॉलो-अप से कितनी बिक्री हुई?",
         "get_sales",
-        {
-          from: monthStart,
-          to: today,
-          sales: 12,
-          fromFollowUps: 5,
-          totalAmount: 90000,
-          shown: 12,
-          bills: [],
-        },
+        sales(12, 5),
         "hi",
       );
       expect(text).toMatch(/[ऀ-ॿ]/);

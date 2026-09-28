@@ -61,8 +61,32 @@ const names = (option: NamedOption) =>
     .filter((n, i, all) => n.trim() && all.indexOf(n) === i)
     .join(" / ");
 
+// The relative words a note uses, already turned into days. Found on a Monday (28 Sep
+// 2026): left to work them out, the model put "agle hafte" on today and "kal subah call
+// karna" on yesterday, and its worked example was pinned to a Friday in the past.
+export function relativeDays(today: string) {
+  const weekday = new Date(`${today}T00:00:00.000Z`).getUTCDay(); // 0 = Sunday
+  const coming = (day: number) => addDays(today, (day - weekday + 7) % 7 || 7);
+  const [year, month, date] = today.split("-").map(Number) as [number, number, number];
+  // Same date next month, or that month's last day (31 Jan → 28/29 Feb).
+  const lastOfNext = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  const nextMonth = new Date(Date.UTC(year, month, Math.min(date, lastOfNext)))
+    .toISOString()
+    .slice(0, 10);
+  return {
+    tomorrow: addDays(today, 1),
+    dayAfter: addDays(today, 2),
+    nextMonday: coming(1),
+    nextMonth,
+    // For the worked example: a call on Saturday before a visit on Sunday.
+    saturday: weekday === 6 ? today : coming(6),
+    sunday: coming(0),
+  };
+}
+
 export function buildFillPrompt(ctx: PromptContext): { system: string; user: string } {
   const days = Array.from({ length: 21 }, (_, offset) => dayLine(addDays(ctx.today, offset)));
+  const rel = relativeDays(ctx.today);
   const festivals =
     ctx.festivals.length > 0
       ? ctx.festivals.map((f) => `${f.name} = ${f.date}`).join("; ")
@@ -80,12 +104,12 @@ export function buildFillPrompt(ctx: PromptContext): { system: string; user: str
     ``,
     `Rules:`,
     `- Use only ids from the lists above. Pick every category the note supports; none fits → empty list.`,
-    `- Dates are YYYY-MM-DD, today or later, taken from the day list. "next Sunday" / "Sunday" = the coming Sunday (today if today is Sunday and the note says today). "Saturday evening" = the coming Saturday, timeSlot EVENING. "10 din baad" / "after 10 days" = today + 10. "agle hafte" = next Monday. "agle mahine" = one month from today. "after <festival>" = the day after that festival; "before <festival>" = about a week before it.`,
+    `- Dates are YYYY-MM-DD, today or later, taken from the day list. Worked out for today: "aaj" / "today" = ${ctx.today}; "kal" / "tomorrow" = ${rel.tomorrow} (in a plan "kal" is ALWAYS tomorrow, never yesterday); "parso" / "day after tomorrow" = ${rel.dayAfter}; "agle hafte" / "next week" with no day named = ${rel.nextMonday} (Monday of next week, never today); "agle mahine" / "next month" = ${rel.nextMonth}. "next Sunday" / "Sunday" = the coming Sunday (today only if today is Sunday and the note says today). "Saturday evening" = the coming Saturday, timeSlot EVENING. "10 din baad" / "after 10 days" = today + 10. "after <festival>" = the day after that festival; "before <festival>" = about a week before it.`,
     `- contact = a call or WhatsApp message the STAFF must make, exactly as the note asks ("call him Saturday evening" → contact.date = that Saturday, timeSlot EVENING, method CALL, reason = what the call is about). Null when the note asks for no call or message.`,
     `- visit = the day the CUSTOMER said they will come to the store ("will come Sunday with family" → visit.date = that Sunday). Null when no visit day is mentioned. Fill BOTH slots when the note has both; never move the call to the visit day.`,
     `- Time words: morning/subah/savar → MORNING, afternoon/dopahar → AFTERNOON, evening/shaam/sanj → EVENING; nothing said → EVENING.`,
     `- outcome (Record visit only): PURCHASED only if they bought today; NOT_INTERESTED only when they clearly will not buy; DECIDE_LATER whenever they will think it over, come back, or want a call or message — a note that plans any contact or visit is DECIDE_LATER; null only when the note says nothing about it. On Record visit, result is always null.`,
-    `- Example (Record visit, today Friday 25 Sep 2026): "Customer ko wedding sherwani pasand aayi, Sunday family ke saath aayega, Saturday evening call karna" → categoryIds: the sherwani and wedding categories; outcome: DECIDE_LATER; contact: { date: 2026-09-26, timeSlot: EVENING, method: CALL, reason: "Confirm Sunday visit with family" }; visit: { date: 2026-09-27, timeSlot: EVENING }; intent: WARM; result: null.`,
+    `- Example (Record visit, with today's dates): "Customer ko wedding sherwani pasand aayi, Sunday family ke saath aayega, Saturday evening call karna" → categoryIds: the sherwani and wedding categories; outcome: DECIDE_LATER; contact: { date: ${rel.saturday}, timeSlot: EVENING, method: CALL, reason: "Confirm Sunday visit with family" }; visit: { date: ${rel.sunday}, timeSlot: EVENING }; intent: WARM; result: null.`,
     `- expectedPurchase: ${EXPECTED_PURCHASE.join(" | ")} from words like "is hafte", "next month", "shaadi December mein"; null when not said.`,
     `- remarks: the note tidied up (spelling, punctuation), same language and script the staff used, first person removed, no phone numbers, at most 400 characters. Never add facts that are not in the note.`,
     `- intent: HOT = keen, buying within days; WARM = interested, will come back; COLD = unlikely; null when unclear.`,
@@ -189,4 +213,20 @@ export function transcribePrompt(storeName: string, categories: NamedOption[]): 
     .slice(0, 30)
     .join(", ");
   return `${storeName}. Indian clothing store: ${words}. Hinglish and Gujarati mixed with English are normal.`;
+}
+
+// A silent or noise-only clip comes back as the hint itself ("Deepak Silk. Indian clothing
+// store: Wedding Clothes, …" — seen from an Android phone, 28 Sep 2026, and reproduced with
+// a silent WAV). Such an answer is not what was said.
+export function isHintEcho(text: string, hint: string): boolean {
+  const plain = (value: string) =>
+    value
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}]+/gu, " ")
+      .trim();
+  const said = plain(text);
+  const prompt = plain(hint);
+  if (!said) return false;
+  const opening = prompt.split(" ").slice(0, 5).join(" "); // store name + "indian clothing store"
+  return said.startsWith(opening) || (said.length >= 30 && prompt.includes(said));
 }

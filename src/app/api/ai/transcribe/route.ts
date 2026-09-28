@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import { transcribePrompt } from "@/lib/ai/prompt";
+import { isHintEcho, transcribePrompt } from "@/lib/ai/prompt";
 import { aiConfigured, aiProvider } from "@/lib/ai/provider";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -55,14 +55,24 @@ export async function POST(request: Request) {
       : audio.type.includes("ogg")
         ? "ogg"
         : "webm";
+    const prompt = transcribePrompt(tApp("storeName"), categories);
     const { text } = await aiProvider().transcribe({
       audio,
       fileName: `note.${extension}`,
       language: userLanguage,
-      prompt: transcribePrompt(tApp("storeName"), categories),
+      prompt,
     });
-    logger.info("ai.transcribe_done", { ms: Date.now() - started, chars: text.length });
-    if (!text) return reply({ error: "ai.errors.nothingHeard" }, 422);
+    // A clip with nothing said in it comes back as the hint: that is not the note.
+    const echo = isHintEcho(text, prompt);
+    logger.info("ai.transcribe_done", {
+      ms: Date.now() - started,
+      chars: text.length,
+      bytes: audio.size,
+      type: audio.type,
+      seconds,
+      echo,
+    });
+    if (!text || echo) return reply({ error: "ai.errors.nothingHeard" }, 422);
     return reply({ text });
   } catch (error) {
     logger.warn("ai.transcribe_failed", { ms: Date.now() - started, error: String(error) });

@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { acceptedAsSuggested, checkSuggestion, isEmptySuggestion } from "@/lib/ai/check";
-import { buildFillPrompt, dayLine, FILL_FORM_TOOL, transcribePrompt } from "@/lib/ai/prompt";
+import {
+  buildFillPrompt,
+  dayLine,
+  FILL_FORM_TOOL,
+  isHintEcho,
+  relativeDays,
+  transcribePrompt,
+} from "@/lib/ai/prompt";
 import { istDayStart } from "@/lib/ai/suggest";
+import { addDays, followUpShortcut } from "@/lib/follow-up-dates";
 import {
   aiFinalValues,
   aiSettingsInput,
@@ -333,5 +341,84 @@ describe("input schemas", () => {
         false,
       );
     }
+  });
+});
+
+// Found on an Android phone (28 Sep 2026): a clip with no sound came back as the hint.
+describe("isHintEcho", () => {
+  const categories = ["Wedding Clothes", "Sherwani", "Suit"].map((nameEn) => ({
+    id: nameEn,
+    nameEn,
+    nameHi: "",
+    nameGu: "",
+  }));
+  const hint = transcribePrompt("Deepak Silk", categories);
+
+  it("recognises the hint coming back, whole or in part", () => {
+    expect(isHintEcho(hint, hint)).toBe(true);
+    expect(isHintEcho("Deepak Silk. Indian clothing store: Wedding Clothes, Sherwani.", hint)).toBe(
+      true,
+    );
+    expect(isHintEcho("deepak silk, indian clothing store", hint)).toBe(true);
+    expect(isHintEcho("Hinglish and Gujarati mixed with English are normal.", hint)).toBe(true);
+  });
+
+  it("lets real notes through, even ones that name a category or the store", () => {
+    expect(isHintEcho("Customer ko wedding sherwani pasand aayi, Sunday aayega.", hint)).toBe(
+      false,
+    );
+    expect(isHintEcho("Sherwani", hint)).toBe(false);
+    expect(isHintEcho("Deepak Silk se suit liya tha, ab sherwani chahiye", hint)).toBe(false);
+    expect(isHintEcho("", hint)).toBe(false);
+  });
+});
+
+// Found on a Monday (28 Sep 2026): the model put "agle hafte" on today and "kal" on
+// yesterday. The prompt now carries these days worked out.
+describe("relativeDays", () => {
+  it("on a Monday, next week is a week away and tomorrow is Tuesday", () => {
+    expect(relativeDays("2026-09-28")).toEqual({
+      tomorrow: "2026-09-29",
+      dayAfter: "2026-09-30",
+      nextMonday: "2026-10-05",
+      nextMonth: "2026-10-28",
+      saturday: "2026-10-03",
+      sunday: "2026-10-04",
+    });
+  });
+
+  it("matches the app's own Next week shortcut on every day of the week", () => {
+    for (let i = 0; i < 7; i++) {
+      const day = addDays("2026-09-28", i);
+      expect(relativeDays(day).nextMonday).toBe(followUpShortcut("NEXT_WEEK", day));
+    }
+  });
+
+  it("on a Saturday the example's call is today, before Sunday's visit; month ends clamp", () => {
+    expect(relativeDays("2026-09-26")).toMatchObject({
+      saturday: "2026-09-26",
+      sunday: "2026-09-27",
+    });
+    expect(relativeDays("2026-01-31").nextMonth).toBe("2026-02-28");
+    expect(relativeDays("2026-12-15").nextMonth).toBe("2027-01-15");
+  });
+
+  it("goes into the prompt with today's dates, not a fixed example day", () => {
+    const { system } = buildFillPrompt({
+      screen: "visit",
+      storeName: "Deepak Silk",
+      today: "2026-09-28",
+      festivals: [],
+      categories: [],
+      reasons: [],
+      customerFirstName: "Ramesh",
+      enquiryTitle: null,
+      language: "en",
+      text: "note",
+    });
+    expect(system).toContain('"kal" / "tomorrow" = 2026-09-29');
+    expect(system).toContain('next week" with no day named = 2026-10-05');
+    expect(system).toContain("contact: { date: 2026-10-03");
+    expect(system).not.toContain("25 Sep 2026");
   });
 });
