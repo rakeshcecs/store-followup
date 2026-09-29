@@ -38,7 +38,8 @@ export function PinForm({ askCurrentPin, nextHref }: PinFormProps) {
   };
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
+    // method="post": sent before the JavaScript loads, a GET would put the PINs in the URL.
+    <form method="post" onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
       {askCurrentPin && (
         <TextInput
           name="currentPin"

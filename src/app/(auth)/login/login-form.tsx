@@ -64,7 +64,9 @@ export function LoginForm() {
   const errorFor = (field: string) => (errors[field] ? tError(errors[field]) : undefined);
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
+    // method="post": pressed before the page's JavaScript has loaded, the browser sends the
+    // form itself, and a GET would put the PIN in the address bar and history.
+    <form method="post" onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
       {/* Whatever they picked with the switcher above is saved onto their account. */}
       <input type="hidden" name="language" value={locale} />
 

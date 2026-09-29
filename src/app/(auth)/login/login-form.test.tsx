@@ -52,6 +52,12 @@ describe("LoginForm", () => {
     expect(pin).toHaveAttribute("maxLength", "4");
   });
 
+  it("posts the form, so a press before the JavaScript loads keeps the PIN out of the URL", () => {
+    const { container } = renderForm();
+
+    expect(container.querySelector("form")).toHaveAttribute("method", "post");
+  });
+
   it("shows both field errors at once, without calling the server", async () => {
     renderForm();
 
