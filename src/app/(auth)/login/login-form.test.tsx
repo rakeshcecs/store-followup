@@ -105,6 +105,21 @@ describe("LoginForm", () => {
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/branches"));
   });
 
+  it.each(["https://example.com/x", "//example.com/x", "/\\example.com/x"])(
+    "never leaves the app for a next of %s",
+    async (next) => {
+      searchParams.set("next", next);
+      loginAction.mockResolvedValue({ ok: true, data: { role: "ADMIN", mustChangePin: false } });
+      renderForm();
+
+      await userEvent.type(screen.getByLabelText(en.auth.fields.mobile), "9876543210");
+      await userEvent.type(screen.getByLabelText(en.auth.fields.pin), "4839");
+      await userEvent.click(screen.getByRole("button", { name: en.auth.logIn }));
+
+      await waitFor(() => expect(replace).toHaveBeenCalledWith("/"));
+    },
+  );
+
   it("shows the server's message when the PIN is wrong", async () => {
     loginAction.mockResolvedValue({
       ok: false,

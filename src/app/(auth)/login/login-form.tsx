@@ -24,6 +24,15 @@ function clearOldOfflineCopy(): void {
   }
 }
 
+// proxy.ts only ever sends a path of this app. Anything else ("https://…", "//host",
+// "/\host") would take a fresh login off to another site, so it goes to "/" instead.
+function safeNextPath(next: string | null): string {
+  if (!next || !next.startsWith("/") || next.startsWith("//") || next.startsWith("/\\")) {
+    return "/";
+  }
+  return next;
+}
+
 export function LoginForm() {
   const t = useTranslations("auth");
   const tError = useErrorMessage();
@@ -48,7 +57,7 @@ export function LoginForm() {
         return;
       }
       // "/" sends each role to its own screen, so this needs no role table of its own.
-      router.replace(nextPath ?? "/");
+      router.replace(safeNextPath(nextPath));
     },
   );
 
